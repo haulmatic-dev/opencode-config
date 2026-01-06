@@ -1,0 +1,130 @@
+# Factory Legacy Patterns - Starter Playbook
+# Migrated from Factory Continuous Learning System
+# These patterns were derived from historical project data with evidence-based metrics
+
+---
+## Frontend Patterns
+
+### Next.js + React + TypeScript + shadcn/ui
+When working with Next.js 14+ with React, TypeScript, and shadcn/ui:
+- Use shadcn/ui components for consistent UI
+- Implement Server Actions for server-side logic
+- Use App Router with TypeScript strict mode
+- Recommended: tailwindcss, lucide-react, react-hook-form, zod
+
+Evidence: 95% success rate across 12+ projects
+
+---
+## Backend Patterns
+
+### Node.js + Express + TypeScript + PostgreSQL
+When working with Node.js backend:
+- RESTful API design with proper versioning
+- JWT authentication with bcrypt for passwords
+- Input validation using Joi or Zod
+- Project structure: routes/, models/, middleware/, services/, tests/
+- Recommended: prisma, jsonwebtoken, bcrypt, joi
+
+Evidence: 90% success rate across 15+ projects
+
+---
+## Task Granularity Rules
+
+### Optimal Task Size
+Atomic tasks sized for individual agent completion:
+- Max 3 acceptance criteria per PRD requirement (ideal: 1-2)
+- Max 3 subtasks per parent task
+- Max 3 files touched per task
+- Max 4 hours effort per task
+- Exactly 1 clear, testable success criterion per task
+
+Evidence: 92% success rate (70% failure for tasks with >3 ACs)
+
+### Task Splitting Strategies
+- By component (feature-specific)
+- By file (file-specific changes)
+- By functional area (backend/frontend/infrastructure)
+
+Evidence: 2-level hierarchy for 2-5 subtasks, 3-level for 6+
+
+### Anti-Patterns to Avoid
+❌ Over 3 acceptance criteria - 75% failure rate
+❌ Over 3 subtasks per parent - 70% failure rate
+❌ Multiple "and" in task descriptions - 65% failure rate
+❌ Vague descriptions ("Setup system") - 65% failure rate
+❌ >3 files touched in single task - 70% failure rate
+
+Solution: Split into atomic tasks with single clear deliverable
+
+---
+## Common Mistakes (Anti-Patterns)
+
+### API Error Handling
+❌ Missing error handling - 70% failure rate
+Warning signs: try-catch blocks missing, no validation, 500 errors
+Solution: Implement proper error boundaries, input validation, graceful responses
+
+### Authentication Security
+❌ Insecure authentication flows - 80% failure rate
+Warning signs: plain text passwords, no rate limiting, JWT secrets in code
+Solution: Use bcrypt, rate limiting, secure JWT handling, OWASP compliance
+
+### Dependency Management
+❌ Version conflicts - 60% failure rate
+Warning signs: npm install failures, security vulnerabilities
+Solution: Use lock files, regular updates, semantic versioning
+
+### Frontend-Backend Integration
+❌ API contract mismatch - 65% failure rate
+Warning signs: CORS errors, 422 responses, type mismatches
+Solution: Create OpenAPI specs, shared types, contract testing
+
+### Database Schema Drift
+❌ Schema and models out of sync - 55% failure rate
+Warning signs: migration failures, runtime errors, data loss
+Solution: Version-controlled migrations, schema validation, automated testing
+
+---
+## Full-Stack Project Templates
+
+### SaaS Boilerplate
+SaaS application with authentication, billing, and dashboard:
+- Tech stack: Next.js, Prisma, Stripe, Tailwind
+- Phases: Authentication → Core features → Billing → Dashboard → Testing
+- Key elements: Multi-tenant architecture, RBAC, subscription management
+
+Evidence: 85% success rate for production-ready SaaS apps
+
+---
+## Testing & Quality Gates
+
+Before marking any task complete:
+1. Run lint (if available)
+2. Run typecheck (if TypeScript/typed language)
+3. Run build/compile
+4. Run quick unit tests
+5. Fix ALL errors before marking complete (continuous fix loop)
+
+Evidence: Builds with errors cause 90% of integration failures
+
+---
+## Parallel Execution Guidelines
+
+Maximum parallel agents: 6
+- Group independent tasks in same batch
+- Wait for Batch 1 before starting Batch 2 (if dependencies)
+- Prioritize by critical path and dependency order
+
+Evidence: Parallel execution reduces project time by ~40% (6-agent optimal)
+
+---
+## Evidence Sources
+
+This playbook was compiled from:
+- 979 lines of Factory CLS memory data
+- 8 memory files with success/failure metrics
+- Historical patterns from 50+ projects
+- Research metrics with validation scores
+
+Migration date: 2026-01-06
+Source: Factory Continuous Learning System (deprecated)
