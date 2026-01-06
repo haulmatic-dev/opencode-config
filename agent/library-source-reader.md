@@ -276,44 +276,7 @@ Your research success is measured by:
 Your specialized library-source intelligence enables the enhanced orchestrator to make technology decisions based on deep technical understanding rather than surface-level documentation, significantly improving success rates and risk avoidance for technology integration.
 
 ---
-## 🤖 MCP Agent Mail Integration
-
-**Status**: library-source-reader integrates with MCP Agent Mail for agent-to-agent communication when available.
-
-### Session Initialization
-
-**On session start, library-source-reader attempts to register with MCP Agent Mail:**
-
-````python
-import sys
-sys.path.insert(0, '\''/Users/buddhi/.config/opencode/agent'\'')
-from mcp_agent_mail_client import register_agent, get_project_key
-import os
-
-# Register library-source-reader as an agent
-USE_MCP = False
-try:
-    result = await register_agent(
-        mcp_client,  # MCP client from droid context
-        project_key=get_project_key(),  # Git repo slug or working dir
-        agent_name="library-source-reader",
-        model=os.getenv("MODEL_NAME", "unknown"),
-        task_description="Third-party library source code investigation and feature discovery"
-    )
-    if result["success"]:
-        print("✓ Registered with MCP Agent Mail as agent: library-source-reader")
-        USE_MCP = True
-    else:
-        print(f"❌ MCP Agent Mail registration failed: {result.get('\''error'\'', '\''Unknown error'\'')}")
-        raise RuntimeError("Library-source-reader requires MCP Agent Mail to function")
-except Exception as e:
-    print(f"❌ MCP Agent Mail not available: {str(e)}")
-    raise RuntimeError("Library-source-reader requires MCP Agent Mail to function")
-````
-
-**IMPORTANT:** MCP Agent Mail is REQUIRED. If registration fails, library-source-reader will raise an error.
-
-### Message Formats
+## Message Formats
 
 **Library-source-reader uses standard message format when sending library analysis results:**
 

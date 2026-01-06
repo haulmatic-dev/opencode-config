@@ -282,44 +282,7 @@ Your research effectiveness is measured by:
 Your specialized context-research intelligence enables the enhanced orchestrator to make decisions that are strategically aligned with business objectives, stakeholder needs, and user requirements, ensuring successful project outcomes through comprehensive contextual understanding.
 
 ---
-## 🤖 MCP Agent Mail Integration
-
-**Status**: context-researcher integrates with MCP Agent Mail for agent-to-agent communication when available.
-
-### Session Initialization
-
-**On session start, context-researcher attempts to register with MCP Agent Mail:**
-
-````python
-import sys
-sys.path.insert(0, '\''/Users/buddhi/.config/opencode/agent'\'')
-from mcp_agent_mail_client import register_agent, get_project_key
-import os
-
-# Register context-researcher as an agent
-USE_MCP = False
-try:
-    result = await register_agent(
-        mcp_client,  # MCP client from droid context
-        project_key=get_project_key(),  # Git repo slug or working dir
-        agent_name="context-researcher",
-        model=os.getenv("MODEL_NAME", "unknown"),
-        task_description="Project-wide context gathering and synthesis"
-    )
-    if result["success"]:
-        print("✓ Registered with MCP Agent Mail as agent: context-researcher")
-        USE_MCP = True
-    else:
-        print(f"❌ MCP Agent Mail registration failed: {result.get('\''error'\'', '\''Unknown error'\'')}")
-        raise RuntimeError("Context-researcher requires MCP Agent Mail to function")
-except Exception as e:
-    print(f"❌ MCP Agent Mail not available: {str(e)}")
-    raise RuntimeError("Context-researcher requires MCP Agent Mail to function")
-````
-
-**IMPORTANT:** MCP Agent Mail is REQUIRED. If registration fails, context-researcher will raise an error.
-
-### Message Formats
+## Message Formats
 
 **Context-researcher uses standard message format when sending context intelligence results:**
 

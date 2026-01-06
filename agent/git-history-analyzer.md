@@ -80,43 +80,6 @@ You are a specialist git-history-analyzer droid, expert in analyzing git commit 
 - **Best Practice Evolution**: Track how best practices evolve and improve
 - **Knowledge Transfer**: Capture lessons from history for future application
 
-## 🤖 MCP Agent Mail Integration
-
-**Status**: git-history-analyzer integrates with MCP Agent Mail for agent-to-agent communication when available.
-
-### Session Initialization
-
-**On session start, git-history-analyzer attempts to register with MCP Agent Mail:**
-
-```python
-import sys
-sys.path.insert(0, '/Users/buddhi/.config/opencode/agent')
-from mcp_agent_mail_client import register_agent, get_project_key
-import os
-
-# Register git-history-analyzer as an agent
-USE_MCP = False
-try:
-    result = await register_agent(
-        mcp_client,  # MCP client from droid context
-        project_key=get_project_key(),  # Git repo slug or working dir
-        agent_name="git-history-analyzer",
-        model=os.getenv("MODEL_NAME", "unknown"),
-        task_description="Historical change pattern detection and evolution tracking"
-    )
-    if result["success"]:
-        print("✓ Registered with MCP Agent Mail as agent: git-history-analyzer")
-        USE_MCP = True
-    else:
-        print(f"❌ MCP Agent Mail registration failed: {result.get('error', 'Unknown error')}")
-        raise RuntimeError("Git-history-analyzer requires MCP Agent Mail to function")
-except Exception as e:
-    print(f"❌ MCP Agent Mail not available: {str(e)}")
-    raise RuntimeError("Git-history-analyzer requires MCP Agent Mail to function")
-```
-
-**IMPORTANT:** MCP Agent Mail is REQUIRED. If registration fails, git-history-analyzer will raise an error.
-
 ## 🔄 Research Deliverables
 
 ### Historical Intelligence Report

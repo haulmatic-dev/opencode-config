@@ -61,77 +61,6 @@ After completion, consider updating memory files with:
 - Track assignment strategies that worked well
 - Integration point patterns for similar features
 
----
-## MCP Agent Mail Integration
-
-**Status:** Generate-tasks droid integrates with MCP Agent Mail for agent-to-agent messaging and notifications.
-
-### Session Initialization
-
-**On session start, generate-tasks droid attempts to register with MCP Agent Mail:**
-
-```python
-import sys
-sys.path.insert(0, '/Users/buddhi/.config/opencode/agent')
-from mcp_agent_mail_client import register_agent, send_message, get_project_key
-import os
-
-# Register generate-tasks droid as an agent
-USE_MCP = False
-try:
-    result = await register_agent(
-        mcp_client,  # MCP client from droid context
-        project_key=get_project_key(),  # Git repo slug or working dir
-        agent_name="generate-tasks",
-        model=os.getenv("MODEL_NAME", "unknown"),
-        task_description="Parallel task breakdown specialist optimized for team velocity"
-    )
-    if result["success"]:
-        print("✓ Registered with MCP Agent Mail as agent: generate-tasks")
-        USE_MCP = True
-    else:
-        print(f"❌ MCP Agent Mail registration failed: {result.get('error', 'Unknown error')}")
-        raise RuntimeError("Generate-tasks droid requires MCP Agent Mail to function")
-except Exception as e:
-    print(f"❌ MCP Agent Mail not available: {str(e)}")
-    raise RuntimeError("Generate-tasks droid requires MCP Agent Mail to function")
-```
-
-**IMPORTANT:** MCP Agent Mail is REQUIRED. If registration fails, generate-tasks droid will raise an error.
-
-### Message Formats
-
-**Generate-tasks droid uses standard message format when sending task breakdown results:**
-
-```json
-// Task Breakdown Completed
-{
-  "type": "task_breakdown_completed",
-  "prd_file": "/path/to/prd-feature-x.md",
-  "tasks_file": "/path/to/tasks-feature-x.md",
-  "total_tasks": 25,
-  "parallel_tracks": 3,
-  "estimated_weeks": 3,
-  "critical_path_tasks": 5
-}
-```
-
----
-## CORE PRINCIPLES
-
-1. **Maximize Parallelism** - Identify tasks that can run concurrently
-2. **Explicit Dependencies** - Every task declares what it depends on and what it blocks
-3. **Independent Tracks** - Group tasks into swimlanes that can be assigned to different developers
-4. **Integration Points** - Add explicit tasks to connect independently developed components
-5. **Critical Path Awareness** - Identify the longest dependency chain that determines minimum timeline
-6. **Task Atomicity** - Every task must be small enough for one agent to complete in one session
-
----
-## OUTPUT STRUCTURE
-
-### 1. Parallelism Summary (FIRST)
-
-```markdown
 ## Parallelism Summary
 
 **Tracks:** 3 independent workstreams
@@ -485,39 +414,6 @@ bv --robot-insights
 ```
 
 Generate the COMPLETE hierarchy in one output with all tracks, dependencies, integration points, and timeline visualization.
-
-## Implementation Note: Task Breakdown Completion Messages
-
-After successfully generating and writing the tasks file, send a completion notification to the orchestrator:
-
-```python
-# After task generation completes and file is written
-if USE_MCP:
-    try:
-        from mcp_agent_mail_client import send_message, get_project_key
-        import os
-
-        result = await send_message(
-            mcp_client,
-            project_key=get_project_key(),
-            sender_name="generate-tasks",
-            recipient_name="orchestrator",
-            content={
-                "type": "task_breakdown_completed",
-                "prd_file": prd_file_path,
-                "tasks_file": tasks_file_path,
-                "total_tasks": len(all_tasks),
-                "parallel_tracks": len(parallel_tracks),
-                "estimated_weeks": estimated_duration_weeks,
-                "critical_path_tasks": len(critical_path_task_ids),
-                "has_integration_points": len(integration_tasks) > 0
-            },
-            importance="high"
-        )
-
-        if result["success"]:
-            print(f"✓ Task breakdown completion message sent to orchestrator")
-        else:
             print(f"❌ Failed to send completion message: {result.get('error')}")
     except Exception as e:
         print(f"❌ Error sending task breakdown completion message: {str(e)}")

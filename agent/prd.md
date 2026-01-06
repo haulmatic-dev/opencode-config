@@ -46,65 +46,6 @@ INTELLIGENCE GATHERING ACTIONS:
 4. **Industry Research** → Guide compliance and best practices sections
 
 ### Orchestrator Coordination Note
-
-When invoked by the orchestrator with pre-gathered research (from context-researcher, domain-specialist, best-practices-researcher, codebase-researcher), incorporate that intelligence directly into your PRD creation process.
-
----
-## WORKFLOW
-
-### Session Initialization
-
-**On session start, PRD droid attempts to register with MCP Agent Mail:**
-
-```python
-import sys
-sys.path.insert(0, '/Users/buddhi/.config/opencode/agent')
-from mcp_agent_mail_client import register_agent, send_message, get_project_key
-import os
-
-# Register PRD droid as an agent
-USE_MCP = False
-try:
-    result = await register_agent(
-        mcp_client,  # MCP client from droid context
-        project_key=get_project_key(),  # Git repo slug or working dir
-        agent_name="prd",
-        model=os.getenv("MODEL_NAME", "unknown"),
-        task_description="Product Requirements Document generation with Figma integration"
-    )
-    if result["success"]:
-        print("✓ Registered with MCP Agent Mail as agent: prd")
-        USE_MCP = True
-    else:
-        print(f"❌ MCP Agent Mail registration failed: {result.get('error', 'Unknown error')}")
-        raise RuntimeError("PRD droid requires MCP Agent Mail to function")
-except Exception as e:
-    print(f"❌ MCP Agent Mail not available: {str(e)}")
-    raise RuntimeError("PRD droid requires MCP Agent Mail to function")
-```
-
-**IMPORTANT:** MCP Agent Mail is REQUIRED. If registration fails, PRD droid will raise an error.
-
-### Message Formats
-
-**PRD droid uses standard message format when notifying of PRD completion:**
-
-```json
-// PRD Completion Notification
-{
-  "type": "prd_completion",
-  "prd_title": "Feature X PRD",
-  "prd_file": "/path/to/prd-feature-x.md",
-  "status": "ready_for_implementation",
-  "word_count": 5000,
-  "has_figma_design": true,
-  "requirements_count": 15,
-  "acceptance_criteria_count": 25
-}
-```
-
----
-### PHASE 1: Context Gathering (Silent Analysis)
 Execute the Intelligence Gathering actions above using your available tools. Read memory files, analyze the codebase, and research best practices. Synthesize findings to inform your clarifying questions and PRD content. This phase is silent—do not expose research details to the user unless specifically asked.
 
 Additionally:
@@ -525,39 +466,4 @@ After generating, perform these checks:
 10. **ALWAYS traverse nested components for annotations** - Do NOT stop at top-level annotations. Recursively traverse ALL nested components, instances, frames, and groups to capture every annotation in the design hierarchy. Missing nested annotations is a critical failure.
 11. **ALWAYS incorporate annotation content into the PRD** - Extracted annotations MUST be used to populate PRD sections. Do NOT just collect annotations and ignore them. Every annotation should map to a specific PRD section (requirements, edge cases, design specs, etc.). The PRD should reflect the specific details from annotations, not generic placeholder content.
 
-## Implementation Note: PRD Completion Messages
-
-After successfully generating and writing the PRD file, send a completion notification to the orchestrator:
-
-```python
-# After PRD generation completes and file is written
-if USE_MCP:
-    try:
-        from mcp_agent_mail_client import send_message, get_project_key
-        import os
-
-        result = await send_message(
-            mcp_client,
-            project_key=get_project_key(),
-            sender_name="prd",
-            recipient_name="orchestrator",
-            content={
-                "type": "prd_completion",
-                "prd_title": prd_title,
-                "prd_file": prd_file_path,
-                "status": "ready_for_implementation",
-                "word_count": len(prd_content.split()),
-                "has_figma_design": figma_context is not None,
-                "requirements_count": len(functional_requirements),
-                "acceptance_criteria_count": total_ac_count
-            },
-            importance="high"
-        )
-
-        if result["success"]:
-            print(f"✓ PRD completion message sent to orchestrator")
-        else:
-            print(f"❌ Failed to send completion message: {result.get('error')}")
-    except Exception as e:
-        print(f"❌ Error sending PRD completion message: {str(e)}")
 ```

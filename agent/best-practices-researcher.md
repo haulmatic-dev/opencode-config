@@ -271,44 +271,7 @@ Your research contribution is measured by:
 Your specialized best-practices research ensures the enhanced orchestrator makes informed decisions based on proven approaches, avoids common pitfalls, and achieves optimal outcomes through evidence-based guidance from industry successes.
 
 ---
-## 🤖 MCP Agent Mail Integration
-
-**Status**: best-practices-researcher integrates with MCP Agent Mail for agent-to-agent communication when available.
-
-### Session Initialization
-
-**On session start, best-practices-researcher attempts to register with MCP Agent Mail:**
-
-````python
-import sys
-sys.path.insert(0, '\''/Users/buddhi/.config/opencode/agent'\'')
-from mcp_agent_mail_client import register_agent, get_project_key
-import os
-
-# Register best-practices-researcher as an agent
-USE_MCP = False
-try:
-    result = await register_agent(
-        mcp_client,  # MCP client from droid context
-        project_key=get_project_key(),  # Git repo slug or working dir
-        agent_name="best-practices-researcher",
-        model=os.getenv("MODEL_NAME", "unknown"),
-        task_description="Industry standards and proven approach discovery"
-    )
-    if result["success"]:
-        print("✓ Registered with MCP Agent Mail as agent: best-practices-researcher")
-        USE_MCP = True
-    else:
-        print(f"❌ MCP Agent Mail registration failed: {result.get('\''error'\'', '\''Unknown error'\'')}")
-        raise RuntimeError("Best-practices-researcher requires MCP Agent Mail to function")
-except Exception as e:
-    print(f"❌ MCP Agent Mail not available: {str(e)}")
-    raise RuntimeError("Best-practices-researcher requires MCP Agent Mail to function")
-````
-
-**IMPORTANT:** MCP Agent Mail is REQUIRED. If registration fails, best-practices-researcher will raise an error.
-
-### Message Formats
+## Message Formats
 
 **Best-practices-researcher uses standard message format when sending best practices research results:**
 
