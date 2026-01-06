@@ -1,0 +1,60 @@
+{
+  "nextjs-fullstack": {
+    "name": "Next.js Full-Stack Application",
+    "complexity": "medium",
+    "estimated_setup_time": "30 minutes",
+    "tech_stack": {
+      "frontend": ["Next.js 14", "React 18", "TypeScript", "Tailwind CSS", "shadcn/ui"],
+      "backend": ["Node.js", "Prisma", "PostgreSQL", "tRPC"],
+      "auth": ["NextAuth.js", "bcrypt"],
+      "testing": ["Jest", "Playwright"],
+      "deployment": ["Vercel", "Docker"]
+    },
+    "file_structure": {
+      "src/": {
+        "app/": ["layout.tsx", "page.tsx", "globals.css"],
+        "components/": ["ui/", "forms/", "layout/"],
+        "lib/": ["utils.ts", "auth.ts", "db.ts"],
+        "server/": ["api/", "auth/"],
+        "types/": ["index.ts"]
+      },
+      "prisma/": ["schema.prisma", "migrations/"],
+      "public/": ["favicon.ico", "next.svg"],
+      "tests/": ["unit/", "e2e/"]
+    },
+    "initial_commands": [
+      "npx create-next-app@latest . --typescript --tailwind --eslint --app",
+      "npm install @prisma/client prisma",
+      "npm install @types/bcrypt @types/jsonwebtoken",
+      "npm install next-auth @auth/prisma-adapter"
+    ]
+  },
+  "fastapi-backend": {
+    "name": "FastAPI Backend Service",
+    "complexity": "medium",
+    "estimated_setup_time": "20 minutes",
+    "tech_stack": {
+      "backend": ["FastAPI", "Python 3.11", "Pydantic", "SQLAlchemy"],
+      "database": ["PostgreSQL", "Alembic"],
+      "auth": ["JWT", "OAuth2"],
+      "testing": ["pytest", "httpx"],
+      "deployment": ["Docker", "Uvicorn"]
+    },
+    "file_structure": {
+      "app/": {
+        "api/": ["endpoints/", "dependencies.py"],
+        "core/": ["config.py", "security.py"],
+        "models/": ["user.py", "base.py"],
+        "schemas/": ["user.py", "base.py"],
+        "crud/": ["base.py", "user.py"]
+      },
+      "alembic/": ["versions/"],
+      "tests/": ["test_api/", "test_crud/"]
+    },
+    "initial_commands": [
+      "pip install fastapi uvicorn sqlalchemy alembic",
+      "pip install psycopg2-binary python-jose passlib",
+      "pip install python-multipart email-validator"
+    ]
+  }
+}

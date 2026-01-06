@@ -1,0 +1,156 @@
+# Agent Instructions
+
+This project uses **two systems** for memory and task tracking:
+- **bd** (beads) - Issue tracking and task management
+- **cm** (cass_memory) - Cross-agent learning and procedural memory
+
+## Memory System: cass_memory
+
+The Cass Memory System (cm) transforms scattered agent sessions into persistent, cross-agent memory—so every agent learns from every other agent's experience.
+
+### Quick Start
+
+```bash
+# 1. Get context before starting a task (THE MAIN COMMAND)
+cm context "<your task>" --json
+
+# Returns:
+#   • relevantBullets - Evidence-backed rules
+#   • antiPatterns - Pitfalls to avoid
+#   • historySnippets - Similar past sessions
+#   • suggestedCassQueries - Deeper investigation searches
+```
+
+### Protocol
+
+1. **START**: Run `cm context "<task>" --json` before non-trivial work
+2. **WORK**: Reference rule IDs when following them (e.g., "Following b-8f3a2c...")
+3. **FEEDBACK**: Leave inline comments when rules help/hurt:
+    - `// [cass: helpful b-xyz] - reason`
+    - `// [cass: harmful b-xyz] - reason`
+4. **END**: Just finish your work. Learning happens automatically via reflection.
+
+### Key Features
+
+- **Evidence Validation** - Rules require historical proof before acceptance
+- **Confidence Decay** - 90-day half-life prevents stale patterns
+- **Anti-Pattern Learning** - Bad rules auto-convert to warnings
+- **Trauma Guard** - Blocks dangerous commands learned from incidents
+- **Cross-Agent Learning** - Works with Claude, Cursor, Codex, Aider, etc.
+
+### Useful Commands
+
+```bash
+cm context "task" --json     # Get rules + history (use this!)
+cm similar "query"             # Find similar rules
+cm playbook list               # Show all rules
+cm doctor --json               # System health check
+cm trauma list                # Show dangerous patterns
+cm stats --json               # Playbook metrics
+```
+
+**Note**: cass is not installed (use playbook-only mode). Install from: https://github.com/Dicklesworthstone/coding_agent_session_search
+
+---
+
+## Task Tracking: Beads (bd)
+
+### Quick Reference
+
+```bash
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --status in_progress  # Claim work
+bd close <id>         # Complete work
+bd sync               # Sync with git
+```
+
+## Landing the Plane (Session Completion)
+
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+
+**MANDATORY WORKFLOW:**
+
+1. **File issues for remaining work** - Create issues for anything that needs follow-up
+2. **Run quality gates** (if code changed) - Tests, linters, builds
+3. **Update issue status** - Close finished work, update in-progress items
+4. **PUSH TO REMOTE** - This is MANDATORY:
+   ```bash
+   git pull --rebase
+   bd sync
+   git push
+   git status  # MUST show "up to date with origin"
+   ```
+5. **Clean up** - Clear stashes, prune remote branches
+6. **Verify** - All changes committed AND pushed
+7. **Hand off** - Provide context for next session
+
+**CRITICAL RULES:**
+- Work is NOT complete until `git push` succeeds
+- NEVER stop before pushing - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push
+- If push fails, resolve and retry until it succeeds
+
+
+<!-- bv-agent-instructions-v1 -->
+
+---
+
+## Beads Workflow Integration
+
+This project uses [beads_viewer](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
+
+### Essential Commands
+
+```bash
+# View issues (launches TUI - avoid in automated sessions)
+bv
+
+# CLI commands for agents (use these instead)
+bd ready              # Show issues ready to work (no blockers)
+bd list --status=open # All open issues
+bd show <id>          # Full issue details with dependencies
+bd create --title="..." --type=task --priority=2
+bd update <id> --status=in_progress
+bd close <id> --reason="Completed"
+bd close <id1> <id2>  # Close multiple issues at once
+bd sync               # Commit and push changes
+```
+
+### Workflow Pattern
+
+1. **Start**: Run `bd ready` to find actionable work
+2. **Claim**: Use `bd update <id> --status=in_progress`
+3. **Work**: Implement the task
+4. **Complete**: Use `bd close <id>`
+5. **Sync**: Always run `bd sync` at session end
+
+### Key Concepts
+
+- **Dependencies**: Issues can block other issues. `bd ready` shows only unblocked work.
+- **Priority**: P0=critical, P1=high, P2=medium, P3=low, P4=backlog (use numbers, not words)
+- **Types**: task, bug, feature, epic, question, docs
+- **Blocking**: `bd dep add <issue> <depends-on>` to add dependencies
+
+### Session Protocol
+
+**Before ending any session, run this checklist:**
+
+```bash
+git status              # Check what changed
+git add <files>         # Stage code changes
+bd sync                 # Commit beads changes
+git commit -m "..."     # Commit code
+bd sync                 # Commit any new beads changes
+git push                # Push to remote
+```
+
+### Best Practices
+
+- Check `bd ready` at session start to find available work
+- Update status as you work (in_progress → closed)
+- Create new issues with `bd create` when you discover tasks
+- Use descriptive titles and set appropriate priority/type
+- Always `bd sync` before ending session
+
+<!-- end-bv-agent-instructions -->

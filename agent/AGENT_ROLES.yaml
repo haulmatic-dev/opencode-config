@@ -1,0 +1,146 @@
+# Agent Role Definitions for EXPLICIT HANDOFF Protocol
+# Defines agent specializations, skills, and constraints for task routing
+
+agents:
+  implementation-specialist:
+    role: implementation
+    description: "Specialized agent focused on code implementation and feature development"
+    skills:
+      - python
+      - javascript
+      - typescript
+      - react
+      - node.js
+      - database
+      - api
+      - refactoring
+    session_duration_limit: 120
+    responsibilities:
+      - Write new code for features
+      - Implement requirements from PRDs
+      - Follow existing code patterns and conventions
+      - Create or update documentation
+      - Use existing libraries and dependencies
+    example_tasks:
+      - "Add new API endpoint"
+      - "Implement user authentication"
+      - "Create React component"
+      - "Add database migration"
+
+  testing-specialist:
+    role: testing
+    description: "Specialized agent focused on testing, validation, and quality assurance"
+    skills:
+      - python
+      - pytest
+      - unittest
+      - integration-testing
+      - test-coverage
+      - validation
+      - quality-assurance
+    session_duration_limit: 30
+    responsibilities:
+      - Write unit tests for implementation code
+      - Verify all tests pass
+      - Check code coverage
+      - Validate against acceptance criteria
+      - Identify edge cases
+    example_tasks:
+      - "Add unit tests for new feature"
+      - "Run test suite and verify pass"
+      - "Increase test coverage"
+      - "Test edge cases"
+
+  fixing-specialist:
+    role: fixing
+    description: "Specialized agent focused on bug fixing, error correction, and issue resolution"
+    skills:
+      - python
+      - debugging
+      - error-analysis
+      - refactoring
+      - bug-triage
+      - troubleshooting
+    session_duration_limit: 60
+    responsibilities:
+      - Analyze and debug failing code
+      - Fix identified issues
+      - Verify fixes with existing tests
+      - Ensure backward compatibility
+      - Document bug fixes
+    example_tasks:
+      - "Fix failing test"
+      - "Resolve type check errors"
+      - "Fix lint errors"
+      - "Debug and fix production bug"
+
+  verification-specialist:
+    role: verification
+    description: "Specialized agent focused on final verification, builds, and sign-off"
+    skills:
+      - verification
+      - build-systems
+      - ci-cd
+      - deployment
+      - validation
+      - quality-gates
+    session_duration_limit: 15
+    responsibilities:
+      - Verify all tests pass
+      - Run lint checks with zero errors
+      - Run type checks with zero errors
+      - Verify successful build
+      - Sign off on task completion
+    example_tasks:
+      - "Verify all checks pass"
+      - "Run final build verification"
+      - "Confirm task completion"
+      - "Sign off for deployment"
+
+# Task metadata mapping
+# Defines expected values for agent_role field in beads tasks
+agent_role_values:
+  - implementation
+  - testing
+  - fixing
+  - verification
+
+# Duration estimates in minutes for different task types
+estimated_durations:
+  implementation: 120
+  testing: 30
+  fixing: 60
+  verification: 15
+
+# Specialist tags mapping
+# Maps common beads issue types and keywords to specialist tags
+skill_tags:
+  python: ["python", "backend", "scripting"]
+  testing: ["testing", "pytest", "unittest", "qa"]
+  mcp: ["mcp", "agents", "orchestration"]
+  frontend: ["react", "typescript", "javascript", "ui"]
+  database: ["database", "sql", "migration"]
+  documentation: ["docs", "readme", "documentation"]
+  bug: ["bug-fix", "debugging", "troubleshooting"]
+  feature: ["feature", "implementation", "development"]
+
+# Handoff instruction templates
+# Provides default handoff instructions for each role transition
+handoff_templates:
+  implementation_to_testing:
+    next_role: testing
+    test_command: "pytest tests/ -v"
+    notes: "Run all unit tests to verify implementation. Check coverage and validate against acceptance criteria."
+    validation_required: true
+
+  testing_to_fixing:
+    next_role: fixing
+    test_command: "pytest tests/ -v --tb=short"
+    notes: "Fix identified test failures. All tests must pass before handoff to verification."
+    validation_required: true
+
+  fixing_to_verification:
+    next_role: verification
+    test_command: "pytest tests/ -v && npm run lint && npm run typecheck"
+    notes: "Verify all checks pass including tests, lint, and typecheck. Zero errors required."
+    validation_required: true

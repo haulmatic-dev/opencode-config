@@ -1,0 +1,67 @@
+{
+  "frontend": {
+    "next.js-react-shadcn": {
+      "pattern": "Next.js 14+ with React, TypeScript, and shadcn/ui",
+      "success_rate": 95,
+      "file_structure": {
+        "src/": ["app/", "components/", "lib/", "types/"],
+        "components/ui/": ["shadcn/ui components"],
+        "app/": ["route handlers", "layout.tsx", "page.tsx"]
+      },
+      "common_tools": ["tailwindcss", "lucide-react", "react-hook-form", "zod"],
+      "key_elements": ["Server Actions", "App Router", "TypeScript strict mode"]
+    }
+  },
+  "backend": {
+    "node-express-typescript": {
+      "pattern": "Node.js + Express + TypeScript + PostgreSQL",
+      "success_rate": 90,
+      "file_structure": {
+        "src/": ["routes/", "models/", "middleware/", "services/"],
+        "config/": ["database.ts", "auth.ts"],
+        "tests/": ["unit/", "integration/"]
+      },
+      "common_tools": ["prisma", "jsonwebtoken", "bcrypt", "joi"],
+      "key_elements": ["RESTful API", "JWT authentication", "Input validation"]
+    }
+  },
+  "fullstack": {
+    "saas-boilerplate": {
+      "pattern": "SaaS application with authentication, billing, and dashboard",
+      "success_rate": 85,
+      "phases": ["Authentication", "Core features", "Billing integration", "Dashboard", "Testing"],
+      "tech_stack": ["Next.js", "Prisma", "Stripe", "Tailwind"],
+      "key_elements": ["Multi-tenant architecture", "Role-based access", "Subscription management"]
+    }
+  },
+  "task_granularity": {
+    "optimal_task_size": {
+      "pattern": "Atomic tasks sized for individual agent completion",
+      "success_rate": 92,
+      "rules": {
+        "max_prd_acceptance_criteria": 3,
+        "ideal_prd_acceptance_criteria": "1-2",
+        "max_subtasks_per_parent": 3,
+        "max_files_per_task": 3,
+        "max_effort_hours_per_task": 4,
+        "success_criteria_per_task": "Exactly 1 clear, testable criterion"
+      },
+      "splitting_strategies": ["by_component", "by_file", "by_functional_area"],
+      "multi_level_hierarchy": {
+        "use_2_levels_when": "2-5 sub-tasks, straightforward feature",
+        "use_3_levels_when": "6+ sub-tasks, complex feature requiring organization"
+      },
+      "antipatterns_detected": {
+        "over_3_acceptance_criteria": "75% failure rate - split required",
+        "over_3_subtasks": "70% failure rate - use multi-level decomposition",
+        "vague_descriptions": "65% failure rate - be specific with imperative verbs"
+      },
+      "key_principles": [
+        "One task = one clear deliverable",
+        "Junior developer should be able to complete it",
+        "Failure should be unambiguous (you know exactly what broke)",
+        "If task description has 'and' multiple times, split it"
+      ]
+    }
+  }
+}
