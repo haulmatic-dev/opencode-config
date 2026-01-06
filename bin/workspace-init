@@ -1,0 +1,213 @@
+#!/bin/bash
+
+# workspace-init - Project workspace initialization
+# Sets up git repo, cass_memory, and beads tracking
+# Prerequisite: Run 'opencode-init' first to install system dependencies
+
+set -e
+
+# Colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}╔══════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║   OpenCode - Workspace Initialization      ║${NC}"
+echo -e "${BLUE}╚══════════════════════════════════════════════╝${NC}"
+
+# Parse arguments
+SKIP_SYSTEM_CHECK=false
+for arg in "$@"; do
+  case $arg in
+    --skip-system-check)
+      SKIP_SYSTEM_CHECK=true
+      shift
+      ;;
+    --help|-h)
+      echo "Initialize project workspace with cass_memory and beads tracking"
+      echo ""
+      echo "Prerequisite: Run 'opencode-init' first to install system dependencies"
+      echo ""
+      echo "What it does:"
+      echo "  • Initialize git repository (if missing)"
+      echo "  • Initialize cass_memory (cm init --repo) - REQUIRED"
+      echo "  • Initialize beads task tracking (bd init)"
+      echo ""
+      echo "Usage: workspace-init [--skip-system-check]"
+      exit 0
+      ;;
+  esac
+done
+
+# Check system prerequisites
+if [ "$SKIP_SYSTEM_CHECK" = false ]; then
+  MISSING_TOOLS=false
+
+  if ! command -v cm &> /dev/null; then
+    echo -e "${RED}✗ Error:${NC} cass_memory (cm) not found"
+    echo "  Run 'opencode-init' first to install system dependencies"
+    MISSING_TOOLS=true
+  fi
+
+  if ! command -v bd &> /dev/null; then
+    echo -e "${RED}✗ Error:${NC} Beads CLI (bd) not found"
+    echo "  Run 'opencode-init' first to install system dependencies"
+    MISSING_TOOLS=true
+  fi
+
+  if [ "$MISSING_TOOLS" = true ]; then
+    exit 1
+  fi
+fi
+
+# Check workspace state
+HAS_GIT=false
+HAS_CASS_INIT=false
+HAS_BEADS_INIT=false
+
+[ -d ".git" ] && HAS_GIT=true
+[ -d ".cass" ] && HAS_CASS_INIT=true
+[ -d ".beads" ] && HAS_BEADS_INIT=true
+
+# Show status
+echo
+echo -e "${YELLOW}📊 Workspace Status:${NC}"
+echo -e "  Git:        $([ "$HAS_GIT" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "○")"
+echo -e "  cass_memory: $([ "$HAS_CASS_INIT" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "○")"
+echo -e "  Beads:      $([ "$HAS_BEADS_INIT" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "○")"
+
+# Exit if everything is set up
+if [ "$HAS_GIT" = true ] && [ "$HAS_CASS_INIT" = true ] && [ "$HAS_BEADS_INIT" = true ]; then
+  echo
+  echo -e "${GREEN}✓ Workspace ready${NC}"
+  exit 0
+fi
+
+# Non-interactive check
+if [ ! -t 0 ]; then
+  echo
+  echo -e "${YELLOW}ℹ${NC}  Non-interactive terminal"
+  exit 0
+fi
+
+# Ask for confirmation
+echo
+echo -en "${YELLOW}❓${NC}  Set up workspace? [y/N]: "
+read -r response
+
+if [[ ! "$response" =~ ^[Yy]$ ]]; then
+  echo -e "${YELLOW}Skipped${NC}"
+  exit 0
+fi
+
+COMPLETED=()
+
+# Git initialization
+if [ "$HAS_GIT" = false ]; then
+  echo
+  echo -e "${BLUE}Step 1: Git Repository${NC}"
+  echo -n "  Initialize git? [Y/n]: "
+  read -r r
+  if [[ -z "$r" ]] || [[ "$r" =~ ^[Yy]$ ]]; then
+    if command -v git &> /dev/null; then
+      git init -q
+      echo -e "  ${GREEN}✓${NC} Initialized"
+      COMPLETED+=("git")
+    else
+      echo -e "  ${RED}✗${NC} Git not found"
+      exit 1
+    fi
+  fi
+fi
+
+# cass_memory initialization (REQUIRED)
+if [ "$HAS_CASS_INIT" = false ]; then
+  echo
+  echo -e "${BLUE}Step 2: cass_memory (REQUIRED)${NC}"
+  if [ ! -d ".git" ]; then
+    echo -e "  ${RED}✗${NC} No git repository (run Step 1 first)"
+    exit 1
+  fi
+
+  echo "  This will initialize cass_memory for this project"
+  echo -n "  Initialize cass_memory? [Y/n]: "
+  read -r r
+  if [[ -z "$r" ]] || [[ "$r" =~ ^[Yy]$ ]]; then
+    if command -v cm &> /dev/null; then
+      cm init --repo
+      echo -e "  ${GREEN}✓${NC} Initialized"
+      COMPLETED+=("cass_memory")
+    else
+      echo -e "  ${RED}✗${NC} cass_memory (cm) not found"
+      exit 1
+    fi
+  else
+    echo -e "  ${RED}✗${NC} cass_memory is required for opencode"
+    exit 1
+  fi
+fi
+
+# Beads initialization
+if [ "$HAS_BEADS_INIT" = false ]; then
+  echo
+  echo -e "${BLUE}Step 3: Beads Tracking${NC}"
+  if [ ! -d ".git" ]; then
+    echo -e "  ${RED}✗${NC} No git repository (run Step 1 first)"
+    exit 1
+  else
+    echo -n "  Initialize beads? [Y/n]: "
+    read -r r
+    if [[ -z "$r" ]] || [[ "$r" =~ ^[Yy]$ ]]; then
+      bd init
+      # Remove AGENTS.md files created by bd init (not needed - inherited from ~/.config/opencode/AGENTS.md)
+      rm -f AGENTS.md @AGENTS.md 2>/dev/null || true
+      echo -e "  ${GREEN}✓${NC} Initialized"
+      COMPLETED+=("beads")
+    fi
+  fi
+fi
+
+# Optional: Osgrep setup for semantic search
+if command -v osgrep &> /dev/null; then
+  echo
+  echo -e "${BLUE}Step 4: Osgrep Setup (Optional)${NC}"
+  echo "  Osgrep enables semantic code search for research droids"
+  echo "  Check if embedding models are downloaded:"
+  if [ -f "$HOME/.osgrep/models/model.json" ]; then
+    echo -e "  ${GREEN}✓${NC} Models already downloaded"
+  else
+    echo -e "  ${YELLOW}○${NC} Models not downloaded (~150MB)"
+    echo -n "  Download osgrep models now? [y/N]: "
+    read -r r
+    if [[ "$r" =~ ^[Yy]$ ]]; then
+      echo "  Downloading models..."
+      osgrep setup
+      echo -e "  ${GREEN}✓${NC} Models downloaded"
+      COMPLETED+=("osgrep models")
+    else
+      echo "  Skipping. Run 'osgrep setup' later if needed"
+    fi
+  fi
+fi
+
+# Summary
+echo
+if [ ${#COMPLETED[@]} -gt 0 ]; then
+  echo -e "${GREEN}✓ Done:${NC}"
+  for item in "${COMPLETED[@]}"; do
+    echo "  • $item"
+  done
+else
+  echo -e "${YELLOW}No changes${NC}"
+fi
+
+if [ -d ".beads" ]; then
+  echo
+  echo -e "${BLUE}Next:${NC}"
+  echo "  bd create \"task\"  # Create a task"
+  echo "  cm context \"task description\"  # Get context from cass_memory"
+fi
+
+echo
