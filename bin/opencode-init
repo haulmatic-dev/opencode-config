@@ -71,34 +71,24 @@ HAS_CM=false
 HAS_BD=false
 HAS_OSGREP=false
 HAS_BV=false
+HAS_MCP_AGENT_MAIL=false
 
-command -v go &> /dev/null && HAS_GO=true
-command -v node &> /dev/null && HAS_NODE=true
-command -v npm &> /dev/null && HAS_NODE=true
-echo -e "  Go:        $([ "$HAS_GO" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${RED}✗${NC}") $(go version 2>/dev/null | head -1 || echo "not installed")"
-echo -e "  Node.js:   $([ "$HAS_NODE" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${RED}✗${NC}") $(node --version 2>/dev/null || echo "not installed")"
-
-# Check PATH configuration
-if [[ ":$PATH:" == *":$HOME/.config/opencode/bin:"* ]]; then
-  PATH_CONFIGURED=true
-fi
-echo -e "  PATH:      $([ "$PATH_CONFIGURED" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") ~/.config/opencode/bin"
-
-# Check tools already installed
 command -v cm &> /dev/null && HAS_CM=true
 command -v bd &> /dev/null && HAS_BD=true
 command -v osgrep &> /dev/null && HAS_OSGREP=true
 command -v bv &> /dev/null && HAS_BV=true
+[ -d "$HOME/.mcp_agent_mail" ] && HAS_MCP_AGENT_MAIL=true
 
 echo
 echo -e "${BLUE}📊 Current Status:${NC}"
-echo -e "  cass_memory (cm): $([ "$HAS_CM" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(cm --version 2>/dev/null || echo "not installed")"
-echo -e "  Beads CLI (bd):    $([ "$HAS_BD" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(bd --version 2>/dev/null | head -1 || echo "not installed")"
-echo -e "  Osgrep:            $([ "$HAS_OSGREP" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(osgrep --version 2>/dev/null || echo "not installed")"
-echo -e "  Beads Viewer (bv): $([ "$HAS_BV" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(bv --version 2>/dev/null || echo "not installed")"
+echo -e "  cass_memory (cm):      $([ "$HAS_CM" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(cm --version 2>/dev/null || echo "not installed")"
+echo -e "  Beads CLI (bd):       $([ "$HAS_BD" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(bd --version 2>/dev/null | head -1 || echo "not installed")"
+echo -e "  Osgrep:               $([ "$HAS_OSGREP" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(osgrep --version 2>/dev/null || echo "not installed")"
+echo -e "  Beads Viewer (bv):    $([ "$HAS_BV" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(bv --version 2>/dev/null || echo "not installed")"
+echo -e "  MCP Agent Mail:        $([ "$HAS_MCP_AGENT_MAIL" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $([ -d "$HOME/.mcp_agent_mail" ] && echo "installed" || echo "not installed")"
 
 # Exit if everything is set up
-if [ "$PATH_CONFIGURED" = true ] && [ "$HAS_CM" = true ] && [ "$HAS_BD" = true ] && [ "$HAS_OSGREP" = true ] && [ "$HAS_BV" = true ]; then
+if [ "$PATH_CONFIGURED" = true ] && [ "$HAS_CM" = true ] && [ "$HAS_BD" = true ] && [ "$HAS_OSGREP" = true ] && [ "$HAS_BV" = true ] && [ "$HAS_MCP_AGENT_MAIL" = true ]; then
   if [ "$QUIET" = false ]; then
     echo
     echo -e "${GREEN}✓ All tools already installed and configured!${NC}"
@@ -395,11 +385,117 @@ fi
 
 # Summary
 if [ "$QUIET" = false ]; then
-  echo
-  echo -e "${BLUE}╔══════════════════════════════════════════════════════╗${NC}"
-  echo -e "${BLUE}║   Setup Complete!                                     ║${NC}"
-  echo -e "${BLUE}╚══════════════════════════════════════════════════════╝${NC}"
-  echo
+
+# Step 7: Install MCP Agent Mail
+if [ "$HAS_MCP_AGENT_MAIL" = false ]; then
+  if [ "$QUIET" = false ]; then
+    echo
+    echo -e "${BLUE}Step 7: Install MCP Agent Mail (REQUIRED)${NC}"
+    echo "  MCP Agent Mail enables agent-to-agent communication and coordination"
+    echo "  Source: https://github.com/Dicklesworthstone/mcp_agent_mail"
+    echo "  Requires: Python 3.14+, uv"
+    echo -n "  Install MCP Agent Mail? [Y/n]: "
+    read -r r
+    if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
+      echo -e "  ${RED}✗${NC} MCP Agent Mail is REQUIRED for opencode"
+      exit 1
+    fi
+      echo -e "  ${GREEN}✓${NC} Repository cloned"
+
+      # Create .env file
+      echo "  Creating configuration..."
+      cat > "$HOME/.mcp_agent_mail/.env" << 'EOF'
+STORAGE_ROOT=$HOME/.mcp_agent_mail/storage
+DATABASE_URL=sqlite+aiosqlite:////$HOME/.mcp_agent_mail/storage/mcp.db
+HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true
+HTTP_PORT=8765
+EOF
+      echo -e "  ${GREEN}✓${NC} Configuration created"
+
+      # Install dependencies with uv
+      if ! command -v uv &> /dev/null; then
+        echo -e "  ${RED}✗${NC} uv not found"
+        echo "  Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh"
+        exit 1
+      fi
+
+      # Check for Python 3.14
+      HAS_PYTHON314=false
+      uv python list 2>/dev/null | grep -q "cpython-3.14" && HAS_PYTHON314=true
+
+      if [ "$HAS_PYTHON314" = false ]; then
+        echo "  Installing Python 3.14 with uv..."
+        uv python install 3.14
+        if [ $? -ne 0 ]; then
+          echo -e "  ${RED}✗${NC} Failed to install Python 3.14"
+          exit 1
+        fi
+        echo -e "  ${GREEN}✓${NC} Python 3.14 installed"
+      fi
+        echo -e "  ${GREEN}✓${NC} Python 3.14 installed"
+      fi
+
+      echo "  Installing dependencies..."
+      cd "$HOME/.mcp_agent_mail"
+      uv sync --python 3.14
+      if [ $? -ne 0 ]; then
+        echo -e "  ${RED}✗${NC} Failed to install dependencies"
+        exit 1
+      fi
+      echo -e "  ${GREEN}✓${NC} Dependencies installed"
+
+      # Start server
+      if [ "$QUIET" = false ]; then
+        echo
+        echo -n "  Start MCP Agent Mail server now? [Y/n]: "
+        read -r m
+        if [[ -z "$m" ]] || [[ "$m" =~ ^[Yy]$ ]]; then
+          echo "  Starting MCP Agent Mail server..."
+          HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true uv run python -m mcp_agent_mail.http --host 127.0.0.1 --port 8765 > "$HOME/.mcp_agent_mail/server.log" 2>&1 &
+          echo $! > "$HOME/.mcp_agent_mail/.mcp-agent-mail.pid"
+          echo -e "  ${GREEN}✓${NC} Server started (http://127.0.0.1:8765)"
+
+          # Wait for server to be ready
+          sleep 3
+          if curl -s http://127.0.0.1:8765/health/readiness > /dev/null 2>&1; then
+            echo -e "  ${GREEN}✓${NC} Server is healthy and ready"
+          else
+            echo -e "  ${YELLOW}⚠${NC}  Server may not be ready. Check $HOME/.mcp_agent_mail/server.log"
+          fi
+        else
+          echo "  Run later: cd ~/.mcp_agent_mail && HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true uv run python -m mcp_agent_mail.http --host 127.0.0.1 --port 8765 &"
+        fi
+      else
+        # Quiet mode - start automatically
+        cd "$HOME/.mcp_agent_mail"
+        HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true uv run python -m mcp_agent_mail.http --host 127.0.0.1 --port 8765 > "$HOME/.mcp_agent_mail/server.log" 2>&1 &
+        echo $! > "$HOME/.mcp_agent_mail/.mcp-agent-mail.pid"
+      fi
+
+      COMPLETED_STEPS+=("MCP Agent Mail installed")
+      HAS_MCP_AGENT_MAIL=true
+    fi
+  else
+    # Quiet mode
+    git clone https://github.com/Dicklesworthstone/mcp_agent_mail.git "$HOME/.mcp_agent_mail"
+    cat > "$HOME/.mcp_agent_mail/.env" << 'EOF'
+STORAGE_ROOT=$HOME/.mcp_agent_mail/storage
+DATABASE_URL=sqlite+aiosqlite:////$HOME/.mcp_agent_mail/storage/mcp.db
+HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true
+HTTP_PORT=8765
+EOF
+    cd "$HOME/.mcp_agent_mail"
+    uv sync --python 3.14
+    COMPLETED_STEPS+=("MCP Agent Mail installed")
+    HAS_MCP_AGENT_MAIL=true
+  fi
+fi
+
+echo
+echo -e "${BLUE}╔══════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║   Setup Complete!                                     ║${NC}"
+echo -e "${BLUE}╚══════════════════════════════════════════════════════╝${NC}"
+echo
 
   if [ ${#COMPLETED_STEPS[@]} -gt 0 ]; then
     echo -e "${GREEN}✓ Completed:${NC}"
