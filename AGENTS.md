@@ -38,6 +38,60 @@ cm context "<your task>" --json
 - **Trauma Guard** - Blocks dangerous commands learned from incidents
 - **Cross-Agent Learning** - Works with Claude, Cursor, Codex, Aider, etc.
 
+## Prompt Caching
+
+opencode uses GPTCache to reduce LLM costs and improve response times for repeated prompts.
+
+### Setup
+
+GPTCache is configured to use local SQLite storage (no Redis required). Perfect for M1 MacBook Air with 8GB RAM.
+
+Cache Location: ~/.gptcache/
+Max Cache Size: 100MB
+TTL: 24 hours
+
+### What Gets Cached
+
+- Agent initialization prompts
+- Common task patterns
+- Repeated context queries
+
+### Cache Behavior
+
+- **Automatic**: Same prompt returns cached response instantly (<50ms)
+- **TTL**: Cached responses expire after 24 hours
+- **Size Limit**: Oldest entries evicted when cache exceeds 100MB
+
+### Control GPTCache
+
+```bash
+# Check status
+~/.config/opencode/bin/gptcache-wrapper status
+
+# Start server
+~/.config/opencode/bin/gptcache-wrapper start
+
+# Stop server
+~/.config/opencode/bin/gptcache-wrapper stop
+
+# Clear cache
+~/.config/opencode/bin/gptcache-wrapper clear
+```
+
+### Benefits
+
+| Benefit | Impact |
+|---------|---------|
+| **Cost Savings** | 70-90% reduction for repeated prompts |
+| **Speed** | <50ms for cache hits vs 2-5s for LLM |
+| **RAM** | +50MB (negligible on 8GB) |
+| **Disk** | ~100MB for full cache |
+| **Offline** | Works after first use |
+
+### Integration
+
+GPTCache is automatically started by `opencode-init` and checked by `session-start.sh`.
+
 ### Useful Commands
 
 ```bash

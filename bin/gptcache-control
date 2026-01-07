@@ -1,0 +1,112 @@
+#!/bin/bash
+# GPTCache control script for opencode
+
+GPTCACHE_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/opencode/gptcache_config.json"
+GPTCACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/gptcache"
+GPTCACHE_DB="${GPTCACHE_DIR}/cache.db"
+GPTCACHE_PORT="${GPTCACHE_PORT:-19530}"
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Ensure cache directory exists
+mkdir -p "$GPTCACHE_DIR"
+
+gptcache_status() {
+  if [ -f "$GPTCACHE_DB" ]; then
+    echo -e "${GREEN}✓${NC} GPTCache database exists at $GPTCACHE_DB"
+    echo -e "  Size: $(du -sh "$GPTCACHE_DIR" | cut -f1)"
+    echo -e "  Entries: $(sqlite3 "$GPTCACHE_DB" "SELECT COUNT(*) FROM cache" 2>/dev/null || echo "N/A")"
+    return 0
+  else
+    echo -e "${YELLOW}○${NC} GPTCache not initialized"
+    return 1
+  fi
+}
+
+gptcache_start() {
+  if ! command -v gptcache &> /dev/null; then
+    echo -e "${RED}✗${NC} gptcache not found"
+    return 1
+  fi
+
+  if pgrep -f "gptcache server" > /dev/null; then
+    echo -e "${GREEN}✓${NC} GPTCache server already running"
+    return 0
+  fi
+
+  echo -e "${BLUE}Starting GPTCache server...${NC}"
+  gptcache server --storage local --port "$GPTCACHE_PORT" > "$GPTCACHE_DIR/server.log" 2>&1 &
+  SERVER_PID=$!
+  echo $SERVER_PID > "$GPTCACHE_DIR/.gptcache.pid"
+
+  # Wait for server to be ready
+  for i in {1..10}; do
+    if curl -s "http://localhost:$GPTCACHE_PORT/health" > /dev/null 2>&1; then
+      echo -e "${GREEN}✓${NC} GPTCache server ready (http://localhost:$GPTCACHE_PORT)"
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo -e "${RED}✗${NC} GPTCache server failed to start"
+  return 1
+}
+
+gptcache_stop() {
+  if [ -f "$GPTCACHE_DIR/.gptcache.pid" ]; then
+    PID=$(cat "$GPTCACHE_DIR/.gptcache.pid")
+    if ps -p $PID > /dev/null 2>&1; then
+      echo -e "${YELLOW}Stopping GPTCache server (PID: $PID)...${NC}"
+      kill $PID
+      rm "$GPTCACHE_DIR/.gptcache.pid"
+      echo -e "${GREEN}✓${NC} Stopped"
+    else
+      echo -e "${YELLOW}Server not running${NC}"
+      rm "$GPTCACHE_DIR/.gptcache.pid"
+    fi
+  else
+    echo -e "${YELLOW}No GPTCache server running${NC}"
+  fi
+}
+
+gptcache_clear() {
+  if [ -f "$GPTCACHE_DB" ]; then
+    echo -e "${YELLOW}Clearing GPTCache...${NC}"
+    sqlite3 "$GPTCACHE_DB" "DELETE FROM cache" 2>/dev/null
+    new_size=$(du -sh "$GPTCACHE_DIR" | cut -f1)
+    echo -e "${GREEN}✓${NC} Cache cleared (new size: $new_size)"
+  else
+    echo -e "${RED}✗${NC} GPTCache database not found"
+    return 1
+  fi
+}
+
+case "$1" in
+  status)
+    gptcache_status
+    ;;
+  start)
+    gptcache_start
+    ;;
+  stop)
+    gptcache_stop
+    ;;
+  clear)
+    gptcache_clear
+    ;;
+  *)
+    echo "Usage: gptcache-control {status|start|stop|clear}"
+    echo
+    echo "Commands:"
+    echo "  status  - Check GPTCache status"
+    echo "  start   - Start GPTCache server"
+    echo "  stop    - Stop GPTCache server"
+    echo "  clear   - Clear all cached responses"
+    exit 1
+    ;;
+esac

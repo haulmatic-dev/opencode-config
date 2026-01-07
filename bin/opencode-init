@@ -71,12 +71,15 @@ HAS_CM=false
 HAS_BD=false
 HAS_OSGREP=false
 HAS_BV=false
+HAS_GPTCACHE=false
 HAS_MCP_AGENT_MAIL=false
 
 command -v cm &> /dev/null && HAS_CM=true
 command -v bd &> /dev/null && HAS_BD=true
 command -v osgrep &> /dev/null && HAS_OSGREP=true
 command -v bv &> /dev/null && HAS_BV=true
+command -v python3 &> /dev/null && HAS_PYTHON3=true
+[ -d "$HOME/.gptcache" ] && HAS_GPTCACHE=true
 [ -d "$HOME/.mcp_agent_mail" ] && HAS_MCP_AGENT_MAIL=true
 
 echo
@@ -87,8 +90,80 @@ echo -e "  Osgrep:               $([ "$HAS_OSGREP" = true ] && echo -e "${GREEN}
 echo -e "  Beads Viewer (bv):    $([ "$HAS_BV" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(bv --version 2>/dev/null || echo "not installed")"
 echo -e "  MCP Agent Mail:        $([ "$HAS_MCP_AGENT_MAIL" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $([ -d "$HOME/.mcp_agent_mail" ] && echo "installed" || echo "not installed")"
 
-# Exit if everything is set up
-if [ "$PATH_CONFIGURED" = true ] && [ "$HAS_CM" = true ] && [ "$HAS_BD" = true ] && [ "$HAS_OSGREP" = true ] && [ "$HAS_BV" = true ] && [ "$HAS_MCP_AGENT_MAIL" = true ]; then
+# Step 8: Install GPTCache
+if [ "$HAS_GPTCACHE" = false ]; then
+  if [ "$QUIET" = false ]; then
+    echo
+    echo -e "${BLUE}Step 8: Install GPTCache (Prompt Caching)${NC}"
+    echo "  GPTCache reduces LLM costs by caching prompt/response pairs"
+    echo "  Local storage (no Redis needed) - perfect for M1 MacBook Air with 8GB RAM"
+    echo -n "  Install GPTCache? [Y/n]: "
+    read -r r
+    if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
+      echo "  Skipping GPTCache installation"
+    else
+      # Check for Python 3.10+ (GPTCache requirement)
+      if ! command -v python3 &> /dev/null; then
+        echo -e "  ${RED}✗${NC} Python 3 not found"
+        echo "  Install Python 3.10+ or ensure it's in PATH"
+        exit 1
+      fi
+
+      # Install GPTCache
+      echo "  Installing GPTCache with pip..."
+      pip3 install gptcache
+      if [ $? -ne 0 ]; then
+        echo -e "  ${RED}✗${NC} Failed to install GPTCache"
+        exit 1
+      fi
+
+      # Create symlink to PATH
+      if command -v python3 &> /dev/null; then
+        PYTHON_PATH=$(command -v python3 &> /dev/null | xargs dirname 2>/dev/null | xargs dirname 2>/dev/null)
+        if [[ ":$PATH:" != *":$PYTHON_PATH:"* ]]; then
+          echo 'export PATH="'$PYTHON_PATH':$PATH"' >> "$SHELL_CONFIG"
+          echo -e "  ${GREEN}✓${NC} Added Python to PATH"
+        fi
+      fi
+
+      echo -e "  ${GREEN}✓${NC} GPTCache installed: $(gptcache --version 2>/dev/null || echo "gptcache")"
+      COMPLETED_STEPS+=("GPTCache installed")
+      HAS_GPTCACHE=true
+
+      # Start GPTCache server
+      if [ "$QUIET" = false ]; then
+        echo
+        echo -n "  Start GPTCache server now? [Y/n]: "
+        read -r m
+        if [[ -z "$m" ]] || [[ "$m" =~ ^[Yy]$ ]]; then
+          echo "  Starting GPTCache server..."
+          $HOME/.config/opencode/bin/gptcache-wrapper start
+          echo -e "  ${GREEN}✓${NC} GPTCache server started"
+          COMPLETED_STEPS+=("GPTCache server started")
+        else
+          echo "  Run later: $HOME/.config/opencode/bin/gptcache-wrapper start"
+          echo -e "  ${YELLOW}ℹ${NC}  Or run: gptcache server --storage local"
+        fi
+      else
+        # Quiet mode - auto-start
+        $HOME/.config/opencode/bin/gptcache-wrapper start
+        COMPLETED_STEPS+=("GPTCache server started")
+      fi
+    fi
+  else
+    pip3 install gptcache
+    # Symlink if needed
+    if command -v python3 &> /dev/null; then
+      PYTHON_PATH=$(command -v python3 &> /dev/null | xargs dirname 2>/dev/null | xargs dirname 2>/dev/null)
+      if [[ ":$PATH:" != *":$PYTHON_PATH:"* ]]; then
+        echo 'export PATH="'$PYTHON_PATH':$PATH"' >> "$SHELL_CONFIG"
+      fi
+    fi
+    COMPLETED_STEPS+=("GPTCache installed")
+    COMPLETED_STEPS+=("GPTCache server started")
+    HAS_GPTCACHE=true
+  fi
+fi
   if [ "$QUIET" = false ]; then
     echo
     echo -e "${GREEN}✓ All tools already installed and configured!${NC}"

@@ -6,7 +6,7 @@
 set -e
 
 HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REQUIRED_HOOKS=("check-cass-memory.sh" "check-mcp-agent-mail.sh" "check-beads.sh" "check-bv.sh")
+REQUIRED_HOOKS=("check-cass-memory.sh" "check-mcp-agent-mail.sh" "check-beads.sh" "check-bv.sh" "check-gptcache.sh")
 FAILED_HOOKS=()
 
 echo "🔍 OpenCode: Checking required services..."

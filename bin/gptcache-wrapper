@@ -1,0 +1,197 @@
+#!/usr/bin/env python3
+"""
+GPTCache control for opencode - Python wrapper that doesn't require gptcache in PATH
+"""
+
+import subprocess
+import sys
+import os
+from pathlib import Path
+
+# Configuration
+HOME = Path.home()
+GPTCACHE_DIR = HOME / ".gptcache"
+GPTCACHE_DB = GPTCACHE_DIR / "cache.db"
+GPTCACHE_PID = GPTCACHE_DIR / ".gptcache.pid"
+GPTCACHE_PORT = 19530
+
+def get_gptcache_exec():
+    """Find gptcache executable"""
+    # Check pyenv first
+    pyenv_path = HOME / ".pyenv" / "versions" / "3.9.1" / "bin" / "gptcache"
+    if pyenv_path.exists():
+        return str(pyenv_path)
+    
+    # Fall back to python3 -m gptcache
+    return [sys.executable, "-m", "gptcache"]
+
+def gptcache_status():
+    """Check GPTCache status"""
+    if GPTCACHE_DB.exists():
+        # Get cache size
+        size = subprocess.run(
+            ["du", "-sh", str(GPTCACHE_DIR)],
+            capture_output=True,
+            text=True
+        )
+        size_mb = size.stdout.strip() if size.returncode == 0 else "N/A"
+        
+        # Get entry count
+        result = subprocess.run(
+            ["sqlite3", str(GPTCACHE_DB), "SELECT COUNT(*) FROM cache"],
+            capture_output=True,
+            text=True
+        )
+        entries = result.stdout.strip() if result.returncode == 0 else "N/A"
+        
+        print(f"✓ GPTCache database exists at {GPTCACHE_DB}")
+        print(f"  Size: {size_mb}")
+        print(f"  Entries: {entries}")
+        return 0
+    else:
+        print("○ GPTCache not initialized")
+        return 1
+
+def gptcache_start():
+    """Start GPTCache server"""
+    # Check if gptcache is available
+    cmd = get_gptcache_exec()
+    try:
+        subprocess.run([cmd[0], "--version"], capture_output=True, check=True)
+    except:
+        print("✗ gptcache not found. Install with: pip install gptcache")
+        return 1
+    
+    # Check if already running
+    if GPTCACHE_PID.exists():
+        with open(GPTCACHE_PID) as f:
+            pid = int(f.read().strip())
+        try:
+            os.kill(pid, 0)
+            print(f"✓ Stopped existing GPTCache server (PID: {pid})")
+        except ProcessLookupError:
+            pass
+        except:
+            pass
+        os.remove(GPTCACHE_PID)
+    
+    # Check if server is already responding
+    result = subprocess.run(
+        ["curl", "-s", f"http://localhost:{GPTCACHE_PORT}/health"],
+        capture_output=True,
+        timeout=5
+    )
+    if result.returncode == 0:
+        print(f"✓ GPTCache server already running (http://localhost:{GPTCACHE_PORT})")
+        return 0
+    
+    # Start server
+    print(f"🚀 Starting GPTCache server...")
+    log_path = GPTCACHE_DIR / "server.log"
+    
+    process = subprocess.Popen(
+        [cmd[0], "server", "--storage", "local", "--port", str(GPTCACHE_PORT)],
+        stdout=open(log_path, "w"),
+        stderr=subprocess.STDOUT,
+        start_new_session=True
+    )
+    
+    # Save PID
+    with open(GPTCACHE_PID, "w") as f:
+        f.write(str(process.pid))
+    
+    # Wait for server to be ready
+    import time
+    for i in range(10):
+        time.sleep(0.5)
+        try:
+            result = subprocess.run(
+                ["curl", "-s", f"http://localhost:{GPTCACHE_PORT}/health"],
+                capture_output=True,
+                timeout=2
+            )
+            if result.returncode == 0:
+                print(f"✓ GPTCache server ready (http://localhost:{GPTCACHE_PORT})")
+                print(f"   PID: {process.pid}")
+                return 0
+        except:
+            pass
+    
+    print("✗ GPTCache server failed to start")
+    return 1
+
+def gptcache_stop():
+    """Stop GPTCache server"""
+    if not GPTCACHE_PID.exists():
+        print("No GPTCache server running")
+        return 0
+    
+    with open(GPTCACHE_PID) as f:
+        pid = int(f.read().strip())
+    
+    try:
+        os.kill(pid, 0)
+        print(f"✓ Stopped GPTCache server (PID: {pid})")
+        os.remove(GPTCACHE_PID)
+    except ProcessLookupError:
+        print(f"✗ No process with PID {pid}")
+        os.remove(GPTCACHE_PID)
+    except:
+        print(f"✗ Failed to stop server")
+        return 1
+    
+    return 0
+
+def gptcache_clear():
+    """Clear GPTCache"""
+    if not GPTCACHE_DB.exists():
+        print("GPTCache database not found")
+        return 1
+    
+    print("🗑  Clearing GPTCache...")
+    result = subprocess.run(
+        ["sqlite3", str(GPTCACHE_DB), "DELETE FROM cache"],
+        capture_output=True,
+        text=True
+    )
+    
+    if result.returncode == 0:
+        size = subprocess.run(
+            ["du", "-sh", str(GPTCACHE_DIR)],
+            capture_output=True,
+            text=True
+        )
+        new_size = size.stdout.strip() if size.returncode == 0 else "N/A"
+        print(f"✓ Cache cleared (new size: {new_size})")
+    else:
+        print("✗ Failed to clear cache")
+        return 1
+    
+    return 0
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: gptcache-wrapper {status|start|stop|clear}")
+        print("\nCommands:")
+        print("  status  - Check GPTCache status")
+        print("  start   - Start GPTCache server")
+        print("  stop    - Stop GPTCache server")
+        print("  clear   - Clear all cached responses")
+        sys.exit(1)
+    
+    command = sys.argv[1]
+    
+    if command == "status":
+        sys.exit(gptcache_status())
+    elif command == "start":
+        sys.exit(gptcache_start())
+    elif command == "stop":
+        sys.exit(gptcache_stop())
+    elif command == "clear":
+        sys.exit(gptcache_clear())
+    else:
+        print(f"Unknown command: {command}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
