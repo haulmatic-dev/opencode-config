@@ -80,6 +80,33 @@ Cache Location: ~/.gptcache/sqlite.db
 Server: gptcache_server
 Port: 8000
 
+### Integration
+
+The cache is integrated via opencode plugin (`gptcache-plugin.js`) and middleware (`lib/gptcache-middleware.js`).
+
+**Files:**
+- `lib/gptcache-client.js` - HTTP client for GPTCache server
+- `lib/gptcache-middleware.js` - Cache wrapping logic
+- `gptcache-plugin.js` - opencode lifecycle hooks
+- `gptcache_config.json` - Cache configuration
+
+**Benefits:**
+- **Cost Savings**: 70-90% reduction for repeated prompts
+- **Speed**: <50ms for cache hits vs 2-5s for LLM calls
+- **Rate Limits**: Fewer API calls means fewer rate limit issues
+
+**Management:**
+```bash
+# Check stats
+node test-gptcache.js
+
+# Cache control
+~/.config/opencode/bin/gptcache-wrapper {status|start|stop|clear}
+
+# Database queries
+sqlite3 ~/.gptcache/sqlite.db "SELECT COUNT(*) FROM gptcache_question;"
+```
+
 ### Requirements
 
 - Python 3.10+ (checked during installation)

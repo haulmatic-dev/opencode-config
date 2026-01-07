@@ -5,8 +5,38 @@
 
 set -e
 
+# Check if cass is installed and accessible
+if ! command -v cm &> /dev/null; then
+  echo "❌ cass_memory (cm): not found"
+  exit 1
+fi
+
+# Check cass health
+CASS_HEALTHY=$(cass health 2>/dev/null && echo "healthy")
+
+if [ "$CASS_HEALTHY" != "healthy" ]; then
+  echo "⚠️  cass is not healthy"
+  echo "Run: 'cass doctor --fix' or 'cass index --full'"
+  exit 1
+fi
+
+# Check if cass is running and healthy
+if command -v cass &> /dev/null && ! pgrep -f "cass" > /dev/null 2>&1; then
+  echo "🚀 Starting cass (not running)..."
+  cass index --full &
+  sleep 2
+  echo "✓ cass started and indexing"
+  exit 0
+elif command -v cass &> /dev/null && pgrep -f "cass" > /dev/null 2>&1; then
+  echo "✓ cass is already running and healthy"
+  exit 0
+else
+  echo "⚠️  cass is not healthy or not running"
+  exit 1
+fi
+
 HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REQUIRED_HOOKS=("check-cass-memory.sh" "check-mcp-agent-mail.sh" "check-beads.sh" "check-bv.sh" "check-gptcache.sh")
+REQUIRED_HOOKS=("check-cass-memory.sh" "check-mcp-agent-mail.sh" "check-beads.sh" "check-bv.sh" "check-gptcache.sh" "check-cass-health.sh")
 FAILED_HOOKS=()
 
 echo "🔍 OpenCode: Checking required services..."

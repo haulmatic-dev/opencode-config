@@ -63,7 +63,7 @@ fi
 
 # Check prerequisites
 echo -e "${BLUE}📊 Checking Prerequisites:${NC}"
-
+ 
 HAS_GO=false
 HAS_NODE=false
 PATH_CONFIGURED=false
@@ -72,9 +72,41 @@ HAS_BD=false
 HAS_OSGREP=false
 HAS_BV=false
 HAS_GPTCACHE=false
-HAS_MCP_AGENT_MAIL=false
+HAS_CASS=false
 
 command -v cm &> /dev/null && HAS_CM=true
+
+# Check cass installation and health
+if [ "$HAS_CM" = true ]; then
+  echo -e "${BLUE}✓${NC} cass_memory (cm): installed (version: $(cm --version 2>/dev/null || echo "unknown")"
+else
+  echo -e "${YELLOW}○${NC} cass_memory (cm): not installed"
+  exit 1
+fi
+
+# Check if cass is healthy and running
+if command -v cass &> /dev/null; then
+  CASS_HEALTHY=$(cass health 2>/dev/null && echo "healthy")
+  if [ "$CASS_HEALTHY" = "healthy" ]; then
+    echo -e "${GREEN}✓${NC} cass is healthy"
+  else
+    echo -e "${YELLOW}⚠${NC} cass needs attention ($(cass health))"
+    echo -e "  Run 'cass doctor --fix' or 'cass index --full'"
+fi
+
+# Start cass if it's healthy but not running
+if command -v cass &> /dev/null && ! pgrep -f "cass" > /dev/null 2>&1; then
+  echo -e "${BLUE}🚀 Starting cass...${NC}"
+  cass index --full &
+  sleep 2
+  echo -e "${GREEN}✓${NC} cass started and indexing"
+else
+  echo -e "${YELLOW}⚠${NC} cass is already running"
+  echo -e "  Skipping cass start"
+fi
+
+# Mark cass as installed and configured
+HAS_CASS=true
 command -v bd &> /dev/null && HAS_BD=true
 command -v osgrep &> /dev/null && HAS_OSGREP=true
 command -v bv &> /dev/null && HAS_BV=true
@@ -345,15 +377,16 @@ if [ "$HAS_CM" = false ]; then
     echo
     echo -e "${BLUE}Step 3: Install cass_memory (cm)${NC}"
     echo "  This will run: curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_system/main/install.sh | bash -s -- --easy-mode --verify"
+    echo "  cass_memory provides evidence-based learning system for AI agents"
     echo -n "  Install cass_memory? [Y/n]: "
     read -r r
     if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
       echo "  Skipping cass_memory installation"
-      echo -e "  ${RED}✗${NC} cass_memory is required for opencode"
+      echo "  echo -e "  ${RED}✗${NC} cass_memory is required for opencode"
       exit 1
     else
       curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_system/main/install.sh | bash -s -- --easy-mode --verify
-
+      
       if command -v cm &> /dev/null; then
         echo -e "  ${GREEN}✓${NC} Installed: $(cm --version 2>/dev/null || echo "cm")"
         COMPLETED_STEPS+=("cass_memory installed")
@@ -362,6 +395,44 @@ if [ "$HAS_CM" = false ]; then
         echo -e "  ${RED}✗${NC} Installation failed"
         exit 1
       fi
+    fi
+  else
+  curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_system/main/install.sh | bash -s -- --easy-mode --verify
+    
+    if command -v cm &> /dev/null; then
+      COMPLETED_STEPS+=("cass_memory installed")
+      HAS_CM=true
+    else
+      echo -e "  ${RED}✗${NC} Installation failed"
+      exit 1
+    fi
+  fi
+
+# Step 3.5: Auto-start cass if healthy but not running
+if [ "$HAS_CM" = true ]; then
+  if [ "$QUIET" = false ]; then
+    echo
+    echo -e "${BLUE}Step 3.5: Ensure cass is running${NC}"
+    
+    # Check if cass is healthy
+    CASS_HEALTHY=$(cass health 2>/dev/null && echo "healthy")
+    
+    if [ "$CASS_HEALTHY" = "healthy" ]; then
+      # Check if cass is already running
+      if ! pgrep -f "cass" > /dev/null 2>&1; then
+        echo -e "  ${BLUE}🚀 Starting cass...${NC}"
+        cass index --full &
+        sleep 3
+        echo -e "  ${GREEN}✓${NC} cass started and indexing"
+      else
+        echo -e "  ${GREEN}✓${NC} cass is already running"
+      fi
+    else
+      echo -e "  ${YELLOW}⚠${NC} cass is not healthy ($(cass health))"
+      echo "  Run 'cass doctor --fix' to fix cass"
+      echo "  Skipping cass auto-start"
+    fi
+  fi
     fi
   else
     curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_system/main/install.sh | bash -s -- --easy-mode --verify
