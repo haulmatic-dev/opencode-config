@@ -6,9 +6,19 @@ This project uses **two systems** for memory and task tracking:
 
 ## Available Agents
 
-Agents are located in `/Users/buddhi/.config/opencode/agent/`:
+### Primary Agents (Tab Completion)
 
-### Research Droids
+These agents are available via tab completion for direct user interaction:
+
+- **orchestrator** - Master coordinator with dual-mode operation (COORDINATION vs DIRECT)
+- **prd** - Product Requirements Document generator with stakeholder alignment
+- **generate-tasks** - Atomic task breakdown with dependencies
+- **task-coordinator** - Beads task creation and tracking
+
+### Internal Research Droids
+
+These agents are hidden from tab completion and are used internally by the orchestrator:
+
 - **codebase-researcher** - Pattern discovery and technical debt identification
 - **git-history-analyzer** - Change evolution and team collaboration analysis
 - **context-researcher** - Project-wide context gathering (stakeholder analysis)
@@ -17,12 +27,7 @@ Agents are located in `/Users/buddhi/.config/opencode/agent/`:
 - **domain-specialist** - Domain-specific expertise and compliance
 - **semantic-search** (osgrep) - Conceptual code search with embedding models
 - **file-picker-agent** - Targeted file discovery and codebase navigation
-
-### Specialized Droids
-- **orchestrator** - Master coordinator with dual-mode operation (COORDINATION vs DIRECT)
-- **prd** - Product Requirements Document generator with stakeholder alignment
-- **generate-tasks** - Atomic task breakdown with dependencies
-- **task-coordinator** - Beads task creation and tracking
+- **figma-design-extractor** - Figma design token extraction for pixel-perfect implementation
 
 ### Skills
 - **task-breakdown** - Feature → tasks workflow

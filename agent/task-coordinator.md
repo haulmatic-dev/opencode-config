@@ -1,6 +1,7 @@
 ---
 name: task-coordinator
 description: Manage all task creation using AGENTS.md task tracking preference. Routes to bd (beads) when specified.
+mode: primary
 ---
 ## When to Activate
 
