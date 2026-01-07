@@ -111,7 +111,47 @@ if [ "$HAS_GPTCACHE" = false ]; then
 
       # Install GPTCache
       echo "  Installing GPTCache with pip..."
-      pip3 install gptcache
+      pip3 install 'gptcache' 'numpy<2'
+      if [ $? -ne 0 ]; then
+        echo -e "  ${RED}✗${NC} Failed to install GPTCache"
+        exit 1
+      fi
+
+      # Check Python version
+      PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
+      PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+      PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+      
+      if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 10 ]); then
+        echo -e "  ${YELLOW}⚠${NC}  GPTCache requires Python 3.10+"
+        echo "  Current version: $PYTHON_VERSION"
+        echo "  Upgrade with: pyenv install 3.10 && pyenv local 3.10"
+      fi
+
+      echo -e "  ${GREEN}✓${NC} GPTCache installed: $(gptcache_server --version 2>/dev/null || echo "gptcache_server")"
+      COMPLETED_STEPS+=("GPTCache installed")
+      HAS_GPTCACHE=true
+
+      # Start GPTCache server
+      if [ "$QUIET" = false ]; then
+        echo
+        echo -n "  Start GPTCache server now? [Y/n]: "
+        read -r m
+        if [[ -z "$m" ]] || [[ "$m" =~ ^[Yy]$ ]]; then
+          echo "  Starting GPTCache server..."
+          $HOME/.config/opencode/bin/gptcache-wrapper start
+          echo -e "  ${GREEN}✓${NC} GPTCache server started"
+          COMPLETED_STEPS+=("GPTCache server started")
+        else
+          echo "  Run later: $HOME/.config/opencode/bin/gptcache-wrapper start"
+        fi
+      else
+        # Quiet mode - auto-start
+        $HOME/.config/opencode/bin/gptcache-wrapper start
+        COMPLETED_STEPS+=("GPTCache server started")
+      fi
+    else
+      pip3 install 'gptcache' 'numpy<2'
       if [ $? -ne 0 ]; then
         echo -e "  ${RED}✗${NC} Failed to install GPTCache"
         exit 1

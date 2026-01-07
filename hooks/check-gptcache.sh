@@ -1,37 +1,42 @@
 #!/bin/bash
 # Check if GPTCache server is running
-# Returns exit code 0 if available and running, 1 if not
+# Auto-starts if not running
+# Returns exit code 0 if available, 1 if failed to start
 
+GPTCACHE_WRAPPER="$HOME/.config/opencode/bin/gptcache-wrapper"
 GPTCACHE_PID_FILE="$HOME/.gptcache/.gptcache.pid"
-GPTCACHE_PORT="${GPTCACHE_PORT:-19530}"
+GPTCACHE_PORT="${GPTCACHE_PORT:-8000}"
 
-# Check if PID file exists
-if [ ! -f "$GPTCACHE_PID_FILE" ]; then
-  echo "❌ GPTCache: not initialized (no PID file)"
-  echo "   Run: opencode-init to install GPTCache"
-  exit 1
-fi
-
-# Check if process is running
-PID=$(cat "$GPTCACHE_PID_FILE" 2>/dev/null || echo "")
-if [ -z "$PID" ]; then
-  echo "❌ GPTCache: PID file is empty"
-  echo "   Run: opencode-init to install GPTCache"
-  exit 1
-fi
-
-if ! ps -p $PID > /dev/null 2>&1; then
-  echo "❌ GPTCache: server not running (PID: $PID)"
-  echo "   Start: $HOME/.config/opencode/bin/gptcache-wrapper start"
+# Check if wrapper exists
+if [ ! -f "$GPTCACHE_WRAPPER" ]; then
+  echo "❌ GPTCache: wrapper not found"
   exit 1
 fi
 
 # Check if server is responding
-if ! curl -s "http://127.0.0.1:$GPTCACHE_PORT/health" > /dev/null 2>&1; then
-  echo "⚠️  GPTCache: running but not responding"
-  echo "   Health check failed at http://127.0.0.1:$GPTCACHE_PORT"
+if curl -s "http://127.0.0.1:$GPTCACHE_PORT/" > /dev/null 2>&1; then
+  echo "✅ GPTCache: running and healthy (http://127.0.0.1:$GPTCACHE_PORT)"
+  exit 0
+fi
+
+# Server not responding - try to start it
+echo "⏳ GPTCache: not running, starting..."
+
+if "$GPTCACHE_WRAPPER" start > /dev/null 2>&1; then
+  # Wait a moment for server to be ready
+  sleep 1
+  
+  # Verify it's responding
+  if curl -s "http://127.0.0.1:$GPTCACHE_PORT/" > /dev/null 2>&1; then
+    echo "✅ GPTCache: started successfully (http://127.0.0.1:$GPTCACHE_PORT)"
+    exit 0
+  else
+    echo "❌ GPTCache: started but not responding"
+    exit 1
+  fi
+else
+  echo "❌ GPTCache: failed to start"
+  echo "   Manual start: $GPTCACHE_WRAPPER start"
   exit 1
 fi
 
-echo "✅ GPTCache: running and healthy (http://127.0.0.1:$GPTCACHE_PORT)"
-exit 0

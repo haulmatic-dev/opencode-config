@@ -71,9 +71,14 @@ opencode uses GPTCache to reduce LLM costs and improve response times for repeat
 
 GPTCache is configured to use local SQLite storage (no Redis required). Perfect for M1 MacBook Air with 8GB RAM.
 
-Cache Location: ~/.gptcache/
-Max Cache Size: 100MB
-TTL: 24 hours
+Cache Location: ~/.gptcache/sqlite.db
+Server: gptcache_server
+Port: 8000
+
+### Requirements
+
+- Python 3.10+ (checked during installation)
+- numpy<2 (for ONNX compatibility)
 
 ### What Gets Cached
 
@@ -84,24 +89,8 @@ TTL: 24 hours
 ### Cache Behavior
 
 - **Automatic**: Same prompt returns cached response instantly (<50ms)
-- **TTL**: Cached responses expire after 24 hours
-- **Size Limit**: Oldest entries evicted when cache exceeds 100MB
-
-### Control GPTCache
-
-```bash
-# Check status
-~/.config/opencode/bin/gptcache-wrapper status
-
-# Start server
-~/.config/opencode/bin/gptcache-wrapper start
-
-# Stop server
-~/.config/opencode/bin/gptcache-wrapper stop
-
-# Clear cache
-~/.config/opencode/bin/gptcache-wrapper clear
-```
+- **Storage**: SQLite database with ONNX embeddings for similarity search
+- **Manual**: Use `clear` command to empty cache when needed
 
 ### Benefits
 
@@ -110,12 +99,15 @@ TTL: 24 hours
 | **Cost Savings** | 70-90% reduction for repeated prompts |
 | **Speed** | <50ms for cache hits vs 2-5s for LLM |
 | **RAM** | +50MB (negligible on 8GB) |
-| **Disk** | ~100MB for full cache |
+| **Disk** | ~50-100MB growing with usage |
 | **Offline** | Works after first use |
 
 ### Integration
 
-GPTCache is automatically started by `opencode-init` and checked by `session-start.sh`.
+GPTCache is automatically started by `opencode-init` and `session-start.sh`:
+- `session-start.sh` checks if server is running
+- If not running, it auto-starts the server
+- Seamless startup without manual intervention
 
 ### Useful Commands
 
