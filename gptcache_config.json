@@ -1,0 +1,8 @@
+{
+  "cache_type": "local",
+  "cache_dir": "~/.gptcache",
+  "database_path": "~/.gptcache/cache.db",
+  "max_cache_size_mb": 100,
+  "ttl_hours": 24,
+  "enabled": true
+}
