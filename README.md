@@ -140,7 +140,7 @@ bd close <id> --reason "Completed"
 ```
 Tool-Agnostic Services (Global):
 ├── ~/.cass-memory/              # cass_memory - Learning system (ALREADY INSTALLED)
-├── ~/.mcp-agent-mail/           # MCP Agent Mail - Agent coordination (TO BE INSTALLED)
+├── ~/.mcp-agent-mail/           # MCP Agent Mail - Agent coordination (REQUIRED)
 ├── ~/.local/bin/bd              # Beads CLI - Task tracking (ALREADY INSTALLED)
 ├── ~/.local/bin/bv              # Beads Viewer - TUI for browsing (ALREADY INSTALLED)
 └── ~/.config/opencode/         # Tool-specific configs
@@ -163,6 +163,24 @@ Tool-Agnostic Services (Global):
 ---
 
 ## 🔧 Installation
+
+### Quick Install: opencode-init
+
+For a one-command system setup, use the **opencode-init** script:
+
+```bash
+# Clone and install all required services
+cd ~/.config/opencode/bin
+./opencode-init
+
+# This will install:
+# - cass_memory (cm)
+# - MCP Agent Mail (REQUIRED)
+# - Beads CLI (bd)
+# - Beads Viewer (bv)
+# - osgrep (semantic search)
+# - Configure PATH for ~/.config/opencode/bin
+```
 
 ### Installing cass_memory
 
@@ -264,6 +282,50 @@ bd hooks install
 export MCP_SERVER_HOST=127.0.0.1
 export MCP_SERVER_PORT=8765
 export MCP_AGENT_MAIL_DIR=~/.mcp-agent-mail
+```
+
+### Using MCP Agent Mail in Agents
+
+opencode provides a Python client helper `mcp_agent_mail_client.py` for agents to communicate with MCP Agent Mail server:
+
+```python
+# Import in agent files
+from mcp_agent_mail_client import (
+    register_agent,
+    send_message,
+    fetch_inbox,
+    acknowledge_message,
+    reserve_file_paths,
+    release_file_reservations,
+    get_project_key
+)
+
+# Register agent
+result = await register_agent(
+    agent_name="my-agent",
+    model="claude-sonnet-4-5",
+    task_description="What this agent does"
+)
+
+# Send message to other agent
+result = await send_message(
+    sender_name="my-agent",
+    recipient_name="other-agent",
+    content={"type": "task_assignment", "task_id": "bd-123"}
+)
+
+# Fetch inbox for messages
+result = await fetch_inbox(agent_name="my-agent", limit=50)
+
+# Reserve file paths (prevent conflicts)
+result = await reserve_file_paths(
+    agent_name="my-agent",
+    paths=["src/**/*.ts"],
+    ttl_seconds=3600
+)
+
+# Release reservations when done
+await release_file_reservations(agent_name="my-agent")
 ```
 
 ---
@@ -540,6 +602,10 @@ curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/mai
 ~/.config/opencode/
 ├── AGENTS.md                 # Agent instructions (THIS FILE)
 ├── README.md                 # This file
+├── mcp_agent_mail_client.py # HTTP client for MCP Agent Mail
+├── bin/                     # opencode scripts
+│   ├── opencode-init          # System-wide setup
+│   └── workspace-init         # Project initialization
 ├── .beads/                   # Beads data (per project)
 └── hooks/                    # Service check hooks
     ├── session-start.sh
@@ -655,33 +721,32 @@ bv --robot-plan                              # Parallel execution tracks
 
 ## 🎯 Getting Started
 
-### Option 1: Fresh Installation
+### Option 1: Fresh Installation (Recommended)
 
 ```bash
-# 1. Install cass_memory (already done)
-curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_system/main/install.sh | bash -s -- --easy-mode --verify
+# 1. Run opencode-init (one-time system setup)
+cd ~/.config/opencode/bin
+./opencode-init
 
-# 2. Install MCP Agent Mail
-git clone https://github.com/Dicklesworthstone/mcp_agent_mail.git ~/.mcp-agent-mail
-cd ~/.mcp-agent-mail
-cat > .env << 'EOF'
-STORAGE_ROOT=~/.mcp-agent-mail/storage
-DATABASE_URL=sqlite+aiosqlite:////~/.mcp-agent-mail/storage/mcp.db
-HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true
-HTTP_PORT=8765
-EOF
-uv sync
-HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true uv run python -m mcp_agent_mail.http --host 127.0.0.1 --port 8765 &
+# This will install and configure:
+# - cass_memory (cm)
+# - MCP Agent Mail (REQUIRED)
+# - Beads CLI (bd)
+# - Beads Viewer (bv)
+# - osgrep (semantic search)
+# - Configure PATH for ~/.config/opencode/bin
 
-# 3. Verify installations
-which cm  # Should show ~/.local/bin/cm
-which bv   # Should show ~/.local/bin/bv
-which bd   # Should show ~/.local/bin/bd
+# 2. Source shell config or start new terminal
+source ~/.zshrc  # or source ~/.bashrc
 
-# 4. Start using opencode in a project
+# 3. Initialize project
 cd /path/to/your/project
-cm init --repo  # Initialize cass_memory for project
-bd ready         # Check what to work on
+~/.config/opencode/bin/workspace-init
+
+# This will:
+# - Initialize git repo (if missing)
+# - Initialize cass_memory (cm init --repo) - REQUIRED
+# - Initialize beads (bd init)
 ```
 
 ### Option 2: Use Existing Factory Installations
@@ -690,13 +755,14 @@ bd ready         # Check what to work on
 # If you already have Factory CLI installed, you can use existing services:
 
 # cass_memory: Already installed at ~/.cass-memory/
-# MCP Agent Mail: Already at ~/.config/opencode/mcp_agent_mail/
+# MCP Agent Mail: Already at ~/.mcp-agent-mail/
 # Beads CLI: Already in PATH
 # Beads Viewer: Already in PATH
 
 # Just initialize hooks and project
 cd /path/to/your/project
 ~/.config/opencode/hooks/session-start.sh  # Checks services
+~/.config/opencode/bin/workspace-init  # Initialize project
 ```
 
 ---
