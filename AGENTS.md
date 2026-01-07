@@ -4,6 +4,31 @@ This project uses **two systems** for memory and task tracking:
 - **bd** (beads) - Issue tracking and task management
 - **cm** (cass_memory) - Cross-agent learning and procedural memory
 
+## Available Agents
+
+Agents are located in `/Users/buddhi/.config/opencode/agent/`:
+
+### Research Droids
+- **codebase-researcher** - Pattern discovery and technical debt identification
+- **git-history-analyzer** - Change evolution and team collaboration analysis
+- **context-researcher** - Project-wide context gathering (stakeholder analysis)
+- **best-practices-researcher** - Industry best practices and competitive analysis
+- **library-source-reader** - Third-party library deep analysis
+- **domain-specialist** - Domain-specific expertise and compliance
+- **semantic-search** (osgrep) - Conceptual code search with embedding models
+- **file-picker-agent** - Targeted file discovery and codebase navigation
+
+### Specialized Droids
+- **orchestrator** - Master coordinator with dual-mode operation (COORDINATION vs DIRECT)
+- **prd** - Product Requirements Document generator with stakeholder alignment
+- **generate-tasks** - Atomic task breakdown with dependencies
+- **task-coordinator** - Beads task creation and tracking
+
+### Skills
+- **task-breakdown** - Feature → tasks workflow
+- **feature-planning** - End-to-end PRD generation
+- **complex-project** - Enterprise feature planning
+
 ## Memory System: cass_memory
 
 The Cass Memory System (cm) transforms scattered agent sessions into persistent, cross-agent memory—so every agent learns from every other agent's experience.
