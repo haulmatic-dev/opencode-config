@@ -182,8 +182,11 @@ cm doctor --json
 git clone https://github.com/Dicklesworthstone/mcp_agent_mail.git ~/.mcp-agent-mail
 cd ~/.mcp-agent-mail
 
+# Install Python 3.14 (required)
+uv python install 3.14
+
 # Install dependencies
-uv sync
+uv sync --python 3.14
 
 # Configure environment
 cat > .env << 'EOF'
@@ -194,7 +197,7 @@ HTTP_PORT=8765
 EOF
 
 # Start server (manual or via hook)
-HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true uv run python -m mcp_agent_mail.http --host 127.0.0.1 --port 8765
+HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true uv run python -m mcp_agent_mail.http --host 127.0.0.1 --port 8765 &
 ```
 
 ### Installing Beads CLI (bd)
