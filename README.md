@@ -17,7 +17,10 @@ opencode brings together best-in-class AI development tools into a unified, hook
   - **best-practices-researcher** - Industry best practices and competitive analysis
   - **library-source-reader** - Third-party library deep analysis
   - **domain-specialist** - Domain-specific expertise and compliance
-- **semantic-search** (osgrep) - Conceptual code search with embedding models
+ - **semantic-search** (osgrep) - Conceptual code search with embedding models
+- **Plugin System** - Extensible architecture with:
+  - **gptcache** - LLM response caching for 70-90% cost reduction
+  - **beads-guardrails** - Enforce task tracking via beads
 - **Specialized Droids**:
   - **orchestrator** - Master coordinator with dual-mode operation (2000+ lines)
   - **prd** - Product Requirements Document generator
@@ -82,8 +85,9 @@ For detailed documentation, see [Task-to-Commit Cycle](./docs/task-to-commit.md)
 - [Quick Start](#-quick-start)
 - [Tool-Agnostic Architecture](#-tool-agnostic-architecture)
 - [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Hook System](#-hook-system)
+ - [Configuration](#-configuration)
+ - [Plugin System](#-plugin-system)
+ - [Hook System](#-hook-system)
 - [Workflow](#-workflow)
 - [bv Integration](#-bv-integration)
 - [Testing](#-testing)
@@ -355,6 +359,100 @@ result = await reserve_file_paths(
 # Release reservations when done
 await release_file_reservations(agent_name="my-agent")
 ```
+
+---
+
+## 🔌 Plugin System
+
+### Available Plugins
+
+opencode plugins extend functionality through a hook-based architecture. All plugins are located in `./plugin/` directory.
+
+#### beads-guardrails.mjs
+
+**Purpose**: Enforce task tracking via beads by blocking TodoWrite tool in beads workspaces
+
+**Features**:
+- Blocks TodoWrite tool when `.beads/` directory exists
+- Prevents task duplication between TodoWrite and Beads
+- Graceful degradation when beads not active
+
+**Behavior**:
+- Checks for `.beads/` directory at tool execution
+- Throws error: `[beads-guard] TodoWrite blocked in beads workspace. Use "bd create" instead for persistent tracking.`
+- Allows TodoWrite in non-beads workspaces
+
+**For detailed documentation**, see [docs/BEADS_GUARDRAILS_IMPLEMENTATION.md](./docs/BEADS_GUARDRAILS_IMPLEMENTATION.md)
+
+#### gptcache.mjs
+
+**Purpose**: LLM response caching to reduce API costs and improve response times
+
+**Features**:
+- Automatic caching of LLM responses
+- 70-90% cost reduction for repeated prompts
+- <50ms retrieval vs 2-5s LLM calls
+- SQLite-based storage with ONNX embeddings
+- Supports semantic similarity search
+
+**Configuration**:
+```json
+{
+  "enabled": true,
+  "host": "127.0.0.1",
+  "port": 8000,
+  "cacheKeyPrefix": "opencode"
+}
+```
+
+**Usage**:
+- Automatically caches agent responses when enabled
+- Configured in `gptcache_config.json`
+- Requires GPTCache server running on port 8000
+
+**For detailed documentation**, see [docs/GPTCACHE_INTEGRATION.md](./docs/GPTCACHE_INTEGRATION.md)
+
+### Plugin Registration
+
+Plugins in `~/.config/opencode/plugin/` are automatically loaded at startup. No configuration in `opencode.json` is required.
+
+### Plugin Development
+
+**Requirements**:
+- Export named functions (e.g., `export const MyPlugin`)
+- Use `import` for ES modules (`.mjs` files)
+- Accept plugin context parameters: `{ project, client, $, directory, worktree }`
+- Return object with hook implementations
+
+**Example**:
+```javascript
+export const MyPlugin = async ({ project, client, $, directory, worktree }) => {
+  console.log("Plugin initialized!");
+  
+  return {
+    'tool.execute.before': async (input, output) => {
+      console.log("Tool:", input.tool);
+    }
+  };
+};
+```
+
+**Available Hooks**:
+- `tool.execute.before` - Before tool execution
+- `tool.execute.after` - After tool execution
+- `agent.execute.before` - Before agent execution
+- `agent.execute.after` - After agent execution
+- `chat.message` - Chat message events
+- And many more (see [opencode docs](https://opencode.ai/docs/plugins/))
+
+**Dependencies**:
+- Use relative paths to access parent directory files
+- External npm packages require `package.json` in config directory
+- Dynamic imports work: `await import('../lib/module.js')`
+
+### Plugin Documentation
+
+For detailed plugin development guide, see [plugin/README.md](./plugin/README.md).
 
 ---
 
@@ -635,6 +733,16 @@ curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/mai
 │   ├── opencode-init          # System-wide setup
 │   └── workspace-init         # Project initialization
 ├── .beads/                   # Beads data (per project)
+├── plugin/                   # Plugin system
+│   ├── beads-guardrails.mjs    # Task tracking enforcement
+│   ├── gptcache.mjs          # LLM response caching
+│   └── README.md              # Plugin documentation
+├── docs/                     # Documentation
+│   ├── GPTCACHE_INTEGRATION.md
+│   ├── BEADS_GUARDRAILS_SETUP.md
+│   ├── BEADS_GUARDRAILS_IMPLEMENTATION.md
+│   ├── task-to-commit.md      # Workflow documentation
+│   └── ...
 └── hooks/                    # Service check hooks
     ├── session-start.sh
     ├── check-cass-memory.sh
@@ -797,11 +905,20 @@ cd /path/to/your/project
 
 ## 📚 Further Reading
 
+### External Resources
 - [Factory CLI Reference](https://github.com/steveyegge/factory) - Original framework
 - [cass_memory Documentation](https://github.com/Dicklesworthstone/cass_memory_system) - Learning system
 - [MCP Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail) - Agent coordination
 - [Beads Documentation](https://github.com/steveyegge/beads) - Task tracking
 - [Beads Viewer (beads_viewer)](https://github.com/Dicklesworthstone/beads_viewer) - Task browser
+- [opencode Plugin Documentation](https://opencode.ai/docs/plugins/) - Plugin development guide
+
+### Internal Documentation
+- [GPTCache Integration](./docs/GPTCACHE_INTEGRATION.md) - LLM response caching setup
+- [Beads Guardrails Setup](./docs/BEADS_GUARDRAILS_SETUP.md) - Enforce task tracking
+- [Beads Guardrails Implementation](./docs/BEADS_GUARDRAILS_IMPLEMENTATION.md) - Plugin implementation details
+- [Plugin System](./plugin/README.md) - Plugin system documentation
+- [Task-to-Commit Workflow](./docs/task-to-commit.md) - Atomic task cycle documentation
 
 ---
 
