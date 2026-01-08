@@ -119,6 +119,6 @@
     }
   },
   "plugin": [
-    "./beads-guardrails.plugin.js"
+    "./beads-guardrails.plugin.mjs"
   ]
 }
