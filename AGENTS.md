@@ -41,7 +41,6 @@ The Cass Memory System (cm) transforms scattered agent sessions into persistent,
 ### Quick Start
 
 ```bash
-# 1. Get context before starting a task (THE MAIN COMMAND)
 cm context "<your task>" --json
 
 # Returns:
@@ -51,14 +50,29 @@ cm context "<your task>" --json
 #   • suggestedCassQueries - Deeper investigation searches
 ```
 
-### Protocol
+### Integration
 
-1. **START**: Run `cm context "<task>" --json` before non-trivial work
-2. **WORK**: Reference rule IDs when following them (e.g., "Following b-8f3a2c...")
-3. **FEEDBACK**: Leave inline comments when rules help/hurt:
-    - `// [cass: helpful b-xyz] - reason`
-    - `// [cass: harmful b-xyz] - reason`
-4. **END**: Just finish your work. Learning happens automatically via reflection.
+Cass Memory is integrated via opencode plugin (`plugin/cass.mjs`) and configuration (`cass_config.json`).
+
+**Files:**
+- `plugin/cass.mjs` - opencode lifecycle hooks (agent.execute.before, agent.execute.after)
+- `cass_config.json` - Plugin configuration (enabled, contextLimit, autoInject)
+- `lib/cass-client.js` - HTTP client wrapper for cm commands
+
+**How It Works:**
+- **Automatic Context Injection**: `agent.execute.before` hook fetches relevant rules and injects into system prompt
+- **Automatic Outcome Tracking**: `agent.execute.after` hook records success/failure for shown rules
+- **Smart Filtering**: Limits to top N most relevant rules to manage context window
+- **Zero Friction**: No manual protocol needed - works transparently
+
+**Configuration:**
+```json
+{
+  "enabled": true,
+  "contextLimit": 5,
+  "autoInject": true
+}
+```
 
 ### Key Features
 
@@ -67,6 +81,18 @@ cm context "<your task>" --json
 - **Anti-Pattern Learning** - Bad rules auto-convert to warnings
 - **Trauma Guard** - Blocks dangerous commands learned from incidents
 - **Cross-Agent Learning** - Works with Claude, Cursor, Codex, Aider, etc.
+- **Automatic Integration** - Plugin ensures consistent usage across all agents
+
+### Useful Commands
+
+```bash
+cm context "task" --json     # Get rules + history (use this!)
+cm similar "query"             # Find similar rules
+cm playbook list               # Show all rules
+cm doctor --json               # System health check
+cm trauma list                # Show dangerous patterns
+cm stats --json               # Playbook metrics
+```
 
 ## Prompt Caching
 

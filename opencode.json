@@ -118,5 +118,8 @@
       }
     }
   },
-  "plugin": []
+  "plugin": [
+    "./plugin/gptcache.mjs",
+    "./plugin/cass.mjs"
+  ]
 }
