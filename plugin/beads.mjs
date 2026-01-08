@@ -76,8 +76,12 @@ class BeadsClient {
     for (const line of lines) {
       if (line.match(/^\d+\./)) {
         if (currentTask) tasks.push(currentTask);
-        const [id, ...rest] = line.split(' ');
-        currentTask = { id, raw: rest.join(' ') };
+        const match = line.match(/\[(opencode-[a-z0-9]+)\]/);
+        if (match) {
+          const id = match[1];
+          const raw = line.replace(/^\d+\.\s*/, '');
+          currentTask = { id, raw };
+        }
       }
     }
 
