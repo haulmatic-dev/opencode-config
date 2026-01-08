@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "autoScan": true,
+  "failOnCritical": true,
+  "autoUpdate": true,
+  "updateInterval": 86400,
+  "categories": [],
+  "skipCategories": [],
+  "languageFilter": [],
+  "ciMode": false,
+  "verbose": false
+}

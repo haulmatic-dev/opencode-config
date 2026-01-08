@@ -49,7 +49,7 @@ User Request
 | **Stage 1** | test-specialist | Write Unit Tests | Coverage ≥80%, all tests written |
 | **Stage 2** | implementation-agent | Implement Code | Typecheck passes, build succeeds |
 | **Stage 3** | test-specialist | Test Code | 100% tests pass, no failures |
-| **Stage 4** | quality-agent | Quality Checks | 0 lint errors, 0 security vulns, 0 type errors |
+| **Stage 4** | quality-agent | Quality Checks | 0 lint errors, 0 UBS critical bugs, 0 security vulns, 0 type errors |
 | **Stage 5** | code-reviewer | Code Review & Validation | No blocking comments, auto-checks pass |
 | **Stage 6** | deployment-specialist | Deployment & Monitoring | Smoke tests pass, health OK, monitoring configured |
 
@@ -95,7 +95,7 @@ When an agent completes a task successfully:
 
 ```python
 # Agent executes task
-run_quality_gates()  # lint, typecheck, build, test
+run_quality_gates()  # lint, UBS scan, typecheck, build, test
 
 # All quality gates pass
 bd.close(task_id, reason="Completed")
@@ -109,7 +109,7 @@ When an agent encounters a quality gate failure:
 
 ```python
 # Agent executes task
-run_quality_gates()  # lint, typecheck, build, test
+run_quality_gates()  # lint, UBS scan, typecheck, build, test
 
 # Quality gate fails (e.g., test failures)
 failure_info = {

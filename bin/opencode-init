@@ -36,6 +36,7 @@ for arg in "$@"; do
       echo "  • beads CLI (bd) - Task tracking"
       echo "  • beads viewer (bv) - Terminal UI for browsing tasks"
       echo "  • osgrep - Semantic code search"
+      echo "  • Ultimate Bug Scanner (UBS) - Multi-language static analysis"
       echo "  • Configures PATH for ~/.config/opencode/bin"
       echo ""
       echo "Usage: opencode-init [--quiet]"
@@ -73,6 +74,7 @@ HAS_OSGREP=false
 HAS_BV=false
 HAS_GPTCACHE=false
 HAS_CASS=false
+HAS_UBS=false
 
 command -v cm &> /dev/null && HAS_CM=true
 
@@ -110,6 +112,7 @@ HAS_CASS=true
 command -v bd &> /dev/null && HAS_BD=true
 command -v osgrep &> /dev/null && HAS_OSGREP=true
 command -v bv &> /dev/null && HAS_BV=true
+command -v ubs &> /dev/null && HAS_UBS=true
 command -v python3 &> /dev/null && HAS_PYTHON3=true
 [ -d "$HOME/.gptcache" ] && HAS_GPTCACHE=true
 [ -d "$HOME/.mcp_agent_mail" ] && HAS_MCP_AGENT_MAIL=true
@@ -120,6 +123,7 @@ echo -e "  cass_memory (cm):      $([ "$HAS_CM" = true ] && echo -e "${GREEN}✓
 echo -e "  Beads CLI (bd):       $([ "$HAS_BD" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(bd --version 2>/dev/null | head -1 || echo "not installed")"
 echo -e "  Osgrep:               $([ "$HAS_OSGREP" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(osgrep --version 2>/dev/null || echo "not installed")"
 echo -e "  Beads Viewer (bv):    $([ "$HAS_BV" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(bv --version 2>/dev/null || echo "not installed")"
+echo -e "  Ultimate Bug Scanner (UBS): $([ "$HAS_UBS" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(ubs --version 2>/dev/null || echo "not installed")"
 echo -e "  MCP Agent Mail:        $([ "$HAS_MCP_AGENT_MAIL" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $([ -d "$HOME/.mcp_agent_mail" ] && echo "installed" || echo "not installed")"
 
 # Step 8: Install GPTCache
@@ -569,6 +573,49 @@ if [ "$HAS_BV" = false ]; then
   fi
 fi
 
+# Step 6.5: Install Ultimate Bug Scanner (UBS)
+if [ "$HAS_UBS" = false ]; then
+  if [ "$QUIET" = false ]; then
+    echo
+    echo -e "${BLUE}Step 6.5: Install Ultimate Bug Scanner (UBS)${NC}"
+    echo "  UBS provides multi-language static analysis (8+ languages)"
+    echo "  Catches 1000+ bug patterns before production"
+    echo "  Source: https://github.com/Dicklesworthstone/ultimate_bug_scanner"
+    echo "  Requires: bash 4.0+, ast-grep, ripgrep, jq"
+    echo -n "  Install UBS? [Y/n]: "
+    read -r r
+    if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
+      echo "  Skipping UBS installation"
+      echo -e "  ${YELLOW}⚠️${NC}  UBS is recommended for code quality but optional"
+    else
+      # Check for bash 4.0+
+      BASH_VERSION_NUM=$(bash --version | grep -o '[0-9]\.[0-9]' | head -1)
+      if [ "$BASH_VERSION_NUM" \< "4.0" ]; then
+        echo -e "  ${RED}✗${NC}  UBS requires bash 4.0+ (current: $BASH_VERSION_NUM)"
+        echo -e "  ${YELLOW}⚠️${NC}  Install bash 4.0+ via Homebrew: brew install bash"
+        echo "  Or use: /opt/homebrew/bin/bash -c 'curl ... | bash'"
+      else
+        # Install UBS
+        echo -e "  ${BLUE}Installing UBS...${NC}"
+        curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)" | bash -s -- --non-interactive
+
+        if command -v ubs &> /dev/null; then
+          echo -e "  ${GREEN}✓${NC} Installed: $(ubs --version 2>/dev/null || echo "ubs")"
+          COMPLETED_STEPS+=("UBS installed")
+          HAS_UBS=true
+        else
+          echo -e "  ${YELLOW}⚠️${NC}  Installation may have failed. Check ~/.local/bin"
+        fi
+      fi
+    fi
+  else
+    # Quiet mode - auto-install UBS
+    curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)" | bash -s -- --non-interactive
+    COMPLETED_STEPS+=("UBS installed")
+    HAS_UBS=true
+  fi
+fi
+
 # Summary
 if [ "$QUIET" = false ]; then
 
@@ -703,6 +750,9 @@ echo
   echo "  1. Source your shell config or start a new terminal"
   echo "  2. Run 'workspace-init' in your project directory to set up task tracking"
   echo "  3. Run 'osgrep setup' if you didn't download models yet"
+  if [ "$HAS_UBS" = true ]; then
+    echo "  4. UBS is installed and ready - use 'ubs . --help' for commands"
+  fi
   echo
   echo -e "${BLUE}Quick Start:${NC}"
   echo "  cd /path/to/your/project"
