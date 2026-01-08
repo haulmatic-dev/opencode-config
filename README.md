@@ -290,10 +290,51 @@ cat ~/.cass-memory/config.json
 
 # Set LLM provider (Anthropic, OpenAI, Google, etc.)
 cm config set provider anthropic
-
-# Set API key
-export ANTHROPIC_API_KEY="sk-ant-..."
 ```
+
+**API Key Setup:**
+
+API keys are stored in `~/.zshrc`, not in opencode config files. Run the setup script:
+
+```bash
+~/.config/opencode/bin/setup-api-keys.sh
+```
+
+This will:
+1. Add OpenCode API section to your `~/.zshrc`
+2. Create a backup of your current `.zshrc`
+3. Provide instructions for adding your actual API keys
+4. Reload your shell configuration
+
+**Manual Setup:**
+
+If you prefer manual setup, add this to `~/.zshrc`:
+
+```bash
+# OpenCode API Keys (see ~/.config/opencode/.zshrc.example for template)
+export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+```
+
+**Supported Providers:**
+
+- `anthropic` - Claude models (default)
+- `openai` - GPT models
+- `google` - Gemini models
+
+**Optional API Keys:**
+
+- `FIGMA_API_TOKEN` - Figma design extraction (see `.zshrc.example`)
+
+**Security Best Practices:**
+
+- Never commit `.zshrc` to git
+- Rotate keys if compromised: https://console.anthropic.com
+- Use different keys for different environments
+- Reference `.zshrc.example` for template
+
+**API Key Health Check:**
+
+The API key health check runs automatically on session start and will alert you if required keys are missing.
 
 ### Beads Configuration
 

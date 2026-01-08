@@ -1,0 +1,45 @@
+# ═════════════════════════════════════════════════════════════════
+#   OpenCode API Keys & Configuration Template
+# ═════════════════════════════════════════════════════════════════
+#
+#   SETUP INSTRUCTIONS:
+#   1. Copy this file to ~/.zshrc.example
+#   2. Replace placeholder values with your actual API keys
+#   3. Run: source ~/.zshrc
+#   4. Restart your terminal or run: source ~/.zshrc
+#
+#   SECURITY:
+#   - Never commit this file to git
+#   - Keep your API keys private
+#   - Rotate keys if compromised: https://console.anthropic.com
+#   - Use environment variables for production deployments
+#   ═════════════════════════════════════════════════════════════════
+
+# ============================================
+# cass_memory (cm) - Learning System
+# ============================================
+# Primary LLM provider (anthropic, openai, google)
+export CASS_PROVIDER="${CASS_PROVIDER:-anthropic}"
+
+# Anthropic API (Claude)
+export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-sk-ant-...}"
+
+# OpenAI API (GPT models)
+# export OPENAI_API_KEY="${OPENAI_API_KEY:-sk-...}"
+
+# Google API (Gemini models)
+# export GOOGLE_API_KEY="${GOOGLE_API_KEY:-...}"
+
+# ============================================
+# Figma Design Integration (Optional)
+# ============================================
+# Required for figma-design-extractor agent
+export FIGMA_API_TOKEN="${FIGMA_API_TOKEN:-figd_...}"
+
+# ============================================
+# MCP Agent Mail Configuration
+# ============================================
+# These are set in ~/.mcp-agent-mail/.env, not here
+# See: https://github.com/Dicklesworthstone/mcp_agent_mail
+
+# ═════════════════════════════════════════════════════════════════
