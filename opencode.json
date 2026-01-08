@@ -120,6 +120,7 @@
   },
   "plugin": [
     "./plugin/gptcache.mjs",
-    "./plugin/cass.mjs"
+    "./plugin/cass.mjs",
+    "./plugin/beads.mjs"
   ]
 }

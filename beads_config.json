@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "autoTriage": true,
+  "autoClaim": false,
+  "autoClose": true,
+  "autoSync": false,
+  "description": "Beads and Beads Viewer integration for opencode",
+  "docs": "https://github.com/steveyegge/beads and https://github.com/Dicklesworthstone/beads_viewer"
+}
