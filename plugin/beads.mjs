@@ -1,5 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 const execAsync = promisify(exec);
 
@@ -181,9 +183,9 @@ class BeadsMiddleware {
 
     if (triageData.quick_ref) {
       parts.push('## Quick Reference (from bv --robot-triage)\n');
-      parts.push(`- Ready tasks: ${triageData.quick_ref.ready_count || 0}`);
+      parts.push(`- Ready tasks: ${triageData.quick_ref.actionable_count || triageData.quick_ref.open_count || 0}`);
       parts.push(`- Open tasks: ${triageData.quick_ref.open_count || 0}`);
-      parts.push(`- Total tasks: ${triageData.quick_ref.total_count || 0}`);
+      parts.push(`- Total tasks: ${triageData.meta?.issue_count || triageData.quick_ref.open_count || 0}`);
       parts.push('');
     }
 
@@ -193,10 +195,10 @@ class BeadsMiddleware {
         parts.push(`${idx + 1}. [${rec.id}] ${rec.title}`);
         parts.push(`   - Priority: ${rec.priority}`);
         parts.push(`   - Score: ${rec.score?.toFixed(2) || 'N/A'}`);
-        parts.push(`   - Unblocks: ${rec.unblocks?.length || 0}`);
-        parts.push(`   - Reason: ${rec.reason || 'N/A'}`);
-        if (rec.commands && rec.commands.claim) {
-          parts.push(`   - Command: ${rec.commands.claim}`);
+        parts.push(`   - Unblocks: ${rec.unblocks || 0}`);
+        parts.push(`   - Reason: ${rec.reasons?.join(', ') || 'N/A'}`);
+        if (triageData.commands && triageData.commands.claim) {
+          parts.push(`   - Command: ${triageData.commands.claim}`);
         }
         parts.push('');
       });
@@ -206,8 +208,12 @@ class BeadsMiddleware {
       parts.push('## Quick Wins (low-effort, high-impact)\n');
       triageData.quick_wins.slice(0, 3).forEach((win, idx) => {
         parts.push(`${idx + 1}. [${win.id}] ${win.title}`);
-        parts.push(`   - Impact: ${win.impact}`);
-        parts.push(`   - Command: ${win.command || 'N/A'}`);
+        parts.push(`   - Impact: ${win.reason || 'N/A'}`);
+        if (triageData.commands && triageData.commands.claim) {
+          parts.push(`   - Command: bd update ${win.id} --status in_progress`);
+        } else {
+          parts.push(`   - Command: bd update ${win.id} --status in_progress`);
+        }
         parts.push('');
       });
     }
@@ -225,14 +231,17 @@ class BeadsMiddleware {
     if (triageData.project_health) {
       parts.push('## Project Health\n');
       const health = triageData.project_health;
-      if (health.status_distribution) {
-        parts.push('- Status:', Object.entries(health.status_distribution).map(([k, v]) => `${k}: ${v}`).join(', '));
+      if (health.counts?.by_status) {
+        parts.push('- Status:', Object.entries(health.counts.by_status).map(([k, v]) => `${k}: ${v}`).join(', '));
       }
-      if (health.type_distribution) {
-        parts.push('- Types:', Object.entries(health.type_distribution).map(([k, v]) => `${k}: ${v}`).join(', '));
+      if (health.counts?.by_type) {
+        parts.push('- Types:', Object.entries(health.counts.by_type).map(([k, v]) => `${k}: ${v}`).join(', '));
       }
-      if (health.priority_distribution) {
-        parts.push('- Priorities:', Object.entries(health.priority_distribution).map(([k, v]) => `${k}: ${v}`).join(', '));
+      if (health.counts?.by_priority) {
+        parts.push('- Priorities:', Object.entries(health.counts.by_priority).map(([k, v]) => `${k}: ${v}`).join(', '));
+      }
+      if (health.graph?.density) {
+        parts.push(`- Graph Density: ${health.graph.density.toFixed(3)}`);
       }
       parts.push('');
     }
@@ -362,10 +371,10 @@ export const beads = async ({ project, client, $, directory, worktree }) => {
       if (middleware.autoTriage) {
         const triage = await bvClient.triage();
         
-        if (triage) {
-          const triagePrompt = await middleware.formatRecommendations(triage);
+        if (triage && triage.triage) {
+          const triagePrompt = await middleware.formatRecommendations(triage.triage);
           output.systemPrompt = triagePrompt;
-          output.beadsTriage = triage;
+          output.beadsTriage = triage.triage;
         }
       }
     },
