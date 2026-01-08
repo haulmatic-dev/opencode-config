@@ -118,8 +118,5 @@
       }
     }
   },
-  "plugin": [
-    "./gptcache-plugin.mjs",
-    "./beads-guardrails.plugin.mjs"
-  ]
+  "plugin": []
 }

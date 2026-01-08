@@ -1,20 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 let cacheMiddleware = null;
 
-async function loadCacheMiddleware() {
-  const middlewarePath = path.join(__dirname, 'lib', 'gptcache-middleware.js');
-  const module = await import(middlewarePath);
-  return module.default;
-}
-
 async function createDefaultCacheMiddleware() {
-  const GPTCacheClient = await import('./lib/gptcache-client.js');
+  const GPTCacheClient = await import('../lib/gptcache-client.js');
   
   class GPTCacheMiddleware {
     constructor(options = {}) {
@@ -70,10 +60,8 @@ async function createDefaultCacheMiddleware() {
   return GPTCacheMiddleware;
 }
 
-export const gptcachePlugin = async (input) => {
-  const { project, directory, client } = input;
-  
-  const configPath = path.join(__dirname, 'gptcache_config.json');
+export const gptcache = async ({ project, client, $, directory, worktree }) => {
+  const configPath = path.join(__dirname, '..', 'gptcache_config.json');
   const configContent = fs.readFileSync(configPath, 'utf-8');
   const config = JSON.parse(configContent);
   
