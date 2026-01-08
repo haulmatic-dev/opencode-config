@@ -117,5 +117,8 @@
         }
       }
     }
-  }
+  },
+  "plugin": [
+    "./beads-guardrails.plugin.js"
+  ]
 }
