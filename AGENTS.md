@@ -221,45 +221,143 @@ bd sync               # Sync with git
 - If push fails, resolve and retry until it succeeds
 
 
-<!-- bv-agent-instructions-v1 -->
+<!-- bv-agent-instructions-v2 -->
 
 ---
 
-## Beads Workflow Integration
+## Task Tracking: Beads (bd) & Beads Viewer (bv)
 
-This project uses [beads_viewer](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
+This project uses [Beads](https://github.com/steveyegge/beads) for issue tracking and [beads_viewer](https://github.com/Dicklesworthstone/beads_viewer) for intelligent task management. Issues are stored in `.beads/` and tracked in git.
 
-### Essential Commands
+### Quick Reference (Basic Commands)
 
 ```bash
-# View issues (launches TUI - avoid in automated sessions)
-bv
-
-# CLI commands for agents (use these instead)
-bd ready              # Show issues ready to work (no blockers)
-bd list --status=open # All open issues
-bd show <id>          # Full issue details with dependencies
-bd create --title="..." --type=task --priority=2
-bd update <id> --status=in_progress
-bd close <id> --reason="Completed"
-bd close <id1> <id2>  # Close multiple issues at once
-bd sync               # Commit and push changes
+bd ready              # Find available work (no blockers)
+bd show <id>          # View issue details
+bd update <id> --status in_progress  # Claim work
+bd close <id>         # Complete work
+bd sync               # Sync with git
 ```
 
-### Workflow Pattern
+---
 
-1. **Start**: Run `bd ready` to find actionable work
-2. **Claim**: Use `bd update <id> --status=in_progress`
-3. **Work**: Implement the task
-4. **Complete**: Use `bd close <id>`
+## Beads Viewer (bv) - AI Agent Protocol
+
+**⚠️ CRITICAL: Use ONLY `--robot-*` flags. Bare `bv` command launches interactive TUI that blocks your session.**
+
+### The Workflow: Start With Triage
+
+**`bv --robot-triage` is your single entry point.** It returns everything you need in one call:
+- `quick_ref`: at-a-glance counts + top 3 picks
+- `recommendations`: ranked actionable items with scores, reasons, unblock info
+- `quick_wins`: low-effort high-impact items
+- `blockers_to_clear`: items that unblock most downstream work
+- `project_health`: status/type/priority distributions, graph metrics
+- `commands`: copy-paste shell commands for next steps
+
+```bash
+# THE MEGA-COMMAND: start here
+bv --robot-triage
+
+# Alternative: Minimal output (single top pick + claim command)
+bv --robot-next
+```
+
+### Robot Commands Reference
+
+| Category | Command | Returns |
+|-----------|----------|---------|
+| **Triage** | `bv --robot-triage` | Recommendations, quick_wins, blockers_to_clear, project_health |
+| **Planning** | `bv --robot-plan` | Parallel execution tracks with `unblocks` lists |
+| **Priority** | `bv --robot-priority` | Priority misalignment detection with confidence |
+| **Insights** | `bv --robot-insights` | Full metrics: PageRank, betweenness, HITS, eigenvector, critical path, cycles, k-core, articulation points, slack |
+| **Label Health** | `bv --robot-label-health` | Per-label health: `health_level`, `velocity_score`, `staleness`, `blocked_count` |
+| **Label Flow** | `bv --robot-label-flow` | Cross-label dependency: `flow_matrix`, `dependencies`, `bottleneck_labels` |
+| **Label Attention** | `bv --robot-label-attention [--attention-limit=N]` | Attention-ranked labels by: (pagerank × staleness × block_impact) / velocity |
+| **History** | `bv --robot-history` | Bead-to-commit correlations: `stats`, `histories`, `commit_index` |
+| **Diff** | `bv --robot-diff --diff-since <ref>` | Changes since ref: new/closed/modified issues, cycles introduced/resolved |
+| **Burndown** | `bv --robot-burndown <sprint>` | Sprint burndown, scope changes, at-risk items |
+| **Forecast** | `bv --robot-forecast <id\|all>` | ETA predictions with dependency-aware scheduling |
+| **Alerts** | `bv --robot-alerts` | Stale issues, blocking cascades, priority mismatches |
+| **Suggestions** | `bv --robot-suggest` | Hygiene: duplicates, missing deps, label suggestions, cycle breaks |
+| **Graph Export** | `bv --robot-graph [--graph-format=json\|dot\|mermaid]` | Dependency graph export |
+
+### Scoping & Filtering
+
+```bash
+# Scope to specific label's subgraph
+bv --robot-plan --label backend
+
+# Historical point-in-time analysis
+bv --robot-insights --as-of HEAD~30
+
+# Pre-filter: ready to work (no blockers)
+bv --recipe actionable --robot-plan
+
+# Pre-filter: top PageRank scores
+bv --recipe high-impact --robot-triage
+
+# Group by parallel work streams
+bv --robot-triage --robot-triage-by-track
+
+# Group by domain
+bv --robot-triage --robot-triage-by-label
+```
+
+### Understanding Robot Output
+
+**All robot JSON includes:**
+- `data_hash` — Fingerprint of source beads.jsonl (verify consistency across calls)
+- `status` — Per-metric state: `computed|approx|timeout|skipped` + elapsed ms
+- `as_of` / `as_of_commit` — Present when using `--as-of`; contains ref and resolved SHA
+
+**Two-phase analysis:**
+- **Phase 1 (instant):** degree, topo sort, density — always available immediately
+- **Phase 2 (async, 500ms timeout):** PageRank, betweenness, HITS, eigenvector, cycles — check `status` flags
+
+**For large graphs (>500 nodes):** Some metrics may be approximated or skipped. Always check `status`.
+
+### jq Quick Reference
+
+```bash
+bv --robot-triage | jq '.quick_ref'                        # At-a-glance summary
+bv --robot-triage | jq '.recommendations[0]'               # Top recommendation
+bv --robot-plan | jq '.plan.summary.highest_impact'        # Best unblock target
+bv --robot-insights | jq '.status'                         # Check metric readiness
+bv --robot-insights | jq '.Cycles'                         # Circular deps (must fix!)
+bv --robot-label-health | jq '.results.labels[] | select(.health_level == "critical")'
+```
+
+### Graph Metrics Explained
+
+| Metric | Purpose | Key Insight |
+|---------|----------|-------------|
+| **PageRank** | Dependency importance | Foundational blockers (high PageRank = bedrock) |
+| **Betweenness** | Shortest-path traffic | Bottlenecks & bridges (gatekeepers) |
+| **HITS** | Hub/Authority duality | Epics vs. utilities (Hubs=Epics, Authorities=Utilities) |
+| **Critical Path** | Longest dependency chain | Keystones with zero slack (delays impact project directly) |
+| **Eigenvector** | Influence via neighbors | Strategic dependencies (connected to power players) |
+| **Cycles** | Circular dependencies | **CRITICAL**: Must fix (logical impossibility) |
+| **Density** | Edge-to-node ratio | Project coupling health (low=healthy, high=overly coupled) |
+
+---
+
+## Workflow Pattern
+
+1. **Start**: Run `bv --robot-triage` to get recommendations
+2. **Claim**: Use `bd update <id> --status in_progress` on recommended task
+3. **Work**: Implement task
+4. **Complete**: Use `bd close <id> --reason="Completed"`
 5. **Sync**: Always run `bd sync` at session end
+6. **Verify**: Run `bv --robot-history` to check changes
 
 ### Key Concepts
 
-- **Dependencies**: Issues can block other issues. `bd ready` shows only unblocked work.
+- **Dependencies**: Issues can block other issues. `bv --robot-triage` shows only unblocked work.
 - **Priority**: P0=critical, P1=high, P2=medium, P3=low, P4=backlog (use numbers, not words)
 - **Types**: task, bug, feature, epic, question, docs
 - **Blocking**: `bd dep add <issue> <depends-on>` to add dependencies
+- **Graph Metrics**: Use `bv --robot-insights` to detect bottlenecks, cycles, and critical paths
 
 ### Session Protocol
 
@@ -276,10 +374,253 @@ git push                # Push to remote
 
 ### Best Practices
 
-- Check `bd ready` at session start to find available work
+- **ALWAYS** use `bv --robot-*` commands for AI agents (never bare `bv`)
+- Start sessions with `bv --robot-triage` to get intelligent recommendations
+- Check for cycles with `bv --robot-insights | jq '.Cycles'`
+- Use `bv --robot-label-health` to identify stuck domains
 - Update status as you work (in_progress → closed)
 - Create new issues with `bd create` when you discover tasks
-- Use descriptive titles and set appropriate priority/type
 - Always `bd sync` before ending session
 
-<!-- end-bv-agent-instructions -->
+## Beads Plugin Integration
+
+The Beads plugin (`plugin/beads.mjs`) provides automatic integration with task tracking via intelligent hooks:
+
+### How It Works
+
+**Automatic Context Injection (`agent.execute.before`):**
+- Runs `bv --robot-triage` to get intelligent recommendations
+- Formats triage data as system prompt
+- Includes quick_ref, recommended tasks, quick_wins, blockers, project health
+
+**Automatic Task Management (`agent.execute.after`):**
+- Auto-claims recommended task (if `autoClaim` enabled)
+- Auto-closes completed task (if `autoClose` enabled)
+- Auto-syncs beads to git (if `autoSync` enabled)
+
+### Configuration
+
+**File:** `beads_config.json`
+
+```json
+{
+  "enabled": true,
+  "autoTriage": true,
+  "autoClaim": false,
+  "autoClose": true,
+  "autoSync": false
+}
+```
+
+**Options:**
+- `enabled`: Enable/disable plugin globally
+- `autoTriage`: Automatically run `bv --robot-triage` on agent start
+- `autoClaim`: Auto-claim recommended task (use carefully - may conflict with manual claims)
+- `autoClose`: Auto-close task after successful completion
+- `autoSync`: Auto-sync beads to git after task completion
+
+### Features
+
+- **Intelligent Triage**: Automatic `bv --robot-triage` with formatted output
+- **Graph Metrics**: Automatic cycle detection, bottleneck identification
+- **Alerts**: Automatic stale issue and blocking cascade detection
+- **Task Lifecycle**: Auto-claim and auto-close for seamless workflow
+- **Git Integration**: Automatic beads sync to git
+
+### Client API
+
+**BeadsClient** - Basic task management:
+```javascript
+await beadsClient.ready();              // Get ready tasks
+await beadsClient.show(id);            // Get task details
+await beadsClient.update(id, options);   // Update task
+await beadsClient.close(id, reason);    // Close task
+await beadsClient.sync();               // Sync to git
+```
+
+**BeadsViewerClient** - Graph-aware intelligence:
+```javascript
+await bvClient.triage();             // Get recommendations (main entry point)
+await bvClient.plan(options);          // Get execution plan
+await bvClient.insights(options);     // Get graph metrics
+await bvClient.alerts();            // Get alerts
+await bvClient.history();           // Get history
+await bvClient.labelHealth();       // Get label health
+```
+
+### Benefits over Manual Usage
+
+| Before (Manual) | After (Plugin) |
+|-----------------|----------------|
+| Run `bv --robot-triage` manually | Automatic context injection |
+| Manually claim/close tasks | Auto-claim and auto-close |
+| Manually check for cycles | Automatic cycle detection |
+| Manually sync beads | Auto-sync on completion |
+| No triage in system prompt | Formatted triage in prompts |
+
+### Integration Notes
+
+- Works alongside GPTCache and cass_memory plugins
+- No conflicts - each plugin handles separate concerns
+- Plugin hooks run in order registered in `opencode.json`
+
+<!-- end-bv-agent-instructions-v2 -->
+
+---
+
+## Beads Workflow Integration
+
+This project uses [Beads](https://github.com/steveyegge/beads) for issue tracking and [beads_viewer](https://github.com/Dicklesworthstone/beads_viewer) for intelligent task management. Issues are stored in `.beads/` and tracked in git.
+
+### Quick Reference (Basic Commands)
+
+```bash
+bd ready              # Find available work (no blockers)
+bd show <id>          # View issue details
+bd update <id> --status in_progress  # Claim work
+bd close <id>         # Complete work
+bd sync               # Sync with git
+```
+
+---
+
+## Beads Viewer (bv) - AI Agent Protocol
+
+**⚠️ CRITICAL: Use ONLY `--robot-*` flags. Bare `bv` command launches interactive TUI that blocks your session.**
+
+### The Workflow: Start With Triage
+
+**`bv --robot-triage` is your single entry point.** It returns everything you need in one call:
+- `quick_ref`: at-a-glance counts + top 3 picks
+- `recommendations`: ranked actionable items with scores, reasons, unblock info
+- `quick_wins`: low-effort high-impact items
+- `blockers_to_clear`: items that unblock most downstream work
+- `project_health`: status/type/priority distributions, graph metrics
+- `commands`: copy-paste shell commands for next steps
+
+```bash
+# THE MEGA-COMMAND: start here
+bv --robot-triage
+
+# Alternative: Minimal output (single top pick + claim command)
+bv --robot-next
+```
+
+### Robot Commands Reference
+
+| Category | Command | Returns |
+|-----------|----------|---------|
+| **Triage** | `bv --robot-triage` | Recommendations, quick_wins, blockers_to_clear, project_health |
+| **Planning** | `bv --robot-plan` | Parallel execution tracks with `unblocks` lists |
+| **Priority** | `bv --robot-priority` | Priority misalignment detection with confidence |
+| **Insights** | `bv --robot-insights` | Full metrics: PageRank, betweenness, HITS, eigenvector, critical path, cycles, k-core, articulation points, slack |
+| **Label Health** | `bv --robot-label-health` | Per-label health: `health_level`, `velocity_score`, `staleness`, `blocked_count` |
+| **Label Flow** | `bv --robot-label-flow` | Cross-label dependency: `flow_matrix`, `dependencies`, `bottleneck_labels` |
+| **Label Attention** | `bv --robot-label-attention [--attention-limit=N]` | Attention-ranked labels by: (pagerank × staleness × block_impact) / velocity |
+| **History** | `bv --robot-history` | Bead-to-commit correlations: `stats`, `histories`, `commit_index` |
+| **Diff** | `bv --robot-diff --diff-since <ref>` | Changes since ref: new/closed/modified issues, cycles introduced/resolved |
+| **Burndown** | `bv --robot-burndown <sprint>` | Sprint burndown, scope changes, at-risk items |
+| **Forecast** | `bv --robot-forecast <id\|all>` | ETA predictions with dependency-aware scheduling |
+| **Alerts** | `bv --robot-alerts` | Stale issues, blocking cascades, priority mismatches |
+| **Suggestions** | `bv --robot-suggest` | Hygiene: duplicates, missing deps, label suggestions, cycle breaks |
+| **Graph Export** | `bv --robot-graph [--graph-format=json\|dot\|mermaid]` | Dependency graph export |
+
+### Scoping & Filtering
+
+```bash
+# Scope to specific label's subgraph
+bv --robot-plan --label backend
+
+# Historical point-in-time analysis
+bv --robot-insights --as-of HEAD~30
+
+# Pre-filter: ready to work (no blockers)
+bv --recipe actionable --robot-plan
+
+# Pre-filter: top PageRank scores
+bv --recipe high-impact --robot-triage
+
+# Group by parallel work streams
+bv --robot-triage --robot-triage-by-track
+
+# Group by domain
+bv --robot-triage --robot-triage-by-label
+```
+
+### Understanding Robot Output
+
+**All robot JSON includes:**
+- `data_hash` — Fingerprint of source beads.jsonl (verify consistency across calls)
+- `status` — Per-metric state: `computed|approx|timeout|skipped` + elapsed ms
+- `as_of` / `as_of_commit` — Present when using `--as-of`; contains ref and resolved SHA
+
+**Two-phase analysis:**
+- **Phase 1 (instant):** degree, topo sort, density — always available immediately
+- **Phase 2 (async, 500ms timeout):** PageRank, betweenness, HITS, eigenvector, cycles — check `status` flags
+
+**For large graphs (>500 nodes):** Some metrics may be approximated or skipped. Always check `status`.
+
+### jq Quick Reference
+
+```bash
+bv --robot-triage | jq '.quick_ref'                        # At-a-glance summary
+bv --robot-triage | jq '.recommendations[0]'               # Top recommendation
+bv --robot-plan | jq '.plan.summary.highest_impact'        # Best unblock target
+bv --robot-insights | jq '.status'                         # Check metric readiness
+bv --robot-insights | jq '.Cycles'                         # Circular deps (must fix!)
+bv --robot-label-health | jq '.results.labels[] | select(.health_level == "critical")'
+```
+
+### Graph Metrics Explained
+
+| Metric | Purpose | Key Insight |
+|---------|----------|-------------|
+| **PageRank** | Dependency importance | Foundational blockers (high PageRank = bedrock) |
+| **Betweenness** | Shortest-path traffic | Bottlenecks & bridges (gatekeepers) |
+| **HITS** | Hub/Authority duality | Epics vs. utilities (Hubs=Epics, Authorities=Utilities) |
+| **Critical Path** | Longest dependency chain | Keystones with zero slack (delays impact project directly) |
+| **Eigenvector** | Influence via neighbors | Strategic dependencies (connected to power players) |
+| **Cycles** | Circular dependencies | **CRITICAL**: Must fix (logical impossibility) |
+| **Density** | Edge-to-node ratio | Project coupling health (low=healthy, high=overly coupled) |
+
+---
+
+## Workflow Pattern
+
+1. **Start**: Run `bv --robot-triage` to get recommendations
+2. **Claim**: Use `bd update <id> --status=in_progress` on recommended task
+3. **Work**: Implement task
+4. **Complete**: Use `bd close <id> --reason="Completed"`
+5. **Sync**: Always run `bd sync` at session end
+6. **Verify**: Run `bv --robot-history` to check changes
+
+### Key Concepts
+
+- **Dependencies**: Issues can block other issues. `bv --robot-triage` shows only unblocked work.
+- **Priority**: P0=critical, P1=high, P2=medium, P3=low, P4=backlog (use numbers, not words)
+- **Types**: task, bug, feature, epic, question, docs
+- **Blocking**: `bd dep add <issue> <depends-on>` to add dependencies
+- **Graph Metrics**: Use `bv --robot-insights` to detect bottlenecks, cycles, and critical paths
+
+### Session Protocol
+
+**Before ending any session, run this checklist:**
+
+```bash
+git status              # Check what changed
+git add <files>         # Stage code changes
+bd sync                 # Commit beads changes
+git commit -m "..."     # Commit code
+bd sync                 # Commit any new beads changes
+git push                # Push to remote
+```
+
+### Best Practices
+
+- **ALWAYS** use `bv --robot-*` commands for AI agents (never bare `bv`)
+- Start sessions with `bv --robot-triage` to get intelligent recommendations
+- Check for cycles with `bv --robot-insights | jq '.Cycles'`
+- Use `bv --robot-label-health` to identify stuck domains
+- Update status as you work (in_progress → closed)
+- Create new issues with `bd create` when you discover tasks
+- Always `bd sync` before ending session
