@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "contextLimit": 5,
+  "autoInject": true,
+  "description": "Cass Memory configuration for opencode",
+  "docs": "https://github.com/Dicklesworthstone/coding_agent_session_search"
+}
