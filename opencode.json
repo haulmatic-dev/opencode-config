@@ -119,7 +119,7 @@
     }
   },
   "plugin": [
-    "./gptcache-plugin.js",
+    "./gptcache-plugin.mjs",
     "./beads-guardrails.plugin.mjs"
   ]
 }
