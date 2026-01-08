@@ -10,6 +10,7 @@ opencode brings together best-in-class AI development tools into a unified, hook
 - **MCP Agent Mail** - Tool-agnostic agent coordination and file reservations
 - **Beads CLI** (bd) - Dependency-aware task tracking with git persistence
 - **Beads Viewer** (bv) - Graph-aware task triage with AI agent integration
+- **Ultimate Bug Scanner (UBS)** - Multi-language static analysis catching 1000+ bug patterns
 - **7 Research Droids**:
   - **codebase-researcher** - Pattern discovery and technical debt identification
   - **git-history-analyzer** - Change evolution and team collaboration analysis
@@ -21,6 +22,7 @@ opencode brings together best-in-class AI development tools into a unified, hook
 - **Plugin System** - Extensible architecture with:
   - **gptcache** - LLM response caching for 70-90% cost reduction
   - **beads-guardrails** - Enforce task tracking via beads
+  - **ubs** - Automated static analysis before/after agent execution
 - **Specialized Droids**:
   - **orchestrator** - Master coordinator with dual-mode operation (2000+ lines)
   - **prd** - Product Requirements Document generator
@@ -56,7 +58,7 @@ opencode implements a **6-stage atomic task cycle** managed by **Beads dependenc
 2. **Stage 1**: Write Unit Tests (Test coverage ≥ 80%)
 3. **Stage 2**: Implement Code (Typecheck, build)
 4. **Stage 3**: Test Code (100% tests pass)
-5. **Stage 4**: Quality Checks (0 lint errors, 0 security vulns)
+5. **Stage 4**: Static Analysis & Security (UBS quality gate, 0 critical bugs)
 6. **Stage 5**: Code Review (PR validation, comment classification)
 7. **Stage 6**: Deployment (Smoke tests, health checks, monitoring)
 
@@ -189,7 +191,7 @@ Tool-Agnostic Services (Global):
 | **MCP Agent Mail** | Clone + `uv sync` | `check-mcp-agent-mail.sh` | ❌ No |
 | **Beads CLI (bd)** | `go install` | `check-beads.sh` | ❌ No |
 | **Beads Viewer (bv)** | `curl install.sh` | `check-bv.sh` | ❌ No |
-
+| | **UBS** | `curl install.sh` | `check-ubs.sh` | ❌ No |
 **Key Principle**: Services are **tool-agnostic** - they work with Factory CLI, opencode, Cursor, Claude Code, Codex, etc.
 
 ---
@@ -411,6 +413,40 @@ opencode plugins extend functionality through a hook-based architecture. All plu
 - Requires GPTCache server running on port 8000
 
 **For detailed documentation**, see [docs/GPTCACHE_INTEGRATION.md](./docs/GPTCACHE_INTEGRATION.md)
+
+#### ubs.mjs
+
+**Purpose**: Automated static analysis with Ultimate Bug Scanner for catching bugs before they reach production
+
+**Features**:
+- Pre-agent scan: Automatically scans changed files before agent execution
+- Post-agent scan: Scans files modified by agent to catch regressions
+- Auto-update check: Updates UBS every 24 hours on session start
+- Quality gate: Integrates with Stage 3 (Static Analysis & Security) of task workflow
+- Pre-commit hook: Blocks commits with critical bugs
+
+**Configuration**:
+```json
+{
+  "enabled": true,
+  "autoScan": true,
+  "failOnCritical": true,
+  "autoUpdate": true,
+  "updateInterval": 86400,
+  "categories": [],
+  "skipCategories": [],
+  "languageFilter": [],
+  "ciMode": false,
+  "verbose": false
+}
+```
+
+**Usage**:
+- Automatically runs before/after agent execution when enabled
+- Configured in `ubs_config.json`
+- Requires UBS installed (optional - graceful degradation if missing)
+
+**For detailed documentation**, see [AGENTS.md](./AGENTS.md#ultimate-bug-scanner-ubs---static-analysis)
 
 ### Plugin Registration
 
@@ -657,6 +693,9 @@ source ~/.zshrc
 
 # Beads Viewer not found
 curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh?$(date +%s)" | bash
+
+# UBS not found
+curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)" | bash
 ```
 
 ### Hook Returns Wrong Exit Code?
@@ -720,6 +759,17 @@ bv --version
 curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh?$(date +%s)" | bash
 ```
 
+### UBS Issues?
+
+```bash
+# Check UBS status
+ubs --version
+ubs doctor
+
+# Re-install if needed
+curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)" | bash
+```
+
 ---
 
 ## 📁 Project Structure
@@ -736,6 +786,7 @@ curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/mai
 ├── plugin/                   # Plugin system
 │   ├── beads-guardrails.mjs    # Task tracking enforcement
 │   ├── gptcache.mjs          # LLM response caching
+│   ├── ubs.mjs                # UBS static analysis
 │   └── README.md              # Plugin documentation
 ├── docs/                     # Documentation
 │   ├── GPTCACHE_INTEGRATION.md
@@ -743,12 +794,25 @@ curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/mai
 │   ├── BEADS_GUARDRAILS_IMPLEMENTATION.md
 │   ├── task-to-commit.md      # Workflow documentation
 │   └── ...
+├── lib/                      # Client libraries
+│   ├── beads-client.js         # Beads CLI wrapper
+│   ├── beads-viewer-client.js  # BV CLI wrapper
+│   ├── gptcache-client.js     # GPTCache wrapper
+│   ├── gptcache-middleware.js # GPTCache middleware
+│   └── ubs-client.js          # UBS wrapper
+├── config/                   # Plugin configurations
+│   ├── beads_config.json       # Beads plugin config
+│   ├── gptcache_config.json    # GPTCache plugin config
+│   └── ubs_config.json       # UBS plugin config
 └── hooks/                    # Service check hooks
     ├── session-start.sh
     ├── check-cass-memory.sh
     ├── check-mcp-agent-mail.sh
     ├── check-beads.sh
-    └── check-bv.sh
+    ├── check-bv.sh
+    ├── check-gptcache.sh
+    ├── check-cass-health.sh
+    └── check-ubs.sh
 ```
 
 ---
@@ -834,6 +898,11 @@ bv --robot-triage                           # THE COMMAND - start every session
 bv --robot-next                               # What to work on next
 bv --robot-insights                          # Full project analysis
 bv --robot-plan                              # Parallel execution tracks
+
+# UBS (Ultimate Bug Scanner)
+ubs file.ts                                  # Scan specific file
+ubs $(git diff --name-only --cached)          # Scan staged files
+ubs . --fail-on-warning                      # Stage 3 quality gate
 ```
 
 ### Keyboard Shortcuts (bv)
