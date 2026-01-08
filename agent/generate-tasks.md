@@ -373,6 +373,272 @@ If answer to #4 is "yes", GO BACK AND SPLIT IT.
 - System-wide features
 
 ---
+## ATOMIC TASK CYCLE GENERATION (6-Stage Workflow)
+
+**CRITICAL: When generating tasks from PRD, create 5 atomic tasks per feature following the 6-stage workflow.**
+
+### Task Structure for Each Feature
+
+For every functional requirement in the PRD, generate 5 dependent tasks:
+
+```markdown
+## Atomic Task Cycle: [Feature Name]
+
+### Task [feature]-0: Discovery & Planning
+Stage: 0
+Dependencies: none
+Priority: P1
+Estimated Effort: 2-3 hours
+
+Description:
+- Validate PRD requirements are clear and complete
+- Assess technical risks and dependencies
+- Identify edge cases and error handling needs
+- Review existing codebase patterns and conventions
+- Document technical approach
+
+Acceptance Criteria:
+- [ ] PRD requirements validated and documented
+- [ ] Technical risks identified with mitigation strategies
+- [ ] Dependencies on existing components documented
+- [ ] Implementation approach documented
+
+Quality Gates:
+- PRD review complete
+- Risk assessment documented
+
+---
+
+### Task [feature]-1: Write Unit Tests
+Stage: 1
+Dependencies: [feature]-0
+Priority: P1
+Estimated Effort: 2-3 hours
+
+Description:
+- Write comprehensive unit tests for feature requirements
+- Create test fixtures and mocks as needed
+- Ensure test coverage ≥ 80%
+- Write integration tests for API contracts
+
+Acceptance Criteria:
+- [ ] Unit tests written for all core functionality
+- [ ] Test fixtures and mocks created
+- [ ] Test coverage ≥ 80%
+- [ ] Integration tests for API contracts written
+
+Quality Gates:
+- Test coverage ≥ 80%
+- All tests compile/run successfully
+
+---
+
+### Task [feature]-2: Implement Code
+Stage: 2
+Dependencies: [feature]-1
+Priority: P1
+Estimated Effort: 4-6 hours
+
+Description:
+- Implement feature according to PRD specifications
+- Follow existing codebase patterns and conventions
+- Implement all acceptance criteria
+- Add error handling and edge cases
+
+Acceptance Criteria:
+- [ ] All functional requirements implemented
+- [ ] Code follows existing patterns and conventions
+- [ ] Error handling implemented for all edge cases
+- [ ] Integration with existing components working
+
+Quality Gates:
+- Code compiles/builds successfully
+- Type checking passes (0 errors)
+
+---
+
+### Task [feature]-3: Test Code
+Stage: 3
+Dependencies: [feature]-2
+Priority: P1
+Estimated Effort: 1-2 hours
+
+Description:
+- Execute all unit tests
+- Execute all integration tests
+- Verify test coverage meets requirements
+- Fix any failing tests
+
+Acceptance Criteria:
+- [ ] All unit tests pass (100%)
+- [ ] All integration tests pass (100%)
+- [ ] Test coverage ≥ 80%
+- [ ] No flaky tests
+
+Quality Gates:
+- All tests pass (100%)
+- No test failures
+- No flaky tests
+
+---
+
+### Task [feature]-4: Quality Checks
+Stage: 4
+Dependencies: [feature]-3
+Priority: P1
+Estimated Effort: 1-2 hours
+
+Description:
+- Run static analysis (linting)
+- Run security scanning
+- Run type checking
+- Verify code quality standards
+
+Acceptance Criteria:
+- [ ] 0 lint errors (warnings acceptable)
+- [ ] 0 security vulnerabilities
+- [ ] Type checking passes (0 errors)
+- [ ] Code follows project style guidelines
+
+Quality Gates:
+- Linting: 0 errors
+- Security: 0 vulnerabilities
+- Typecheck: 0 errors
+- Build: Success
+```
+
+### Beads Task Creation Commands
+
+When creating these tasks in Beads, use this pattern:
+
+```bash
+# Create Stage 0 task (Planning)
+PLAN_TASK=$(bd create \
+  --title="[feature]-0: Discovery & Planning" \
+  --type=task \
+  --priority=1 \
+  --description="Validate PRD, assess risks, document approach" \
+  --json | jq -r '.id')
+
+# Create Stage 1 task (Write Tests) - depends on Stage 0
+TEST_TASK=$(bd create \
+  --title="[feature]-1: Write Unit Tests" \
+  --type=task \
+  --priority=1 \
+  --depends_on=$PLAN_TASK \
+  --description="Write unit tests with ≥80% coverage" \
+  --json | jq -r '.id')
+
+# Create Stage 2 task (Implement) - depends on Stage 1
+IMPL_TASK=$(bd create \
+  --title="[feature]-2: Implement Code" \
+  --type=task \
+  --priority=1 \
+  --depends_on=$TEST_TASK \
+  --description="Implement feature following PRD specs" \
+  --json | jq -r '.id')
+
+# Create Stage 3 task (Test) - depends on Stage 2
+TEST_EXEC_TASK=$(bd create \
+  --title="[feature]-3: Test Code" \
+  --type=task \
+  --priority=1 \
+  --depends_on=$IMPL_TASK \
+  --description="Execute all tests, verify coverage" \
+  --json | jq -r '.id')
+
+# Create Stage 4 task (Quality) - depends on Stage 3
+QUALITY_TASK=$(bd create \
+  --title="[feature]-4: Quality Checks" \
+  --type=task \
+  --priority=1 \
+  --depends_on=$TEST_EXEC_TASK \
+  --description="Lint, security scan, typecheck" \
+  --json | jq -r '.id')
+```
+
+### Failure Task Creation Pattern
+
+When a stage fails, the agent creates a dependent fix task:
+
+```bash
+# Example: Stage 3 (Test) failed with 2 test failures
+bd create \
+  --title="[feature]-3-fix: Fix Failing Tests" \
+  --type=bug \
+  --priority=0 \
+  --depends_on=[feature]-3 \
+  --description="Fix 2 failing tests: test_login_fails, test_signup_validates_email" \
+  --metadata='{"stage": 3, "failure_type": "test_failure", "failed_tests": ["test_login_fails", "test_signup_validates_email"]}'
+
+# Original task closed with failure
+bd close [feature]-3 --reason="Tests failing - created fix task [feature]-3-fix"
+
+# After fix task completes, create re-run task
+bd create \
+  --title="[feature]-3-retry: Re-run Tests" \
+  --type=task \
+  --priority=1 \
+  --depends_on=[feature]-3-fix \
+  --description="Re-run all tests to verify fixes"
+```
+
+### Agent Success/Failure Handling
+
+**Success Path (Agent completes task):**
+```python
+# Agent executes task
+run_quality_gates()  # lint, typecheck, build, test
+
+# All quality gates pass
+bd.close(task_id, reason="Completed")
+exit(0)
+# Beads automatically unlocks next dependent task
+```
+
+**Failure Path (Agent encounters failure):**
+```python
+# Agent executes task
+run_quality_gates()  # lint, typecheck, build, test
+
+# Quality gate fails (e.g., test failures)
+failure_info = {
+  "stage": stage_number,
+  "failure_type": "test_failure",
+  "details": {"failed_tests": ["test_a", "test_b"]}
+}
+
+# Create dependent fix task
+fix_task_id = bd.create(
+  title=f"Fix {failure_info['failure_type']}",
+  type="bug",
+  priority=0,
+  depends_on=task_id,
+  description=failure_info['details'],
+  metadata=failure_info
+)
+
+# Close original task with failure reason
+bd.close(task_id, reason=f"Failed - created fix task {fix_task_id}")
+exit(0)
+# Beads keeps downstream tasks blocked until fix task completes
+```
+
+### Parallelism with Atomic Tasks
+
+**Key Insight:** Multiple features can be processed in parallel, but each feature's 5 stages execute sequentially.
+
+```
+Feature A: [Plan] → [Tests] → [Impl] → [Exec] → [Quality]
+Feature B: [Plan] → [Tests] → [Impl] → [Exec] → [Quality]
+Feature C: [Plan] → [Tests] → [Impl] → [Exec] → [Quality]
+           ↓          ↓          ↓           ↓           ↓
+         Parallel  Parallel   Parallel    Parallel    Parallel
+```
+
+- **Within feature:** Stages execute sequentially (dependencies enforce order)
+- **Across features:** Features execute in parallel (independent task chains)
+
 ## CRITICAL RULES
 
 1. **ALWAYS start with Parallelism Summary** - Show the big picture first
@@ -383,6 +649,8 @@ If answer to #4 is "yes", GO BACK AND SPLIT IT.
 6. **Group files by track** - So developers know what they own
 7. **Max 4 tracks** - More than 4 creates coordination overhead
 8. **Write for junior developers** - Explicit, specific instructions
+9. **Create 5 tasks per feature** - Following atomic task cycle (stages 0-4)
+10. **Set dependencies correctly** - Each stage depends on previous stage
 
 ---
 ## OUTPUT

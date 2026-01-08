@@ -387,7 +387,45 @@ Explicitly list what this feature will NOT include:
 - External documentation
 - Design files
 
-### 15. Design Assets (Auto-generated from Figma)
+### 15. Atomic Task Workflow Specification
+**This PRD follows the 6-stage atomic task cycle with Beads dependency graph management.**
+
+**Workflow Stages:**
+1. **Stage 0: Discovery & Planning** - PRD validation, risk assessment
+2. **Stage 1: Write Unit Tests** - Test specification and generation
+3. **Stage 2: Implement Code** - Feature implementation
+4. **Stage 3: Test Code** - Execute all tests
+5. **Stage 4: Quality Checks** - Static analysis, security, linting
+6. **Repeat** until all stages pass
+
+**Dependency Chain:**
+```
+Task X-0: Plan (Stage 0)
+Task X-1: Write Unit Tests (Stage 1) [depends on X-0]
+Task X-2: Implement Code (Stage 2) [depends on X-1]
+Task X-3: Test Code (Stage 3) [depends on X-2]
+Task X-4: Quality Checks (Stage 4) [depends on X-3]
+```
+
+**Failure Handling:**
+- If Stage X fails, agent creates dependent fix task
+- Fix task depends on failed stage task
+- Original stage task is closed with failure reason
+- Beads blocks downstream stages until fix completes
+- After fix, re-run failed stage
+
+**Agent Responsibilities:**
+- **Success**: Run quality gates → Pass → `bd close <task-id>` → Exit
+- **Failure**: Run quality gates → Fail → Create dependent fix task → `bd close <task-id>` → Exit
+
+**Quality Gates by Stage:**
+- Stage 0: Requirements validated, risks assessed
+- Stage 1: Test coverage ≥ 80%, all tests written
+- Stage 2: Code implements all requirements
+- Stage 3: All tests pass (100%)
+- Stage 4: 0 lint errors, 0 security vulnerabilities, typecheck passes
+
+### 16. Design Assets (Auto-generated from Figma)
 *This section is auto-populated when a Figma link is provided*
 
 | Property | Value |

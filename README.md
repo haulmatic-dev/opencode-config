@@ -36,6 +36,33 @@ opencode brings together best-in-class AI development tools into a unified, hook
   - MCP Agent Mail setup and integration
   - Complete test suite with 83 tests passing (100%)
 - **Hook-based Service Checks** - Verify services are available before session start (no installation from hooks)
+- **Task-to-Commit Cycle** - 6-stage atomic workflow managed by Beads dependency graphs with automated failure handling
+
+### Task-to-Commit Workflow
+
+opencode implements a **6-stage atomic task cycle** managed by **Beads dependency graphs**. Individual agents execute tasks, run quality gates, and handle success/failure. The Beads system automatically manages task dependencies, unlocking downstream tasks and blocking work when failures occur.
+
+**Key Concept:**
+- **Agents** are stateless workers that execute one task, then exit
+- **Success** = Close task → Beads automatically unlocks next dependent task
+- **Failure** = Create dependent fix task → Close task → Beads blocks downstream tasks
+- **Beads** handles ALL dependency logic - no orchestration needed in agents
+
+**Workflow Stages:**
+1. **Stage 0**: Discovery & Planning (PRD validation, risk assessment)
+2. **Stage 1**: Write Unit Tests (Test coverage ≥ 80%)
+3. **Stage 2**: Implement Code (Typecheck, build)
+4. **Stage 3**: Test Code (100% tests pass)
+5. **Stage 4**: Quality Checks (0 lint errors, 0 security vulns)
+6. **Stage 5**: Code Review (PR validation, comment classification)
+7. **Stage 6**: Deployment (Smoke tests, health checks, monitoring)
+
+**Specialist Agents:**
+- **test-specialist** - Test generation and execution (Stages 1, 3)
+- **code-reviewer** - Automated code review (Stage 5)
+- **deployment-specialist** - Deployment automation (Stage 6)
+
+For detailed documentation, see [Task-to-Commit Cycle](./docs/task-to-commit.md).
 
 ### Design Principles
 
@@ -51,6 +78,7 @@ opencode brings together best-in-class AI development tools into a unified, hook
 ## 📚 Table of Contents
 
 - [Overview](#-overview)
+- [Task-to-Commit Workflow](#-task-to-commit-workflow)
 - [Quick Start](#-quick-start)
 - [Tool-Agnostic Architecture](#-tool-agnostic-architecture)
 - [Installation](#-installation)
