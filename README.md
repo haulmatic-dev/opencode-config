@@ -19,6 +19,7 @@ opencode brings together best-in-class AI development tools into a unified, hook
   - **library-source-reader** - Third-party library deep analysis
   - **domain-specialist** - Domain-specific expertise and compliance
  - **semantic-search** (osgrep) - Conceptual code search with embedding models
+- **Parallel Agent Spawn Middleware** - Shared middleware for spawning headless workers via PM2 or subprocess with unified API
 - **Plugin System** - Extensible architecture with:
   - **gptcache** - LLM response caching for 70-90% cost reduction
   - **beads-guardrails** - Enforce task tracking via beads
@@ -87,9 +88,10 @@ For detailed documentation, see [Task-to-Commit Cycle](./docs/task-to-commit.md)
 - [Quick Start](#-quick-start)
 - [Tool-Agnostic Architecture](#-tool-agnostic-architecture)
 - [Installation](#-installation)
- - [Configuration](#-configuration)
- - [Plugin System](#-plugin-system)
- - [Hook System](#-hook-system)
+  - [Configuration](#-configuration)
+  - [Plugin System](#-plugin-system)
+  - [Parallel Agent Spawn Middleware](#-parallel-agent-spawn-middleware)
+  - [Hook System](#-hook-system)
 - [Workflow](#-workflow)
 - [bv Integration](#-bv-integration)
 - [Testing](#-testing)
@@ -163,6 +165,21 @@ bd create "task title" --description "what needs to be done"
 # Track progress
 bd update <id> --status in_progress
 bd close <id> --reason "Completed"
+```
+
+### Parallel Agent Spawn
+
+```bash
+# Run headless worker
+node ~/.config/opencode/bin/headless-worker.js
+
+# Worker will:
+# 1. Poll Beads for available tasks
+# 2. Claim a task
+# 3. Reserve file paths via MCP
+# 4. Execute the task
+# 5. Close the task on success
+# 6. Release file reservations
 ```
 
 ---
@@ -492,6 +509,314 @@ For detailed plugin development guide, see [plugin/README.md](./plugin/README.md
 
 ---
 
+## 🤖 Parallel Agent Spawn Middleware
+
+Shared middleware for spawning headless opencode workers via PM2 or subprocess. Provides a unified API for agent orchestration and worker lifecycle management.
+
+### Features
+
+- **Unified API** - Single interface for spawning workers via PM2 or subprocess
+- **Worker Lifecycle Management** - Automatic tracking of worker state (pending, running, completed, failed, timeout)
+- **Health Monitoring** - Track memory usage, uptime, and worker status
+- **Event System** - Listen to worker lifecycle events (started, completed, failed, timeout)
+- **Error Handling** - Automatic retry logic with configurable max retries
+- **Graceful Shutdown** - Clean termination of running workers with kill timeout
+- **Logging** - Automatic log file creation for each worker
+
+### Quick Start
+
+```javascript
+const WorkerManager = require('./lib/parallel-agent-middleware');
+
+const manager = new WorkerManager({ mode: 'subprocess', maxWorkers: 4 });
+
+const worker = await manager.spawn_headless_worker({
+  agent_type: 'general',
+  task_id: 'example-task-123',
+  task_description: 'Example task description',
+  timeout: 60000 // 1 minute
+});
+
+console.log('Worker spawned:', worker.id);
+console.log('PID:', worker.pid);
+console.log('Status:', worker.status);
+
+const results = await manager.wait_for_completion([worker]);
+console.log('Worker completed:', results);
+
+manager.cleanup_workers([worker.id]);
+await manager.shutdown();
+```
+
+### API Reference
+
+**WorkerManager(options)**
+- `mode`: 'pm2' or 'subprocess' (default: 'subprocess')
+- `maxWorkers`: Maximum number of parallel workers (default: 6)
+- `defaultTimeout`: Default timeout in milliseconds (default: 600000)
+- `maxRetries`: Maximum retry attempts (default: 3)
+- `logDir`: Directory for log files (default: './logs')
+
+**Key Methods:**
+- `spawn_headless_worker(config)` - Spawn a new headless worker
+- `wait_for_completion(workers, timeout)` - Wait for workers to complete
+- `monitor_workers(pollInterval)` - Start monitoring workers for health
+- `cleanup_workers(workerIds)` - Clean up completed/failed workers
+- `get_worker_status(workerId)` - Get status of a single worker
+- `get_all_workers_status()` - Get status of all workers
+- `spawn_parallel_workers(workers_config)` - Spawn multiple workers in parallel
+- `shutdown()` - Gracefully shut down all running workers
+
+### Event System
+
+The middleware emits events for worker lifecycle changes:
+
+```javascript
+manager.on('worker_started', (worker) => {
+  console.log('Worker started:', worker.id);
+});
+
+manager.on('worker_complete', (worker) => {
+  console.log('Worker completed:', worker.id);
+});
+
+manager.on('worker_error', (worker) => {
+  console.error('Worker error:', worker.id, worker.error);
+});
+
+manager.on('worker_timeout', (worker) => {
+  console.warn('Worker timeout:', worker.id);
+});
+
+manager.on('worker_memory_warning', (worker) => {
+  console.warn('Worker memory warning:', worker.id);
+});
+
+manager.on('shutdown_complete', () => {
+  console.log('All workers shut down');
+});
+```
+
+### Spawning Multiple Workers
+
+```javascript
+const workers = await manager.spawn_parallel_workers([
+  {
+    agent_type: 'codebase-researcher',
+    task_id: 'research-architecture',
+    task_description: 'Analyze architecture patterns',
+    timeout: 300000
+  },
+  {
+    agent_type: 'git-history-analyzer',
+    task_id: 'analyze-history',
+    task_description: 'Analyze git history',
+    timeout: 300000
+  },
+  {
+    agent_type: 'file-picker-agent',
+    task_id: 'find-files',
+    task_description: 'Find relevant files',
+    timeout: 300000
+  }
+]);
+
+console.log(`Spawned ${workers.length} workers in parallel`);
+
+const results = await manager.wait_for_completion(workers);
+console.log('All workers completed:', results);
+
+manager.cleanup_workers(workers.map(w => w.id));
+```
+
+### Headless Worker Integration
+
+The headless worker script (`bin/headless-worker.js`) uses the middleware:
+
+```javascript
+const WorkerManager = require('../lib/parallel-agent-middleware');
+
+const manager = new WorkerManager({ 
+  mode: 'subprocess', 
+  maxWorkers: 1,
+  logDir: './logs'
+});
+
+async function runTask() {
+  const taskId = await fetchReadyTask();
+  
+  console.log(`[Worker] Claimed task: ${taskId}`);
+  
+  await executeTask(taskId);
+  
+  await manager.shutdown();
+}
+
+runTask();
+```
+
+### PM2 vs Subprocess
+
+**PM2 Mode (Production):**
+```javascript
+const manager = new WorkerManager({ 
+  mode: 'pm2',
+  maxWorkers: 8 
+});
+```
+
+**Subprocess Mode (Development):**
+```javascript
+const manager = new WorkerManager({ 
+  mode: 'subprocess',
+  maxWorkers: 4 
+});
+```
+
+### Architecture
+
+The Parallel Agent Spawn Middleware is part of the larger Parallel Agent Orchestration architecture:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    ORCHESTRATOR (Coordinator)                   │
+│  - Spawns headless workers via middleware                    │
+│  - Communicates via MCP Agent Mail                              │
+│  - Reads Beads for ready tasks                                 │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+                      ▼
+            ┌──────────────────────┐
+            │ PARALLEL AGENT       │
+            │ SPAWN MIDDLEWARE     │
+            │                      │
+            │ spawn_headless_      │
+            │ worker()             │
+            │ wait_for_           │
+            │ completion()        │
+            │ monitor_workers()    │
+            │ cleanup_workers()    │
+            └──────────┬───────────┘
+                       │
+         ┌─────────────┼─────────────┐
+         │             │             │
+         ▼             ▼             ▼
+   ┌─────────┐  ┌─────────┐  ┌─────────┐
+   │  PRD    │  │ GENERATE│  │  WORKER │
+   │  AGENT  │  │  TASKS  │  │  N      │
+   └─────────┘  └─────────┘  └─────────┘
+```
+
+### Usage in Agent Workflows
+
+**PRD Agent Research Integration:**
+```javascript
+const workers = await manager.spawn_parallel_workers([
+  {
+    agent_type: 'codebase-researcher',
+    task_id: 'research-codebase',
+    task_description: 'Analyze codebase architecture patterns'
+  },
+  {
+    agent_type: 'file-picker-agent',
+    task_id: 'find-files',
+    task_description: 'Find relevant files for PRD generation'
+  },
+  {
+    agent_type: 'domain-specialist',
+    task_id: 'domain-analysis',
+    task_description: 'Analyze domain-specific requirements'
+  }
+]);
+
+const results = await manager.wait_for_completion(workers);
+// Use research results in PRD generation
+```
+
+**Generate-Tasks Agent Research Integration:**
+```javascript
+const workers = await manager.spawn_parallel_workers([
+  {
+    agent_type: 'git-history-analyzer',
+    task_id: 'analyze-history',
+    task_description: 'Analyze git history for similar tasks'
+  },
+  {
+    agent_type: 'library-source-reader',
+    task_id: 'read-library',
+    task_description: 'Read third-party library source code'
+  },
+  {
+    agent_type: 'best-practices-researcher',
+    task_id: 'best-practices',
+    task_description: 'Research industry best practices'
+  }
+]);
+
+const results = await manager.wait_for_completion(workers);
+// Use research results in task breakdown
+```
+
+### Testing
+
+Run unit tests:
+```bash
+node test-middleware.js
+```
+
+**Test Coverage:**
+- Manager initialization with correct defaults
+- Worker spawning and lifecycle tracking
+- Health monitoring and memory tracking
+- Event system functionality
+- Worker cleanup and shutdown
+- All 14 unit tests passing (100%)
+
+### Troubleshooting
+
+**Worker Not Starting**
+```bash
+# Check if opencode command is available
+which opencode
+opencode --version
+```
+
+**Worker Timeout**
+```javascript
+// Increase timeout in worker config
+const worker = await manager.spawn_headless_worker({
+  agent_type: 'general',
+  task_id: 'task-123',
+  timeout: 600000 // 10 minutes
+});
+```
+
+**Memory Issues**
+```javascript
+// Worker is automatically killed if memory exceeds 1GB
+manager.on('worker_memory_warning', (worker) => {
+  console.warn('Worker using too much memory:', worker.memory_usage);
+});
+```
+
+**Cleanup Issues**
+```javascript
+// Force cleanup with kill timeout
+manager.cleanup_workers([worker.id]);
+
+// Manual cleanup
+process.kill(worker.pid, 'SIGTERM');
+setTimeout(() => {
+  process.kill(worker.pid, 'SIGKILL');
+}, 5000);
+```
+
+### Documentation
+
+For complete API reference and usage examples, see [lib/README.md](./lib/README.md).
+
+---
+
 ## 🎣 Hook System
 
 ### Hook Architecture
@@ -799,7 +1124,9 @@ curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_sca
 │   ├── beads-viewer-client.js  # BV CLI wrapper
 │   ├── gptcache-client.js     # GPTCache wrapper
 │   ├── gptcache-middleware.js # GPTCache middleware
-│   └── ubs-client.js          # UBS wrapper
+│   ├── ubs-client.js          # UBS wrapper
+│   ├── parallel-agent-middleware.js # Worker spawn middleware
+│   └── README.md              # Middleware documentation
 ├── config/                   # Plugin configurations
 │   ├── beads_config.json       # Beads plugin config
 │   ├── gptcache_config.json    # GPTCache plugin config
@@ -988,6 +1315,7 @@ cd /path/to/your/project
 - [Beads Guardrails Implementation](./docs/BEADS_GUARDRAILS_IMPLEMENTATION.md) - Plugin implementation details
 - [Plugin System](./plugin/README.md) - Plugin system documentation
 - [Task-to-Commit Workflow](./docs/task-to-commit.md) - Atomic task cycle documentation
+- [Parallel Agent Orchestration](./docs/architecture/parallel-agent-orchestration.md) - Parallel agent architecture design
 
 ---
 
