@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
-const { execSync } = require('child_process');
-const { randomInt } = require('crypto');
+const { execSync } = require('node:child_process');
 const pid = process.pid;
 
 function run(cmd, throwOnError = true) {
   try {
-    return execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    return execSync(cmd, {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
   } catch (error) {
     if (throwOnError) {
       console.error(`Command failed: ${cmd}`);
@@ -18,13 +20,15 @@ function run(cmd, throwOnError = true) {
 }
 
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function claimTask() {
   // Worker-specific delay to prevent race conditions
-  const workerDelay = pid % 4 * 1000; // 0-3s delay based on PID
-  console.log(`Worker PID ${pid}: waiting ${workerDelay}ms to reduce race conditions`);
+  const workerDelay = (pid % 4) * 1000; // 0-3s delay based on PID
+  console.log(
+    `Worker PID ${pid}: waiting ${workerDelay}ms to reduce race conditions`,
+  );
   await sleep(workerDelay);
 
   try {
@@ -48,7 +52,7 @@ async function claimTask() {
       run(`bd update ${taskId} --status in_progress`);
       console.log(`✓ PID ${pid}: Claimed task: ${taskId}`);
       return taskId;
-    } catch (error) {
+    } catch (_error) {
       // Task was already claimed by another worker
       console.log(`PID ${pid}: Task ${taskId} already claimed, trying next...`);
       return null;
@@ -68,7 +72,10 @@ async function executeTask(taskId) {
 
   // Read task description
   const taskOutput = run(`bd show ${taskId}`);
-  console.log(`PID ${pid}: Task details:`, taskOutput.substring(0, 100) + '...');
+  console.log(
+    `PID ${pid}: Task details:`,
+    `${taskOutput.substring(0, 100)}...`,
+  );
 
   return true;
 }
@@ -90,11 +97,16 @@ async function main() {
   // Try MCP file reservations (optional)
   let reservationsMade = false;
   try {
-    run(`python3 -c "import asyncio; from mcp_agent_mail_client import reserve_file_paths, get_project_key; asyncio.run(reserve_file_paths(project_key=get_project_key(), agent_name='headless-worker', paths=['src/**/*', 'tests/**/*'], ttl_seconds=3600))"`, false);
+    run(
+      `python3 -c "import asyncio; from mcp_agent_mail_client import reserve_file_paths, get_project_key; asyncio.run(reserve_file_paths(project_key=get_project_key(), agent_name='headless-worker', paths=['src/**/*', 'tests/**/*'], ttl_seconds=3600))"`,
+      false,
+    );
     console.log(`PID ${pid}: ✓ File paths reserved via MCP`);
     reservationsMade = true;
-  } catch (error) {
-    console.log(`PID ${pid}: ⚠ MCP file reservations not available (continuing without file locking)`);
+  } catch (_error) {
+    console.log(
+      `PID ${pid}: ⚠ MCP file reservations not available (continuing without file locking)`,
+    );
     // Continue without MCP - this is OK for testing
   }
 
@@ -118,10 +130,16 @@ async function main() {
   // Release file reservations if they were made
   if (reservationsMade) {
     try {
-      run(`python3 -c "import asyncio; from mcp_agent_mail_client import release_file_reservations, get_project_key; asyncio.run(release_file_reservations(project_key=get_project_key(), agent_name='headless-worker'))"`, false);
+      run(
+        `python3 -c "import asyncio; from mcp_agent_mail_client import release_file_reservations, get_project_key; asyncio.run(release_file_reservations(project_key=get_project_key(), agent_name='headless-worker'))"`,
+        false,
+      );
       console.log(`PID ${pid}: ✓ File paths released`);
     } catch (error) {
-      console.warn(`PID ${pid}: ⚠ Could not release file reservations:`, error.message);
+      console.warn(
+        `PID ${pid}: ⚠ Could not release file reservations:`,
+        error.message,
+      );
     }
   }
 

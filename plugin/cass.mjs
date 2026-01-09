@@ -1,5 +1,5 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 
 const execAsync = promisify(exec);
 
@@ -18,11 +18,11 @@ class CassMemoryClient {
       const cmd = `cm context "${task}" --json --limit ${limit}`;
       const { stdout } = await execAsync(cmd, { maxBuffer: 1024 * 1024 });
       const result = JSON.parse(stdout);
-      
+
       if (result.success && result.data) {
         return result.data;
       }
-      
+
       return { relevantBullets: [], antiPatterns: [], historySnippets: [] };
     } catch (error) {
       console.error('[CassMemory] Error getting context:', error.message);
@@ -32,7 +32,7 @@ class CassMemoryClient {
 
   async markHelpful(bulletId, reason = '') {
     try {
-      const cmd = reason 
+      const cmd = reason
         ? `cm mark ${bulletId} --helpful --reason "${reason}"`
         : `cm mark ${bulletId} --helpful`;
       await execAsync(cmd);
@@ -43,7 +43,7 @@ class CassMemoryClient {
 
   async markHarmful(bulletId, reason = '') {
     try {
-      const cmd = reason 
+      const cmd = reason
         ? `cm mark ${bulletId} --harmful --reason "${reason}"`
         : `cm mark ${bulletId} --harmful`;
       await execAsync(cmd);
@@ -76,22 +76,30 @@ class CassMemoryMiddleware {
 
     try {
       const task = messages
-        .filter(m => m.role === 'user')
-        .map(m => m.content)
+        .filter((m) => m.role === 'user')
+        .map((m) => m.content)
         .join('\n')
         .slice(0, 500);
 
-      const context = await this.client.getContext(task, { limit: this.contextLimit });
-      
-      if (context && (context.relevantBullets.length > 0 || 
-                      context.antiPatterns.length > 0 || 
-                      context.historySnippets.length > 0)) {
+      const context = await this.client.getContext(task, {
+        limit: this.contextLimit,
+      });
+
+      if (
+        context &&
+        (context.relevantBullets.length > 0 ||
+          context.antiPatterns.length > 0 ||
+          context.historySnippets.length > 0)
+      ) {
         return context;
       }
-      
+
       return null;
     } catch (error) {
-      console.error('[CassMemoryMiddleware] Error getting context:', error.message);
+      console.error(
+        '[CassMemoryMiddleware] Error getting context:',
+        error.message,
+      );
       return null;
     }
   }
@@ -120,7 +128,9 @@ class CassMemoryMiddleware {
     if (context.historySnippets && context.historySnippets.length > 0) {
       parts.push('## Similar Past Sessions (from cass_memory)\n');
       context.historySnippets.slice(0, 3).forEach((snippet, idx) => {
-        parts.push(`${idx + 1}. ${snippet.title || 'Session'}: ${snippet.snippet?.slice(0, 200) || ''}...`);
+        parts.push(
+          `${idx + 1}. ${snippet.title || 'Session'}: ${snippet.snippet?.slice(0, 200) || ''}...`,
+        );
       });
       parts.push('');
     }
@@ -131,7 +141,13 @@ class CassMemoryMiddleware {
 
 let middleware = null;
 
-export const cass = async ({ project, client, $, directory, worktree }) => {
+export const cass = async ({
+  project: _project,
+  client: _client,
+  $: _$,
+  directory: _directory,
+  worktree: _worktree,
+}) => {
   const configPath = new URL('../cass_config.json', import.meta.url);
   let config = { enabled: true };
 
@@ -140,7 +156,7 @@ export const cass = async ({ project, client, $, directory, worktree }) => {
     if (configContent.ok) {
       config = await configContent.json();
     }
-  } catch (e) {
+  } catch (_e) {
     console.log('[CassMemory] No config found, using defaults');
   }
 
@@ -148,13 +164,13 @@ export const cass = async ({ project, client, $, directory, worktree }) => {
     middleware = new CassMemoryMiddleware({
       enabled: config.enabled,
       contextLimit: config.contextLimit || 5,
-      autoInject: config.autoInject !== false
+      autoInject: config.autoInject !== false,
     });
   }
 
   return {
     'agent.execute.before': async (input, output) => {
-      const { sessionID, agent, model, messages } = input;
+      const { model, messages } = input;
 
       if (!middleware || !config.enabled || !model) {
         return;
@@ -164,7 +180,7 @@ export const cass = async ({ project, client, $, directory, worktree }) => {
 
       if (context && middleware.autoInject) {
         const systemPrompt = middleware.formatContextAsSystemPrompt(context);
-        
+
         if (systemPrompt) {
           output.systemPrompt = systemPrompt;
           output.cassContext = context;
@@ -172,9 +188,8 @@ export const cass = async ({ project, client, $, directory, worktree }) => {
       }
     },
 
-    'agent.execute.after': async (input, output) => {
-      const { sessionID, agent, model, messages } = input;
-      const { response, error } = output;
+    'agent.execute.after': async (_input, output) => {
+      const { error } = output;
 
       if (!middleware || !config.enabled) {
         return;
@@ -186,16 +201,16 @@ export const cass = async ({ project, client, $, directory, worktree }) => {
 
       if (error) {
         if (context.relevantBullets.length > 0) {
-          const ruleIds = context.relevantBullets.map(b => b.id);
+          const ruleIds = context.relevantBullets.map((b) => b.id);
           await middleware.client.recordOutcome('failed', ruleIds);
         }
         return;
       }
 
       if (context.relevantBullets.length > 0) {
-        const ruleIds = context.relevantBullets.map(b => b.id);
+        const ruleIds = context.relevantBullets.map((b) => b.id);
         await middleware.client.recordOutcome('success', ruleIds);
       }
-    }
+    },
   };
 };

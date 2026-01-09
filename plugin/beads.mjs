@@ -1,7 +1,5 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 
 const execAsync = promisify(exec);
 
@@ -13,7 +11,9 @@ class BeadsClient {
   async ready() {
     if (!this.enabled) return [];
     try {
-      const { stdout } = await execAsync('bd ready', { maxBuffer: 1024 * 1024 });
+      const { stdout } = await execAsync('bd ready', {
+        maxBuffer: 1024 * 1024,
+      });
       return this.parseOutput(stdout);
     } catch (error) {
       console.error('[Beads] Error getting ready tasks:', error.message);
@@ -24,7 +24,9 @@ class BeadsClient {
   async show(id) {
     if (!this.enabled) return null;
     try {
-      const { stdout } = await execAsync(`bd show ${id}`, { maxBuffer: 1024 * 1024 });
+      const { stdout } = await execAsync(`bd show ${id}`, {
+        maxBuffer: 1024 * 1024,
+      });
       return stdout;
     } catch (error) {
       console.error('[Beads] Error showing task:', error.message);
@@ -98,7 +100,9 @@ class BeadsViewerClient {
   async triage() {
     if (!this.enabled) return null;
     try {
-      const { stdout } = await execAsync('bv --robot-triage', { maxBuffer: 5 * 1024 * 1024 });
+      const { stdout } = await execAsync('bv --robot-triage', {
+        maxBuffer: 5 * 1024 * 1024,
+      });
       return JSON.parse(stdout);
     } catch (error) {
       console.error('[BeadsViewer] Error getting triage:', error.message);
@@ -112,7 +116,9 @@ class BeadsViewerClient {
       const args = Object.entries(options)
         .map(([k, v]) => `--${k} ${v}`)
         .join(' ');
-      const { stdout } = await execAsync(`bv --robot-plan ${args}`, { maxBuffer: 5 * 1024 * 1024 });
+      const { stdout } = await execAsync(`bv --robot-plan ${args}`, {
+        maxBuffer: 5 * 1024 * 1024,
+      });
       return JSON.parse(stdout);
     } catch (error) {
       console.error('[BeadsViewer] Error getting plan:', error.message);
@@ -126,7 +132,9 @@ class BeadsViewerClient {
       const args = Object.entries(options)
         .map(([k, v]) => `--${k} ${v}`)
         .join(' ');
-      const { stdout } = await execAsync(`bv --robot-insights ${args}`, { maxBuffer: 5 * 1024 * 1024 });
+      const { stdout } = await execAsync(`bv --robot-insights ${args}`, {
+        maxBuffer: 5 * 1024 * 1024,
+      });
       return JSON.parse(stdout);
     } catch (error) {
       console.error('[BeadsViewer] Error getting insights:', error.message);
@@ -137,7 +145,9 @@ class BeadsViewerClient {
   async alerts() {
     if (!this.enabled) return null;
     try {
-      const { stdout } = await execAsync('bv --robot-alerts', { maxBuffer: 5 * 1024 * 1024 });
+      const { stdout } = await execAsync('bv --robot-alerts', {
+        maxBuffer: 5 * 1024 * 1024,
+      });
       return JSON.parse(stdout);
     } catch (error) {
       console.error('[BeadsViewer] Error getting alerts:', error.message);
@@ -148,7 +158,9 @@ class BeadsViewerClient {
   async history() {
     if (!this.enabled) return null;
     try {
-      const { stdout } = await execAsync('bv --robot-history', { maxBuffer: 5 * 1024 * 1024 });
+      const { stdout } = await execAsync('bv --robot-history', {
+        maxBuffer: 5 * 1024 * 1024,
+      });
       return JSON.parse(stdout);
     } catch (error) {
       console.error('[BeadsViewer] Error getting history:', error.message);
@@ -159,7 +171,9 @@ class BeadsViewerClient {
   async labelHealth() {
     if (!this.enabled) return null;
     try {
-      const { stdout } = await execAsync('bv --robot-label-health', { maxBuffer: 5 * 1024 * 1024 });
+      const { stdout } = await execAsync('bv --robot-label-health', {
+        maxBuffer: 5 * 1024 * 1024,
+      });
       return JSON.parse(stdout);
     } catch (error) {
       console.error('[BeadsViewer] Error getting label health:', error.message);
@@ -187,9 +201,13 @@ class BeadsMiddleware {
 
     if (triageData.quick_ref) {
       parts.push('## Quick Reference (from bv --robot-triage)\n');
-      parts.push(`- Ready tasks: ${triageData.quick_ref.actionable_count || triageData.quick_ref.open_count || 0}`);
+      parts.push(
+        `- Ready tasks: ${triageData.quick_ref.actionable_count || triageData.quick_ref.open_count || 0}`,
+      );
       parts.push(`- Open tasks: ${triageData.quick_ref.open_count || 0}`);
-      parts.push(`- Total tasks: ${triageData.meta?.issue_count || triageData.quick_ref.open_count || 0}`);
+      parts.push(
+        `- Total tasks: ${triageData.meta?.issue_count || triageData.quick_ref.open_count || 0}`,
+      );
       parts.push('');
     }
 
@@ -201,7 +219,7 @@ class BeadsMiddleware {
         parts.push(`   - Score: ${rec.score?.toFixed(2) || 'N/A'}`);
         parts.push(`   - Unblocks: ${rec.unblocks || 0}`);
         parts.push(`   - Reason: ${rec.reasons?.join(', ') || 'N/A'}`);
-        if (triageData.commands && triageData.commands.claim) {
+        if (triageData.commands?.claim) {
           parts.push(`   - Command: ${triageData.commands.claim}`);
         }
         parts.push('');
@@ -213,7 +231,7 @@ class BeadsMiddleware {
       triageData.quick_wins.slice(0, 3).forEach((win, idx) => {
         parts.push(`${idx + 1}. [${win.id}] ${win.title}`);
         parts.push(`   - Impact: ${win.reason || 'N/A'}`);
-        if (triageData.commands && triageData.commands.claim) {
+        if (triageData.commands?.claim) {
           parts.push(`   - Command: bd update ${win.id} --status in_progress`);
         } else {
           parts.push(`   - Command: bd update ${win.id} --status in_progress`);
@@ -222,7 +240,10 @@ class BeadsMiddleware {
       });
     }
 
-    if (triageData.blockers_to_clear && triageData.blockers_to_clear.length > 0) {
+    if (
+      triageData.blockers_to_clear &&
+      triageData.blockers_to_clear.length > 0
+    ) {
       parts.push('## Blockers to Clear (unblocks most work)\n');
       triageData.blockers_to_clear.slice(0, 3).forEach((blocker, idx) => {
         parts.push(`${idx + 1}. [${blocker.id}] ${blocker.title}`);
@@ -236,13 +257,28 @@ class BeadsMiddleware {
       parts.push('## Project Health\n');
       const health = triageData.project_health;
       if (health.counts?.by_status) {
-        parts.push('- Status:', Object.entries(health.counts.by_status).map(([k, v]) => `${k}: ${v}`).join(', '));
+        parts.push(
+          '- Status:',
+          Object.entries(health.counts.by_status)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(', '),
+        );
       }
       if (health.counts?.by_type) {
-        parts.push('- Types:', Object.entries(health.counts.by_type).map(([k, v]) => `${k}: ${v}`).join(', '));
+        parts.push(
+          '- Types:',
+          Object.entries(health.counts.by_type)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(', '),
+        );
       }
       if (health.counts?.by_priority) {
-        parts.push('- Priorities:', Object.entries(health.counts.by_priority).map(([k, v]) => `${k}: ${v}`).join(', '));
+        parts.push(
+          '- Priorities:',
+          Object.entries(health.counts.by_priority)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(', '),
+        );
       }
       if (health.graph?.density) {
         parts.push(`- Graph Density: ${health.graph.density.toFixed(3)}`);
@@ -262,7 +298,7 @@ class BeadsMiddleware {
       parts.push('## ⚠️ CRITICAL: Circular Dependencies Detected\n');
       parts.push('The following cycles must be fixed:\n');
       insightsData.Cycles.forEach((cycle, idx) => {
-        parts.push(`${idx + 1}. ${cycle.map(id => id).join(' → ')}`);
+        parts.push(`${idx + 1}. ${cycle.map((id) => id).join(' → ')}`);
       });
       parts.push('');
     }
@@ -287,7 +323,9 @@ class BeadsMiddleware {
       const stats = insightsData.stats;
       parts.push('## Graph Metrics\n');
       if (stats.density !== undefined) {
-        parts.push(`- Density: ${stats.density?.toFixed(3)} (${stats.density < 0.05 ? 'healthy' : stats.density > 0.15 ? 'warning' : 'normal'})`);
+        parts.push(
+          `- Density: ${stats.density?.toFixed(3)} (${stats.density < 0.05 ? 'healthy' : stats.density > 0.15 ? 'warning' : 'normal'})`,
+        );
       }
       if (stats.topologicalOrder) {
         parts.push(`- Valid execution order: Yes`);
@@ -306,23 +344,35 @@ class BeadsMiddleware {
     if (alertsData.stale_issues && alertsData.stale_issues.length > 0) {
       parts.push('## Stale Issues\n');
       alertsData.stale_issues.slice(0, 5).forEach((issue, idx) => {
-        parts.push(`${idx + 1}. [${issue.id}] ${issue.title} (${issue.age || 'unknown'})`);
+        parts.push(
+          `${idx + 1}. [${issue.id}] ${issue.title} (${issue.age || 'unknown'})`,
+        );
       });
       parts.push('');
     }
 
-    if (alertsData.blocking_cascades && alertsData.blocking_cascades.length > 0) {
+    if (
+      alertsData.blocking_cascades &&
+      alertsData.blocking_cascades.length > 0
+    ) {
       parts.push('## Blocking Cascades\n');
       alertsData.blocking_cascades.slice(0, 5).forEach((cascade, idx) => {
-        parts.push(`${idx + 1}. [${cascade.id}] Blocks ${cascade.blocked_count || 0} tasks`);
+        parts.push(
+          `${idx + 1}. [${cascade.id}] Blocks ${cascade.blocked_count || 0} tasks`,
+        );
       });
       parts.push('');
     }
 
-    if (alertsData.priority_mismatches && alertsData.priority_mismatches.length > 0) {
+    if (
+      alertsData.priority_mismatches &&
+      alertsData.priority_mismatches.length > 0
+    ) {
       parts.push('## Priority Mismatches\n');
       alertsData.priority_mismatches.slice(0, 5).forEach((mismatch, idx) => {
-        parts.push(`${idx + 1}. [${mismatch.id}] Current: ${mismatch.current_priority}, Suggested: ${mismatch.suggested_priority}`);
+        parts.push(
+          `${idx + 1}. [${mismatch.id}] Current: ${mismatch.current_priority}, Suggested: ${mismatch.suggested_priority}`,
+        );
       });
       parts.push('');
     }
@@ -333,14 +383,20 @@ class BeadsMiddleware {
 
 let middleware = null;
 
-export const beads = async ({ project, client, $, directory, worktree }) => {
+export const beads = async ({
+  project: _project,
+  client: _client,
+  $: _$,
+  directory: _directory,
+  worktree: _worktree,
+}) => {
   const configPath = new URL('../beads_config.json', import.meta.url);
   let config = {
     enabled: true,
     autoTriage: true,
     autoClaim: false,
     autoClose: true,
-    autoSync: false
+    autoSync: false,
   };
 
   try {
@@ -348,7 +404,7 @@ export const beads = async ({ project, client, $, directory, worktree }) => {
     if (configContent.ok) {
       config = await configContent.json();
     }
-  } catch (e) {
+  } catch (_e) {
     console.log('[BeadsPlugin] No config found, using defaults');
   }
 
@@ -365,26 +421,25 @@ export const beads = async ({ project, client, $, directory, worktree }) => {
   }
 
   return {
-    'agent.execute.before': async (input, output) => {
-      const { sessionID, agent, model, messages } = input;
-
+    'agent.execute.before': async (_input, output) => {
       if (!middleware || !config.enabled) {
         return;
       }
 
       if (middleware.autoTriage) {
         const triage = await bvClient.triage();
-        
-        if (triage && triage.triage) {
-          const triagePrompt = await middleware.formatRecommendations(triage.triage);
+
+        if (triage?.triage) {
+          const triagePrompt = await middleware.formatRecommendations(
+            triage.triage,
+          );
           output.systemPrompt = triagePrompt;
           output.beadsTriage = triage.triage;
         }
       }
     },
 
-    'agent.execute.after': async (input, output) => {
-      const { sessionID, agent, model, messages } = input;
+    'agent.execute.after': async (_input, output) => {
       const { response, error, beadsTask } = output;
 
       if (!middleware || !config.enabled) {
@@ -394,8 +449,12 @@ export const beads = async ({ project, client, $, directory, worktree }) => {
       if (middleware.autoClaim && beadsTask && !error) {
         const topRecommendation = output.beadsTriage?.recommendations?.[0];
         if (topRecommendation) {
-          await beadsClient.update(topRecommendation.id, { status: 'in_progress' });
-          console.log(`[BeadsPlugin] Auto-claimed task: ${topRecommendation.id}`);
+          await beadsClient.update(topRecommendation.id, {
+            status: 'in_progress',
+          });
+          console.log(
+            `[BeadsPlugin] Auto-claimed task: ${topRecommendation.id}`,
+          );
         }
       }
 
@@ -410,8 +469,10 @@ export const beads = async ({ project, client, $, directory, worktree }) => {
       }
 
       if (error) {
-        console.error('[BeadsPlugin] Agent execution failed, not updating beads');
+        console.error(
+          '[BeadsPlugin] Agent execution failed, not updating beads',
+        );
       }
-    }
+    },
   };
 };
