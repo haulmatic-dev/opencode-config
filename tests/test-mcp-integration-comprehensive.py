@@ -7,7 +7,7 @@ Tests the complete flow: detection → registration → messaging → graceful d
 import sys
 import os
 
-sys.path.insert(0, '/Users/buddhi/.config/opencode/droids')
+sys.path.insert(0, '/Users/buddhi/.config/opencode/agent')
 
 def test_operating_mode_detection():
     """Test that operating mode detection logic is sound"""
@@ -27,7 +27,7 @@ def test_operating_mode_detection():
             return False
         
         # Check that detection function exists
-        with open('/Users/buddhi/.config/opencode/droids/orchestrator.md', 'r') as f:
+        with open('/Users/buddhi/.config/opencode/agent/orchestrator.md', 'r') as f:
             content = f.read()
             if 'def detect_operating_mode():' in content:
                 print("✅ detect_operating_mode() function found")
@@ -64,7 +64,7 @@ def test_all_droids_registration_blocks():
     for agent_name, filename in droids.items():
         print(f"\nChecking {agent_name} ({filename}):")
         try:
-            with open(f'/Users/buddhi/.config/opencode/droids/{filename}', 'r') as f:
+            with open(f'/Users/buddhi/.config/opencode/agent/{filename}', 'r') as f:
                 content = f.read()
                 
                 # Check USE_MCP flag
@@ -130,7 +130,7 @@ def test_message_format_consistency():
     for droid_file, checks in message_checks.items():
         print(f"\nChecking {droid_file}:")
         try:
-            with open(f'/Users/buddhi/.config/opencode/droids/{droid_file}', 'r') as f:
+            with open(f'/Users/buddhi/.config/opencode/agent/{droid_file}', 'r') as f:
                 content = f.read()
                 
                 # Check 'sends' messages
@@ -173,7 +173,7 @@ def test_orchestrator_functionality():
     print("=" * 70)
     
     try:
-        with open('/Users/buddhi/.config/opencode/droids/orchestrator.md', 'r') as f:
+        with open('/Users/buddhi/.config/opencode/agent/orchestrator.md', 'r') as f:
             content = f.read()
         
         checks = {
@@ -213,7 +213,7 @@ def test_implementation_notes():
     for droid_file, note_title in expected_notes.items():
         print(f"\nChecking {droid_file}:")
         try:
-            with open(f'/Users/buddhi/.config/opencode/droids/{droid_file}', 'r') as f:
+            with open(f'/Users/buddhi/.config/opencode/agent/{droid_file}', 'r') as f:
                 content = f.read()
                 
                 # Check for Implementation Note section
@@ -273,7 +273,7 @@ def test_error_handling_patterns():
     for droid_file in droids:
         print(f"\nChecking {droid_file}:")
         try:
-            with open(f'/Users/buddhi/.config/opencode/droids/{droid_file}', 'r') as f:
+            with open(f'/Users/buddhi/.config/opencode/agent/{droid_file}', 'r') as f:
                 content = f.read()
                 
                 # Count try/except blocks
@@ -318,7 +318,7 @@ def test_global_flags_and_imports():
     for droid_file in droids:
         print(f"\nChecking {droid_file}:")
         try:
-            with open(f'/Users/buddhi/.config/opencode/droids/{droid_file}', 'r') as f:
+            with open(f'/Users/buddhi/.config/opencode/agent/{droid_file}', 'r') as f:
                 content = f.read()
                 
                 # Check imports
@@ -367,7 +367,7 @@ def test_complete_integration_flow():
     for step_name, droid_file, message_type in flow_steps:
         print(f"\n{step_name}:")
         try:
-            with open(f'/Users/buddhi/.config/opencode/droids/{droid_file}', 'r') as f:
+            with open(f'/Users/buddhi/.config/opencode/agent/{droid_file}', 'r') as f:
                 content = f.read()
                 
                 # Check registration
