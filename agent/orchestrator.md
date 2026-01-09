@@ -1810,3 +1810,497 @@ MODE: Direct (simple fix request)
 ***MANDATORY BUILD VERIFICATION**: Enforces continuous fix loop until lint, typecheck, and build ALL pass with zero errors - code is NEVER marked complete with build failures.*
 
 ***VISUAL VALIDATION**: Compares rendered output against Figma screenshot and enforces continuous fix loop until pixel-perfect match is achieved - "close enough" is NEVER acceptable.*
+## 🔄 Orchestrator Main Loop Implementation
+
+### Continuous Orchestration Loop
+
+The orchestrator operates as a continuous background process that:
+
+1. **Polls Beads** for ready tasks (tasks with no blockers)
+2. **Spawns Workers** via Parallel Agent Spawn Middleware
+3. **Monitors Workers** for completion/failure/timeout
+4. **Processes MCP Messages** from worker completions
+5. **Reports Status** periodically (every 5 minutes)
+6. **Handles User Commands** (status, pause, resume, stop)
+
+---
+
+### main_orchestration_loop()
+
+**Purpose**: Continuous loop that manages the entire orchestration lifecycle
+
+**Pseudocode**:
+```javascript
+async function main_orchestration_loop() {
+  const orchestrator_state = {
+    running: false,
+    paused: false,
+    workers: new Map(),
+    last_status_report: 0,
+    mcp_inbox: []
+  };
+
+  orchestrator_state.running = true;
+
+  while (orchestrator_state.running) {
+    try {
+      if (orchestrator_state.paused) {
+        await sleep(5000);
+        continue;
+      }
+
+      // Step 1: Poll Beads for ready tasks
+      const ready_tasks = await get_ready_tasks_from_beads();
+
+      // Step 2: Spawn workers for ready tasks (respect maxWorkers)
+      const available_slots = MAX_WORKERS - orchestrator_state.workers.size;
+      const tasks_to_spawn = ready_tasks.slice(0, available_slots);
+      
+      for (const task of tasks_to_spawn) {
+        const worker = await spawn_workers_via_middleware(task);
+        orchestrator_state.workers.set(worker.id, worker);
+      }
+
+      // Step 3: Poll MCP messages for completions
+      await process_mcp_messages(orchestrator_state);
+
+      // Step 4: Report status periodically (every 5 minutes)
+      const now = Date.now();
+      if (now - orchestrator_state.last_status_report > 300000) {
+        await report_status_summary(orchestrator_state);
+        orchestrator_state.last_status_report = now;
+      }
+
+      // Step 5: Handle user commands
+      await handle_user_commands(orchestrator_state);
+
+      // Sleep before next iteration
+      await sleep(5000);
+
+    } catch (error) {
+      console.error('Orchestration loop error:', error);
+      await sleep(10000); // Wait longer on error
+    }
+  }
+}
+```
+
+**Key Behaviors**:
+- **Continuous**: Runs until explicitly stopped
+- **Pause-able**: Can be paused/resumed without shutting down
+- **Stateful**: Tracks all active workers and MCP messages
+- **Error-Resilient**: Catches errors, logs them, continues
+- **Minimal Context**: Doesn't accumulate conversation history (conserve LLM context)
+
+---
+
+### get_ready_tasks_from_beads()
+
+**Purpose**: Query Beads for tasks that are ready to work on (no blockers)
+
+**Implementation**:
+```javascript
+async function get_ready_tasks_from_beads() {
+  try {
+    const output = execSync('bd ready --json', { encoding: 'utf8' });
+    const ready_tasks = JSON.parse(output);
+    return ready_tasks;
+  } catch (error) {
+    if (error.stdout && error.stdout.includes('No ready work')) {
+      return [];
+    }
+    throw error;
+  }
+}
+```
+
+**Return Value**:
+- Array of task objects: `[{ id, title, description, priority, type, ... }]`
+- Empty array if no tasks available
+
+**Integration Points**:
+- Uses `bd ready --json` command
+- Handles "No ready work" case gracefully
+- Throws error on unexpected failures
+
+---
+
+### spawn_workers_via_middleware()
+
+**Purpose**: Spawn headless workers using Parallel Agent Spawn Middleware
+
+**Implementation**:
+```javascript
+const WorkerManager = require('../lib/parallel-agent-middleware');
+
+const worker_manager = new WorkerManager({
+  mode: 'subprocess', // or 'pm2' for production
+  maxWorkers: 6,
+  logDir: './logs'
+});
+
+async function spawn_workers_via_middleware(task) {
+  try {
+    const worker = await worker_manager.spawn_headless_worker({
+      agent_type: determine_agent_type(task),
+      task_id: task.id,
+      task_description: task.description,
+      timeout: task.estimate || 600000 // Default 10 minutes
+    });
+
+    // Track worker
+    worker_manager.on('worker_complete', (w) => {
+      handle_worker_completion(w);
+    });
+
+    worker_manager.on('worker_error', (w) => {
+      handle_worker_error(w);
+    });
+
+    worker_manager.on('worker_timeout', (w) => {
+      handle_worker_timeout(w);
+    });
+
+    return worker;
+
+  } catch (error) {
+    console.error(`Failed to spawn worker for task ${task.id}:`, error);
+    throw error;
+  }
+}
+
+function determine_agent_type(task) {
+  // Determine appropriate agent based on task type and labels
+  const labels = task.labels || [];
+  
+  if (labels.includes('backend')) return 'backend-specialist';
+  if (labels.includes('frontend')) return 'frontend-specialist';
+  if (labels.includes('testing')) return 'test-specialist';
+  if (labels.includes('research')) return 'codebase-researcher';
+  
+  return 'general'; // Default
+}
+```
+
+**Key Behaviors**:
+- Uses Parallel Agent Spawn Middleware
+- Determines agent type based on task metadata
+- Sets appropriate timeout based on task estimate
+- Handles worker lifecycle events (complete, error, timeout)
+- Returns worker object for tracking
+
+---
+
+### process_mcp_messages()
+
+**Purpose**: Process MCP Agent Mail messages from completed/failed workers
+
+**Implementation**:
+```javascript
+const { fetch_inbox, acknowledge_message } = require('./mcp_agent_mail_client');
+
+async function process_mcp_messages(orchestrator_state) {
+  try {
+    // Fetch inbox for orchestrator
+    const inbox = await fetch_inbox({
+      agent_name: 'orchestrator',
+      limit: 50
+    });
+
+    for (const message of inbox.messages) {
+      const data = JSON.parse(message.content);
+
+      switch (data.type) {
+        case 'task_completion':
+          handle_task_completion(data, orchestrator_state);
+          break;
+        case 'task_failure':
+          handle_task_failure(data, orchestrator_state);
+          break;
+        case 'worker_status':
+          handle_worker_status_update(data, orchestrator_state);
+          break;
+        default:
+          console.warn('Unknown message type:', data.type);
+      }
+
+      // Acknowledge message
+      await acknowledge_message({
+        agent_name: 'orchestrator',
+        message_id: message.id
+      });
+    }
+
+  } catch (error) {
+    console.error('Failed to process MCP messages:', error);
+  }
+}
+
+function handle_task_completion(data, state) {
+  const worker_id = data.worker_id;
+  const task_id = data.task_id;
+
+  console.log(`✅ Task completed: ${task_id}`);
+
+  // Remove worker from tracking
+  state.workers.delete(worker_id);
+
+  // Task should already be closed by headless worker
+  // Beads will automatically unblock dependent tasks
+}
+
+function handle_task_failure(data, state) {
+  const worker_id = data.worker_id;
+  const task_id = data.task_id;
+  const error = data.error;
+
+  console.error(`❌ Task failed: ${task_id}`, error);
+
+  // Remove worker from tracking
+  state.workers.delete(worker_id);
+
+  // Headless worker should have created dependent task
+  // Beads will block downstream tasks
+}
+
+function handle_worker_status_update(data, state) {
+  const worker = state.workers.get(data.worker_id);
+  if (worker) {
+    worker.status = data.status;
+    worker.memory_usage = data.memory_usage;
+    worker.uptime = data.uptime;
+  }
+}
+```
+
+**Message Types**:
+- `task_completion`: Worker successfully completed task
+- `task_failure`: Worker failed with error
+- `worker_status`: Periodic status update from worker
+
+**Integration Points**:
+- Uses MCP Agent Mail client (`mcp_agent_mail_client.py`)
+- Acknowledges messages after processing
+- Updates orchestrator state based on messages
+
+---
+
+### report_status_summary()
+
+**Purpose**: Report periodic status to user (every 5 minutes)
+
+**Implementation**:
+```javascript
+async function report_status_summary(orchestrator_state) {
+  const summary = {
+    timestamp: new Date().toISOString(),
+    running: orchestrator_state.running,
+    paused: orchestrator_state.paused,
+    active_workers: orchestrator_state.workers.size,
+    worker_details: Array.from(orchestrator_state.workers.values()).map(w => ({
+      id: w.id,
+      task_id: w.task_id,
+      status: w.status,
+      uptime: w.uptime,
+      memory_usage: w.memory_usage
+    })),
+    total_ready_tasks: (await get_ready_tasks_from_beads()).length
+  };
+
+  console.log('\n=== ORCHESTRATOR STATUS ===');
+  console.log(`Time: ${summary.timestamp}`);
+  console.log(`Status: ${summary.running ? 'RUNNING' : 'STOPPED'} ${summary.paused ? '(PAUSED)' : ''}`);
+  console.log(`Active Workers: ${summary.active_workers}/${MAX_WORKERS}`);
+  console.log(`Ready Tasks: ${summary.total_ready_tasks}`);
+  
+  if (summary.active_workers > 0) {
+    console.log('\nActive Workers:');
+    summary.worker_details.forEach(w => {
+      console.log(`  - ${w.task_id}: ${w.status} (${w.uptime}s, ${w.memory_usage}MB)`);
+    });
+  }
+  
+  console.log('========================\n');
+}
+```
+
+**Report Contents**:
+- Timestamp
+- Running/paused status
+- Active worker count (vs max workers)
+- Ready task count
+- Per-worker details (ID, status, uptime, memory)
+
+**Trigger**: Every 5 minutes (300,000ms)
+
+---
+
+### handle_user_commands()
+
+**Purpose**: Handle user commands (status, pause, resume, stop)
+
+**Implementation**:
+```javascript
+const commands = {
+  status: 'Show current orchestrator status',
+  pause: 'Pause orchestration (stop spawning new workers)',
+  resume: 'Resume orchestration',
+  stop: 'Stop orchestration and shut down'
+};
+
+async function handle_user_commands(orchestrator_state) {
+  // Check for command file (simple IPC mechanism)
+  const command_file = '/tmp/orchestrator-command';
+  
+  try {
+    if (!fs.existsSync(command_file)) {
+      return; // No command
+    }
+
+    const command = fs.readFileSync(command_file, 'utf8').trim();
+    fs.unlinkSync(command_file); // Consume command
+
+    switch (command) {
+      case 'status':
+        await report_status_summary(orchestrator_state);
+        break;
+      
+      case 'pause':
+        orchestrator_state.paused = true;
+        console.log('⏸️  Orchestrator paused');
+        break;
+      
+      case 'resume':
+        orchestrator_state.paused = false;
+        console.log('▶️  Orchestrator resumed');
+        break;
+      
+      case 'stop':
+        orchestrator_state.running = false;
+        console.log('🛑  Orchestrator stopping...');
+        
+        // Graceful shutdown of all workers
+        await worker_manager.shutdown();
+        break;
+      
+      default:
+        console.warn(`Unknown command: ${command}`);
+        console.log('Available commands:', Object.keys(commands).join(', '));
+    }
+
+  } catch (error) {
+    console.error('Failed to handle user command:', error);
+  }
+}
+```
+
+**Command Interface**:
+- **status**: Show current status (same as periodic report)
+- **pause**: Stop spawning new workers (existing workers complete)
+- **resume**: Resume spawning new workers
+- **stop**: Stop orchestration, shut down all workers
+
+**Command Delivery**:
+- Simple file-based IPC: `/tmp/orchestrator-command`
+- Write command to file, orchestrator consumes it
+- Can be extended to use MCP Agent Mail for commands
+
+---
+
+## Usage
+
+### Starting the Orchestrator
+
+```bash
+# Start orchestrator in background
+node bin/orchestrator-main-loop.js &
+
+# Or use PM2 for production
+pm2 start ecosystem.config.js --only orchestrator
+```
+
+### Sending Commands
+
+```bash
+# Show status
+echo "status" > /tmp/orchestrator-command
+
+# Pause orchestration
+echo "pause" > /tmp/orchestrator-command
+
+# Resume orchestration
+echo "resume" > /tmp/orchestrator-command
+
+# Stop orchestration
+echo "stop" > /tmp/orchestrator-command
+```
+
+### Monitoring Logs
+
+```bash
+# Follow orchestrator logs
+tail -f logs/orchestrator-main-loop.log
+
+# Follow all worker logs
+tail -f logs/*.log
+```
+
+---
+
+## Configuration
+
+**File**: `~/.config/opencode/orchestrator-config.json`
+
+```json
+{
+  "MAX_WORKERS": 6,
+  "POLL_INTERVAL": 5000,
+  "STATUS_REPORT_INTERVAL": 300000,
+  "MODE": "subprocess",
+  "LOG_DIR": "./logs",
+  "COMMAND_FILE": "/tmp/orchestrator-command"
+}
+```
+
+---
+
+## Integration with Parallel Agent Orchestration
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    ORCHESTRATOR (Coordinator)                   │
+│  - main_orchestration_loop() - Continuous execution             │
+│  - get_ready_tasks_from_beads() - Poll Beads                 │
+│  - process_mcp_messages() - Handle completions                 │
+│  - report_status_summary() - Periodic reports                   │
+│  - handle_user_commands() - User control                       │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+         ┌───────────────┼──────────────────┬──────────────────┐
+         │               │                  │                  │
+         ▼               ▼                  ▼                  ▼
+   ┌─────────┐    ┌──────────┐    ┌─────────────┐   ┌──────────┐
+   │  PRD    │    │ GENERATE │    │ PARALLEL    │   │  BEADS   │
+   │  AGENT  │    │  TASKS   │    │ AGENT SPAWN │   │ TASKS   │
+   │         │    │  AGENT  │    │ MIDDLEWARE  │   │         │
+   └─────────┘    └──────────┘    └─────────────┘   └──────────┘
+        │                │                  │                 │
+        │                │                  │                 │
+        ▼                ▼                  ▼                 ▼
+   ┌─────────┐    ┌──────────┐    ┌─────────────┐   ┌──────────┐
+   │  FIGMA  │    │  HEADLESS│    │  HEADLESS   │   │ HEADLESS │
+   │AGENT    │    │ WORKER 1 │    │  WORKER N   │   │ WORKER N │
+   └─────────┘    └──────────┘    └─────────────┘   └──────────┘
+```
+
+---
+
+## Benefits
+
+- **Continuous**: Runs 24/7, no manual intervention needed
+- **Parallel**: Spawns up to 6 workers simultaneously
+- **Auto-Scaling**: Polls Beads for work, spawns workers as needed
+- **Resilient**: Error handling, retry logic, graceful degradation
+- **Observable**: Status reports, worker tracking, logging
+- **Controllable**: User commands for pause/resume/stop
+- **Minimal Context**: Doesn't accumulate conversation history
