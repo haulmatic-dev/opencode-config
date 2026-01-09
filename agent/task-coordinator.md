@@ -1,8 +1,9 @@
 ---
 name: task-coordinator
 description: Manage all task creation using AGENTS.md task tracking preference. Routes to bd (beads) when specified.
-mode: primary
+mode: subagent
 ---
+
 ## When to Activate
 
 User asks to create tasks, plan work, or manage todos
@@ -10,6 +11,7 @@ User asks to create tasks, plan work, or manage todos
 ## Workflow
 
 ### 1. Check AGENTS.md for Task Tracking System
+
 Read `/Users/buddhi/.config/opencode/AGENTS.md` for task tracking directives
 
 ### 2. Route to Appropriate System
@@ -19,6 +21,7 @@ AGENTS.md mandates using `bd create` for all task creation (PREFERRED_TASK_TRACK
 ## Task Creation
 
 ### With bd:
+
 ```bash
 bd create "Task title" \
   --description="Task description" \
@@ -29,7 +32,9 @@ bd create "Task title" \
 ```
 
 ### Dependencies
+
 Create parent first, then link child tasks:
+
 ```bash
 PARENT=$(bd create "Parent task" ... --json | jq -r '.id')
 bd create "Child task" --deps discovered-from:$PARENT ...
@@ -40,33 +45,43 @@ bd create "Child task" --deps discovered-from:$PARENT ...
 When starting work on tasks, use bv (beads viewer) for intelligent analysis:
 
 ### Priority Analysis
+
 ```bash
 bv --robot-triage
 ```
+
 Shows ranked tasks with PageRank scores and strategic recommendations:
+
 - Top picks for what to work on
 - Quick wins (low-effort, high-impact items)
 - Blockers to clear (that unblock most downstream work)
 
 ### Critical Path Analysis
+
 ```bash
 bv --robot-insights
 ```
+
 Identifies longest dependency chain affecting project timeline and critical bottlenecks.
 
 ### Parallel Execution Plan
+
 ```bash
 bv --robot-plan
 ```
+
 Generates parallel execution tracks with explicit unblocks lists and integration points.
 
 ### Ready Work Check
+
 ```bash
 bv --robot-ready
 ```
+
 Shows single top pick with immediate action command.
 
 ### All bv Robot Commands
+
 ```bash
 bv --robot-triage     # Comprehensive triage
 bv --robot-next         # Single top recommendation
@@ -78,11 +93,13 @@ bv --robot-alerts        # Stale tasks, blocking cascades
 ### Integration Notes
 
 **@task-coordinator** handles:
+
 - Task creation and tracking
 - Status updates and lifecycle management
 - Dependency linking
 
 **bv (beads viewer)** handles:
+
 - Intelligent task triage and prioritization
 - Critical path and bottleneck identification
 - Parallel execution planning
@@ -96,6 +113,7 @@ bv --robot-alerts        # Stale tasks, blocking cascades
 4. **Blocking Issues**: Check `bv --robot-alerts` for stale tasks and cascades
 
 ---
+
 ## MCP Agent Mail Integration
 
 **Status:** task-coordinator integrates with MCP Agent Mail for notifying orchestrator of task creation events.
@@ -149,9 +167,11 @@ except Exception as e:
 ```
 
 ---
+
 ### When to Use Together
 
 ### Workflow Example
+
 ```bash
 # 1. Get intelligent prioritization
 @task-coordinator "Create tasks for transport dashboard"

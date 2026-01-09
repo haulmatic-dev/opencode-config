@@ -1,6 +1,7 @@
 # Agent Instructions
 
 This project uses **two systems** for memory and task tracking:
+
 - **bd** (beads) - Issue tracking and task management
 - **cm** (cass_memory) - Cross-agent learning and procedural memory
 
@@ -13,12 +14,12 @@ These agents are available via tab completion for direct user interaction:
 - **orchestrator** - Master coordinator with dual-mode operation (COORDINATION vs DIRECT)
 - **prd** - Product Requirements Document generator with stakeholder alignment
 - **generate-tasks** - Atomic task breakdown with dependencies
-- **task-coordinator** - Beads task creation and tracking
 
 ### Internal Research Droids
 
 These agents are hidden from tab completion and are used internally by the orchestrator:
 
+- **task-coordinator** - Beads task creation with MCP Agent Mail integration (kept for MCP notifications)
 - **codebase-researcher** - Pattern discovery and technical debt identification
 - **git-history-analyzer** - Change evolution and team collaboration analysis
 - **context-researcher** - Project-wide context gathering (stakeholder analysis)
@@ -30,6 +31,7 @@ These agents are hidden from tab completion and are used internally by the orche
 - **figma-design-extractor** - Figma design token extraction for pixel-perfect implementation
 
 ### Skills
+
 - **task-breakdown** - Feature → tasks workflow
 - **feature-planning** - End-to-end PRD generation
 - **complex-project** - Enterprise feature planning
@@ -55,17 +57,20 @@ cm context "<your task>" --json
 Cass Memory is integrated via opencode plugin (`plugin/cass.mjs`) and configuration (`cass_config.json`).
 
 **Files:**
+
 - `plugin/cass.mjs` - opencode lifecycle hooks (agent.execute.before, agent.execute.after)
 - `cass_config.json` - Plugin configuration (enabled, contextLimit, autoInject)
 - `lib/cass-client.js` - HTTP client wrapper for cm commands
 
 **How It Works:**
+
 - **Automatic Context Injection**: `agent.execute.before` hook fetches relevant rules and injects into system prompt
 - **Automatic Outcome Tracking**: `agent.execute.after` hook records success/failure for shown rules
 - **Smart Filtering**: Limits to top N most relevant rules to manage context window
 - **Zero Friction**: No manual protocol needed - works transparently
 
 **Configuration:**
+
 ```json
 {
   "enabled": true,
@@ -111,17 +116,20 @@ Port: 8000
 The cache is integrated via opencode plugin (`gptcache-plugin.js`) and middleware (`lib/gptcache-middleware.js`).
 
 **Files:**
+
 - `lib/gptcache-client.js` - HTTP client for GPTCache server
 - `lib/gptcache-middleware.js` - Cache wrapping logic
 - `gptcache-plugin.js` - opencode lifecycle hooks
 - `gptcache_config.json` - Cache configuration
 
 **Benefits:**
+
 - **Cost Savings**: 70-90% reduction for repeated prompts
 - **Speed**: <50ms for cache hits vs 2-5s for LLM calls
 - **Rate Limits**: Fewer API calls means fewer rate limit issues
 
 **Management:**
+
 ```bash
 # Check stats
 node test-gptcache.js
@@ -152,17 +160,18 @@ sqlite3 ~/.gptcache/sqlite.db "SELECT COUNT(*) FROM gptcache_question;"
 
 ### Benefits
 
-| Benefit | Impact |
-|---------|---------|
+| Benefit          | Impact                                |
+| ---------------- | ------------------------------------- |
 | **Cost Savings** | 70-90% reduction for repeated prompts |
-| **Speed** | <50ms for cache hits vs 2-5s for LLM |
-| **RAM** | +50MB (negligible on 8GB) |
-| **Disk** | ~50-100MB growing with usage |
-| **Offline** | Works after first use |
+| **Speed**        | <50ms for cache hits vs 2-5s for LLM  |
+| **RAM**          | +50MB (negligible on 8GB)             |
+| **Disk**         | ~50-100MB growing with usage          |
+| **Offline**      | Works after first use                 |
 
 ### Integration
 
 GPTCache is automatically started by `opencode-init` and `session-start.sh`:
+
 - `session-start.sh` checks if server is running
 - If not running, it auto-starts the server
 - Seamless startup without manual intervention
@@ -191,12 +200,14 @@ opencode integrates [UBS (Ultimate Bug Scanner)](https://github.com/Dicklesworth
 UBS is integrated via opencode plugin (`plugin/ubs.mjs`) and configuration (`ubs_config.json`).
 
 **Files:**
+
 - `plugin/ubs.mjs` - opencode lifecycle hooks (agent.execute.before, agent.execute.after, session.start)
 - `ubs_config.json` - Plugin configuration (enabled, autoScan, failOnCritical, autoUpdate)
 - `lib/ubs-client.js` - HTTP client wrapper for UBS commands
 - `hooks/check-ubs.sh` - Health check hook for session-start
 
 **How It Works:**
+
 - **Session Start**: Checks for UBS updates (every 24 hours if autoUpdate enabled)
 - **Pre-Agent Scan**: Automatically scans changed files before agent execution
 - **Post-Agent Scan**: Scans files modified by agent to catch regressions
@@ -204,6 +215,7 @@ UBS is integrated via opencode plugin (`plugin/ubs.mjs`) and configuration (`ubs
 - **Pre-Commit Hook**: Blocks commits with critical bugs
 
 **Configuration:**
+
 ```json
 {
   "enabled": true,
@@ -232,6 +244,7 @@ UBS is integrated via opencode plugin (`plugin/ubs.mjs`) and configuration (`ubs
 ### UBS Quick Reference for AI Agents
 
 **Install:**
+
 ```bash
 curl -sSL https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh | bash
 ```
@@ -239,6 +252,7 @@ curl -sSL https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scann
 **Golden Rule:** `ubs <changed-files>` before every commit. Exit 0 = safe. Exit >0 = fix & re-run.
 
 **Commands:**
+
 ```bash
 ubs file.ts file2.py                    # Specific files (< 1s) — USE THIS
 ubs $(git diff --name-only --cached)    # Staged files — before commit
@@ -249,6 +263,7 @@ ubs .                                   # Whole project (ignores things like .ve
 ```
 
 **Output Format:**
+
 ```
 ⚠️  Category (N errors)
     file.ts:42:5 – Issue description
@@ -259,6 +274,7 @@ Exit code: 1
 Parse: `file:line:col` → location | 💡 → how to fix | Exit 0/1 → pass/fail
 
 **Fix Workflow:**
+
 1. Read finding → category + fix suggestion
 2. Navigate `file:line:col` → view context
 3. Verify real issue (not false positive)
@@ -270,11 +286,13 @@ Parse: `file:line:col` → location | 💡 → how to fix | Exit 0/1 → pass/fa
 Scope to changed files. `ubs src/file.ts` (< 1s) vs `ubs .` (30s). Never full scan for small edits.
 
 **Bug Severity:**
+
 - **Critical** (always fix): Null safety, XSS/injection, async/await, memory leaks
 - **Important** (production): Type narrowing, division-by-zero, resource leaks
 - **Contextual** (judgment): TODO/FIXME, console logs
 
 **Anti-Patterns:**
+
 - ❌ Ignore findings → ✅ Investigate each
 - ❌ Full scan per edit → ✅ Scope to file
 - ❌ Fix symptom (`if (x) { x.y }`) → ✅ Root cause (`x?.y`)
@@ -346,6 +364,7 @@ bd sync               # Sync with git
 ### The Workflow: Start With Triage
 
 **`bv --robot-triage` is your single entry point.** It returns everything you need in one call:
+
 - `quick_ref`: at-a-glance counts + top 3 picks
 - `recommendations`: ranked actionable items with scores, reasons, unblock info
 - `quick_wins`: low-effort high-impact items
@@ -363,22 +382,22 @@ bv --robot-next
 
 ### Robot Commands Reference
 
-| Category | Command | Returns |
-|-----------|----------|---------|
-| **Triage** | `bv --robot-triage` | Recommendations, quick_wins, blockers_to_clear, project_health |
-| **Planning** | `bv --robot-plan` | Parallel execution tracks with `unblocks` lists |
-| **Priority** | `bv --robot-priority` | Priority misalignment detection with confidence |
-| **Insights** | `bv --robot-insights` | Full metrics: PageRank, betweenness, HITS, eigenvector, critical path, cycles, k-core, articulation points, slack |
-| **Label Health** | `bv --robot-label-health` | Per-label health: `health_level`, `velocity_score`, `staleness`, `blocked_count` |
-| **Label Flow** | `bv --robot-label-flow` | Cross-label dependency: `flow_matrix`, `dependencies`, `bottleneck_labels` |
-| **Label Attention** | `bv --robot-label-attention [--attention-limit=N]` | Attention-ranked labels by: (pagerank × staleness × block_impact) / velocity |
-| **History** | `bv --robot-history` | Bead-to-commit correlations: `stats`, `histories`, `commit_index` |
-| **Diff** | `bv --robot-diff --diff-since <ref>` | Changes since ref: new/closed/modified issues, cycles introduced/resolved |
-| **Burndown** | `bv --robot-burndown <sprint>` | Sprint burndown, scope changes, at-risk items |
-| **Forecast** | `bv --robot-forecast <id\|all>` | ETA predictions with dependency-aware scheduling |
-| **Alerts** | `bv --robot-alerts` | Stale issues, blocking cascades, priority mismatches |
-| **Suggestions** | `bv --robot-suggest` | Hygiene: duplicates, missing deps, label suggestions, cycle breaks |
-| **Graph Export** | `bv --robot-graph [--graph-format=json\|dot\|mermaid]` | Dependency graph export |
+| Category            | Command                                                | Returns                                                                                                           |
+| ------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| **Triage**          | `bv --robot-triage`                                    | Recommendations, quick_wins, blockers_to_clear, project_health                                                    |
+| **Planning**        | `bv --robot-plan`                                      | Parallel execution tracks with `unblocks` lists                                                                   |
+| **Priority**        | `bv --robot-priority`                                  | Priority misalignment detection with confidence                                                                   |
+| **Insights**        | `bv --robot-insights`                                  | Full metrics: PageRank, betweenness, HITS, eigenvector, critical path, cycles, k-core, articulation points, slack |
+| **Label Health**    | `bv --robot-label-health`                              | Per-label health: `health_level`, `velocity_score`, `staleness`, `blocked_count`                                  |
+| **Label Flow**      | `bv --robot-label-flow`                                | Cross-label dependency: `flow_matrix`, `dependencies`, `bottleneck_labels`                                        |
+| **Label Attention** | `bv --robot-label-attention [--attention-limit=N]`     | Attention-ranked labels by: (pagerank × staleness × block_impact) / velocity                                      |
+| **History**         | `bv --robot-history`                                   | Bead-to-commit correlations: `stats`, `histories`, `commit_index`                                                 |
+| **Diff**            | `bv --robot-diff --diff-since <ref>`                   | Changes since ref: new/closed/modified issues, cycles introduced/resolved                                         |
+| **Burndown**        | `bv --robot-burndown <sprint>`                         | Sprint burndown, scope changes, at-risk items                                                                     |
+| **Forecast**        | `bv --robot-forecast <id\|all>`                        | ETA predictions with dependency-aware scheduling                                                                  |
+| **Alerts**          | `bv --robot-alerts`                                    | Stale issues, blocking cascades, priority mismatches                                                              |
+| **Suggestions**     | `bv --robot-suggest`                                   | Hygiene: duplicates, missing deps, label suggestions, cycle breaks                                                |
+| **Graph Export**    | `bv --robot-graph [--graph-format=json\|dot\|mermaid]` | Dependency graph export                                                                                           |
 
 ### Scoping & Filtering
 
@@ -405,11 +424,13 @@ bv --robot-triage --robot-triage-by-label
 ### Understanding Robot Output
 
 **All robot JSON includes:**
+
 - `data_hash` — Fingerprint of source beads.jsonl (verify consistency across calls)
 - `status` — Per-metric state: `computed|approx|timeout|skipped` + elapsed ms
 - `as_of` / `as_of_commit` — Present when using `--as-of`; contains ref and resolved SHA
 
 **Two-phase analysis:**
+
 - **Phase 1 (instant):** degree, topo sort, density — always available immediately
 - **Phase 2 (async, 500ms timeout):** PageRank, betweenness, HITS, eigenvector, cycles — check `status` flags
 
@@ -428,15 +449,15 @@ bv --robot-label-health | jq '.results.labels[] | select(.health_level == "criti
 
 ### Graph Metrics Explained
 
-| Metric | Purpose | Key Insight |
-|---------|----------|-------------|
-| **PageRank** | Dependency importance | Foundational blockers (high PageRank = bedrock) |
-| **Betweenness** | Shortest-path traffic | Bottlenecks & bridges (gatekeepers) |
-| **HITS** | Hub/Authority duality | Epics vs. utilities (Hubs=Epics, Authorities=Utilities) |
+| Metric            | Purpose                  | Key Insight                                                |
+| ----------------- | ------------------------ | ---------------------------------------------------------- |
+| **PageRank**      | Dependency importance    | Foundational blockers (high PageRank = bedrock)            |
+| **Betweenness**   | Shortest-path traffic    | Bottlenecks & bridges (gatekeepers)                        |
+| **HITS**          | Hub/Authority duality    | Epics vs. utilities (Hubs=Epics, Authorities=Utilities)    |
 | **Critical Path** | Longest dependency chain | Keystones with zero slack (delays impact project directly) |
-| **Eigenvector** | Influence via neighbors | Strategic dependencies (connected to power players) |
-| **Cycles** | Circular dependencies | **CRITICAL**: Must fix (logical impossibility) |
-| **Density** | Edge-to-node ratio | Project coupling health (low=healthy, high=overly coupled) |
+| **Eigenvector**   | Influence via neighbors  | Strategic dependencies (connected to power players)        |
+| **Cycles**        | Circular dependencies    | **CRITICAL**: Must fix (logical impossibility)             |
+| **Density**       | Edge-to-node ratio       | Project coupling health (low=healthy, high=overly coupled) |
 
 ---
 
@@ -487,11 +508,13 @@ The Beads plugin (`plugin/beads.mjs`) provides automatic integration with task t
 ### How It Works
 
 **Automatic Context Injection (`agent.execute.before`):**
+
 - Runs `bv --robot-triage` to get intelligent recommendations
 - Formats triage data as system prompt
 - Includes quick_ref, recommended tasks, quick_wins, blockers, project health
 
 **Automatic Task Management (`agent.execute.after`):**
+
 - Auto-claims recommended task (if `autoClaim` enabled)
 - Auto-closes completed task (if `autoClose` enabled)
 - Auto-syncs beads to git (if `autoSync` enabled)
@@ -511,6 +534,7 @@ The Beads plugin (`plugin/beads.mjs`) provides automatic integration with task t
 ```
 
 **Options:**
+
 - `enabled`: Enable/disable plugin globally
 - `autoTriage`: Automatically run `bv --robot-triage` on agent start
 - `autoClaim`: Auto-claim recommended task (use carefully - may conflict with manual claims)
@@ -528,33 +552,35 @@ The Beads plugin (`plugin/beads.mjs`) provides automatic integration with task t
 ### Client API
 
 **BeadsClient** - Basic task management:
+
 ```javascript
-await beadsClient.ready();              // Get ready tasks
-await beadsClient.show(id);            // Get task details
-await beadsClient.update(id, options);   // Update task
-await beadsClient.close(id, reason);    // Close task
-await beadsClient.sync();               // Sync to git
+await beadsClient.ready(); // Get ready tasks
+await beadsClient.show(id); // Get task details
+await beadsClient.update(id, options); // Update task
+await beadsClient.close(id, reason); // Close task
+await beadsClient.sync(); // Sync to git
 ```
 
 **BeadsViewerClient** - Graph-aware intelligence:
+
 ```javascript
-await bvClient.triage();             // Get recommendations (main entry point)
-await bvClient.plan(options);          // Get execution plan
-await bvClient.insights(options);     // Get graph metrics
-await bvClient.alerts();            // Get alerts
-await bvClient.history();           // Get history
-await bvClient.labelHealth();       // Get label health
+await bvClient.triage(); // Get recommendations (main entry point)
+await bvClient.plan(options); // Get execution plan
+await bvClient.insights(options); // Get graph metrics
+await bvClient.alerts(); // Get alerts
+await bvClient.history(); // Get history
+await bvClient.labelHealth(); // Get label health
 ```
 
 ### Benefits over Manual Usage
 
-| Before (Manual) | After (Plugin) |
-|-----------------|----------------|
+| Before (Manual)                  | After (Plugin)              |
+| -------------------------------- | --------------------------- |
 | Run `bv --robot-triage` manually | Automatic context injection |
-| Manually claim/close tasks | Auto-claim and auto-close |
-| Manually check for cycles | Automatic cycle detection |
-| Manually sync beads | Auto-sync on completion |
-| No triage in system prompt | Formatted triage in prompts |
+| Manually claim/close tasks       | Auto-claim and auto-close   |
+| Manually check for cycles        | Automatic cycle detection   |
+| Manually sync beads              | Auto-sync on completion     |
+| No triage in system prompt       | Formatted triage in prompts |
 
 ### Integration Notes
 
@@ -589,6 +615,7 @@ bd sync               # Sync with git
 ### The Workflow: Start With Triage
 
 **`bv --robot-triage` is your single entry point.** It returns everything you need in one call:
+
 - `quick_ref`: at-a-glance counts + top 3 picks
 - `recommendations`: ranked actionable items with scores, reasons, unblock info
 - `quick_wins`: low-effort high-impact items
@@ -606,22 +633,22 @@ bv --robot-next
 
 ### Robot Commands Reference
 
-| Category | Command | Returns |
-|-----------|----------|---------|
-| **Triage** | `bv --robot-triage` | Recommendations, quick_wins, blockers_to_clear, project_health |
-| **Planning** | `bv --robot-plan` | Parallel execution tracks with `unblocks` lists |
-| **Priority** | `bv --robot-priority` | Priority misalignment detection with confidence |
-| **Insights** | `bv --robot-insights` | Full metrics: PageRank, betweenness, HITS, eigenvector, critical path, cycles, k-core, articulation points, slack |
-| **Label Health** | `bv --robot-label-health` | Per-label health: `health_level`, `velocity_score`, `staleness`, `blocked_count` |
-| **Label Flow** | `bv --robot-label-flow` | Cross-label dependency: `flow_matrix`, `dependencies`, `bottleneck_labels` |
-| **Label Attention** | `bv --robot-label-attention [--attention-limit=N]` | Attention-ranked labels by: (pagerank × staleness × block_impact) / velocity |
-| **History** | `bv --robot-history` | Bead-to-commit correlations: `stats`, `histories`, `commit_index` |
-| **Diff** | `bv --robot-diff --diff-since <ref>` | Changes since ref: new/closed/modified issues, cycles introduced/resolved |
-| **Burndown** | `bv --robot-burndown <sprint>` | Sprint burndown, scope changes, at-risk items |
-| **Forecast** | `bv --robot-forecast <id\|all>` | ETA predictions with dependency-aware scheduling |
-| **Alerts** | `bv --robot-alerts` | Stale issues, blocking cascades, priority mismatches |
-| **Suggestions** | `bv --robot-suggest` | Hygiene: duplicates, missing deps, label suggestions, cycle breaks |
-| **Graph Export** | `bv --robot-graph [--graph-format=json\|dot\|mermaid]` | Dependency graph export |
+| Category            | Command                                                | Returns                                                                                                           |
+| ------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| **Triage**          | `bv --robot-triage`                                    | Recommendations, quick_wins, blockers_to_clear, project_health                                                    |
+| **Planning**        | `bv --robot-plan`                                      | Parallel execution tracks with `unblocks` lists                                                                   |
+| **Priority**        | `bv --robot-priority`                                  | Priority misalignment detection with confidence                                                                   |
+| **Insights**        | `bv --robot-insights`                                  | Full metrics: PageRank, betweenness, HITS, eigenvector, critical path, cycles, k-core, articulation points, slack |
+| **Label Health**    | `bv --robot-label-health`                              | Per-label health: `health_level`, `velocity_score`, `staleness`, `blocked_count`                                  |
+| **Label Flow**      | `bv --robot-label-flow`                                | Cross-label dependency: `flow_matrix`, `dependencies`, `bottleneck_labels`                                        |
+| **Label Attention** | `bv --robot-label-attention [--attention-limit=N]`     | Attention-ranked labels by: (pagerank × staleness × block_impact) / velocity                                      |
+| **History**         | `bv --robot-history`                                   | Bead-to-commit correlations: `stats`, `histories`, `commit_index`                                                 |
+| **Diff**            | `bv --robot-diff --diff-since <ref>`                   | Changes since ref: new/closed/modified issues, cycles introduced/resolved                                         |
+| **Burndown**        | `bv --robot-burndown <sprint>`                         | Sprint burndown, scope changes, at-risk items                                                                     |
+| **Forecast**        | `bv --robot-forecast <id\|all>`                        | ETA predictions with dependency-aware scheduling                                                                  |
+| **Alerts**          | `bv --robot-alerts`                                    | Stale issues, blocking cascades, priority mismatches                                                              |
+| **Suggestions**     | `bv --robot-suggest`                                   | Hygiene: duplicates, missing deps, label suggestions, cycle breaks                                                |
+| **Graph Export**    | `bv --robot-graph [--graph-format=json\|dot\|mermaid]` | Dependency graph export                                                                                           |
 
 ### Scoping & Filtering
 
@@ -648,11 +675,13 @@ bv --robot-triage --robot-triage-by-label
 ### Understanding Robot Output
 
 **All robot JSON includes:**
+
 - `data_hash` — Fingerprint of source beads.jsonl (verify consistency across calls)
 - `status` — Per-metric state: `computed|approx|timeout|skipped` + elapsed ms
 - `as_of` / `as_of_commit` — Present when using `--as-of`; contains ref and resolved SHA
 
 **Two-phase analysis:**
+
 - **Phase 1 (instant):** degree, topo sort, density — always available immediately
 - **Phase 2 (async, 500ms timeout):** PageRank, betweenness, HITS, eigenvector, cycles — check `status` flags
 
@@ -671,15 +700,15 @@ bv --robot-label-health | jq '.results.labels[] | select(.health_level == "criti
 
 ### Graph Metrics Explained
 
-| Metric | Purpose | Key Insight |
-|---------|----------|-------------|
-| **PageRank** | Dependency importance | Foundational blockers (high PageRank = bedrock) |
-| **Betweenness** | Shortest-path traffic | Bottlenecks & bridges (gatekeepers) |
-| **HITS** | Hub/Authority duality | Epics vs. utilities (Hubs=Epics, Authorities=Utilities) |
+| Metric            | Purpose                  | Key Insight                                                |
+| ----------------- | ------------------------ | ---------------------------------------------------------- |
+| **PageRank**      | Dependency importance    | Foundational blockers (high PageRank = bedrock)            |
+| **Betweenness**   | Shortest-path traffic    | Bottlenecks & bridges (gatekeepers)                        |
+| **HITS**          | Hub/Authority duality    | Epics vs. utilities (Hubs=Epics, Authorities=Utilities)    |
 | **Critical Path** | Longest dependency chain | Keystones with zero slack (delays impact project directly) |
-| **Eigenvector** | Influence via neighbors | Strategic dependencies (connected to power players) |
-| **Cycles** | Circular dependencies | **CRITICAL**: Must fix (logical impossibility) |
-| **Density** | Edge-to-node ratio | Project coupling health (low=healthy, high=overly coupled) |
+| **Eigenvector**   | Influence via neighbors  | Strategic dependencies (connected to power players)        |
+| **Cycles**        | Circular dependencies    | **CRITICAL**: Must fix (logical impossibility)             |
+| **Density**       | Edge-to-node ratio       | Project coupling health (low=healthy, high=overly coupled) |
 
 ---
 
