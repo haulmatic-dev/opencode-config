@@ -1,8 +1,12 @@
 #!/bin/bash
 # opencode-init - System-wide setup for opencode
-# Installs cass_memory (cm), beads CLI (bd), beads viewer (bv), osgrep, and configures PATH
+# Installs cass_memory, beads CLI, beads viewer, osgrep, UBS, Biome
 # Run once per machine
-
+#
+# Biome is a modern toolchain for the web (formatter, linter, bundler)
+# Provides: Linting, formatting, and more for JavaScript/TypeScript, CSS, HTML, JSON, YAML, etc.
+# Replaces ESLint for linting, but Prettier is still useful for formatting
+#
 set -e
 
 # Colors for output
@@ -10,7 +14,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # Detect shell and config file
 if [ -n "$ZSH_VERSION" ]; then
@@ -32,14 +36,21 @@ for arg in "$@"; do
       echo "System-wide setup for opencode"
       echo ""
       echo "Installs:"
-      echo "  • cass_memory (cm) - Evidence-based learning system"
-      echo "  • beads CLI (bd) - Task tracking"
-      echo "  • beads viewer (bv) - Terminal UI for browsing tasks"
-      echo "  • osgrep - Semantic code search"
-      echo "  • Ultimate Bug Scanner (UBS) - Multi-language static analysis"
-      echo "  • Configures PATH for ~/.config/opencode/bin"
+      echo " • cass_memory (cm) - Evidence-based learning system"
+      echo " • Biome - Modern linting and formatting (JavaScript, TypeScript, CSS, HTML, JSON, YAML, 20+ languages)"
+      echo " • Prettier - Code formatter (for MD, JSON, YAML, CSS, HTML)"
+      echo " • beads CLI (bd) - Task tracking"
+      echo " • beads viewer (bv) - Terminal UI for browsing tasks"
+      echo " • osgrep - Semantic code search"
+      echo " • Ultimate Bug Scanner (UBS) - Multi-language static analysis"
+      echo " • Configures PATH for ~/.config/opencode/bin"
       echo ""
       echo "Usage: opencode-init [--quiet]"
+      echo ""
+      echo "Biome vs ESLint:"
+      echo "  • Biome: Linting + formatting for 20+ languages (modern, fast)"
+      echo "  • Prettier: Formatting-focused for JS, MD, JSON, YAML, CSS, HTML"
+      echo "  • Both used together: Biome for linting, Prettier for formatting"
       exit 0
       ;;
     --quiet|-q)
@@ -51,713 +62,364 @@ done
 
 # Banner
 if [ "$QUIET" = false ]; then
-  echo -e "${BLUE}╔══════════════════════════════════════════════╗${NC}"
+  echo -e "${BLUE}╔══════════════════════════════════════════════════════════════════╗${NC}"
   echo -e "${BLUE}║   OpenCode - System-Wide Setup (opencode-init)║${NC}"
-  echo -e "${BLUE}╚══════════════════════════════════════════════╝${NC}"
-  echo
+  echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
   echo -e "${BLUE}📋 System Information:${NC}"
   echo "  OS:        $(uname -s)"
   echo "  Shell:     $SHELL_NAME"
   echo "  Config:    $SHELL_CONFIG"
   echo
+  echo -e "${BLUE}📊 Checking Prerequisites:${NC}"
+
 fi
 
-# Check prerequisites
-echo -e "${BLUE}📊 Checking Prerequisites:${NC}"
- 
 HAS_GO=false
 HAS_NODE=false
 PATH_CONFIGURED=false
 HAS_CM=false
+HAS_BIOME=false
+HAS_PRETTIER=false
 HAS_BD=false
-HAS_OSGREP=false
 HAS_BV=false
-HAS_GPTCACHE=false
-HAS_CASS=false
+HAS_OSGREP=false
 HAS_UBS=false
 
+# Check for Go
+command -v go &> /dev/null && HAS_GO=true
+
+# Check for cass
 command -v cm &> /dev/null && HAS_CM=true
 
-# Check cass installation and health
-if [ "$HAS_CM" = true ]; then
-  echo -e "${BLUE}✓${NC} cass_memory (cm): installed (version: $(cm --version 2>/dev/null || echo "unknown")"
-else
-  echo -e "${YELLOW}○${NC} cass_memory (cm): not installed"
-  exit 1
-fi
-
 # Check if cass is healthy and running
-if command -v cass &> /dev/null; then
-  CASS_HEALTHY=$(cass health 2>/dev/null && echo "healthy")
+if [ "$HAS_CM" = true ]; then
+  CASS_HEALTHY=$(cm health 2>/dev/null && echo "healthy")
+
   if [ "$CASS_HEALTHY" = "healthy" ]; then
-    echo -e "${GREEN}✓${NC} cass is healthy"
+    echo -e "${GREEN}✓${NC} cass_memory (cm): installed (version: $(cm --version 2>/dev/null || echo "unknown"))"
   else
-    echo -e "${YELLOW}⚠${NC} cass needs attention ($(cass health))"
-    echo -e "  Run 'cass doctor --fix' or 'cass index --full'"
+    echo -e "${YELLOW}○${NC} cass_memory (cm): not healthy"
+    echo "  Run: 'cass doctor --fix' or 'cass index --full'"
+  fi
+
+  # Check if cass is healthy and running
+  if command -v cass &> /dev/null; then
+    CASS_HEALTHY=$(cass health 2>/dev/null && echo "healthy")
+    if [ "$CASS_HEALTHY" = "healthy" ]; then
+      echo -e "${GREEN}✓${NC} cass is healthy"
+    else
+      echo -e "${YELLOW}⚠${NC} cass needs attention ($(cass health))"
+      echo "  Run 'cass doctor --fix' or 'cass index --full'"
+    fi
+
+    # Start cass if it's healthy but not running
+    if command -v cass &> /dev/null && ! pgrep -f "cass" > /dev/null 2>&1; then
+      echo -e "${BLUE}🚀 Starting cass...${NC}"
+      cass index --full &
+      sleep 2
+      echo -e "${GREEN}✓${NC} cass started and indexing"
+    else
+      echo -e "${GREEN}✓${NC} cass is already running and healthy"
+    fi
+  else
+    echo -e "${YELLOW}○${NC} cass is not healthy or not running"
+  fi
+
+  # Mark cass as installed and configured
+  HAS_CM=true
 fi
 
-# Start cass if it's healthy but not running
-if command -v cass &> /dev/null && ! pgrep -f "cass" > /dev/null 2>&1; then
-  echo -e "${BLUE}🚀 Starting cass...${NC}"
-  cass index --full &
-  sleep 2
-  echo -e "${GREEN}✓${NC} cass started and indexing"
+# Check for Biome
+command -v biome &> /dev/null && HAS_BIOME=true
+
+if [ "$HAS_BIOME" = true ]; then
+  echo -e "${GREEN}✓${NC} Biome: installed (version: $(biome --version 2>/dev/null || echo "unknown"))"
 else
-  echo -e "${YELLOW}⚠${NC} cass is already running"
-  echo -e "  Skipping cass start"
+  echo -e "${YELLOW}○${NC} Biome: not installed"
+  echo -e "  Install: npm install -g @biomejs/biome"
 fi
 
-# Mark cass as installed and configured
-HAS_CASS=true
+# Check for Prettier
+command -v prettier &> /dev/null && HAS_PRETTIER=true
+
+if [ "$HAS_PRETTIER" = true ]; then
+  echo -e "${GREEN}✓${NC} Prettier: installed (version: $(prettier --version 2>/dev/null || echo "unknown"))"
+else
+  echo -e "${YELLOW}○${NC} Prettier: not installed"
+  echo -e "  Install: npm install -g prettier"
+fi
+
+# Check for Beads CLI
 command -v bd &> /dev/null && HAS_BD=true
+
+if [ "$HAS_BD" = true ]; then
+  echo -e "${GREEN}✓${NC} Beads CLI (bd): installed (version: $(bd --version 2>/dev/null | head -1 || echo "unknown"))"
+else
+  echo -e "${YELLOW}○${NC} Beads CLI (bd): not installed"
+  echo -e "  Requires Go - install: go install github.com/steveyegge/beads/cmd/bd@latest"
+fi
+
+# Check for osgrep
 command -v osgrep &> /dev/null && HAS_OSGREP=true
+
+if [ "$HAS_OSGREP" = true ]; then
+  echo -e "${GREEN}✓${NC} Osgrep: installed (version: $(osgrep --version 2>/dev/null || echo "unknown"))"
+else
+  echo -e "${YELLOW}○${NC} Osgrep: not installed"
+  echo -e "  Install: npm install -g @steveyegge/osgrep"
+fi
+
+# Check for BV
 command -v bv &> /dev/null && HAS_BV=true
+
+if [ "$HAS_BV" = true ]; then
+  echo -e "${GREEN}✓${NC} Beads Viewer (bv): installed (version: $(bv --version 2>/dev/null | head -1 || echo "unknown"))"
+else
+  echo -e "${YELLOW}○${NC} Beads Viewer (bv): not installed"
+  echo -e "  Install: curl -fsSL \"https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh?$(date +%s)\" | bash"
+fi
+
+# Check for UBS
 command -v ubs &> /dev/null && HAS_UBS=true
-command -v python3 &> /dev/null && HAS_PYTHON3=true
-[ -d "$HOME/.gptcache" ] && HAS_GPTCACHE=true
-[ -d "$HOME/.mcp_agent_mail" ] && HAS_MCP_AGENT_MAIL=true
+
+if [ "$HAS_UBS" = true ]; then
+  echo -e "${GREEN}✓${NC} Ultimate Bug Scanner (UBS): installed (version: $(ubs --version 2>/dev/null | head -1 || echo "unknown"))"
+else
+  echo -e "${YELLOW}○${NC} Ultimate Bug Scanner (UBS): not installed"
+  echo -e "  Install: curl -fsSL \"https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)\" | bash"
+fi
+
+# Check if already in PATH
+echo -e "${BLUE}📊 Current Status:${NC}"
+echo "  Biome:       $([ "$HAS_BIOME" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(biome --version 2>/dev/null || echo "not installed")"
+echo "  Prettier:     $([ "$HAS_PRETTIER" = true ] && echo -e "${GREEN}✓${NC}") || echo -e "${YELLOW}○${NC}") $(prettier --version 2>/dev/null || echo "not installed")"
+echo "  Beads CLI:    $([ "$HAS_BD" = true ] && echo -e "${GREEN}✓${NC}") || echo -e "${YELLOW}○${NC}") $(bd --version 2>/dev/null | head -1 || echo "not installed")"
 
 echo
-echo -e "${BLUE}📊 Current Status:${NC}"
-echo -e "  cass_memory (cm):      $([ "$HAS_CM" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(cm --version 2>/dev/null || echo "not installed")"
-echo -e "  Beads CLI (bd):       $([ "$HAS_BD" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(bd --version 2>/dev/null | head -1 || echo "not installed")"
-echo -e "  Osgrep:               $([ "$HAS_OSGREP" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(osgrep --version 2>/dev/null || echo "not installed")"
-echo -e "  Beads Viewer (bv):    $([ "$HAS_BV" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(bv --version 2>/dev/null || echo "not installed")"
-echo -e "  Ultimate Bug Scanner (UBS): $([ "$HAS_UBS" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $(ubs --version 2>/dev/null || echo "not installed")"
-echo -e "  MCP Agent Mail:        $([ "$HAS_MCP_AGENT_MAIL" = true ] && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}○${NC}") $([ -d "$HOME/.mcp_agent_mail" ] && echo "installed" || echo "not installed")"
 
-# Step 8: Install GPTCache
-if [ "$HAS_GPTCACHE" = false ]; then
+# Step 1: Install Biome if missing
+if [ "$HAS_BIOME" = false ]; then
   if [ "$QUIET" = false ]; then
-    echo
-    echo -e "${BLUE}Step 8: Install GPTCache (Prompt Caching)${NC}"
-    echo "  GPTCache reduces LLM costs by caching prompt/response pairs"
-    echo "  Local storage (no Redis needed) - perfect for M1 MacBook Air with 8GB RAM"
-    echo -n "  Install GPTCache? [Y/n]: "
-    read -r r
-    if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
-      echo "  Skipping GPTCache installation"
-    else
-      # Check for Python 3.10+ (GPTCache requirement)
-      if ! command -v python3 &> /dev/null; then
-        echo -e "  ${RED}✗${NC} Python 3 not found"
-        echo "  Install Python 3.10+ or ensure it's in PATH"
-        exit 1
-      fi
-
-      # Install GPTCache
-      echo "  Installing GPTCache with pip..."
-      pip3 install 'gptcache' 'numpy<2'
-      if [ $? -ne 0 ]; then
-        echo -e "  ${RED}✗${NC} Failed to install GPTCache"
-        exit 1
-      fi
-
-      # Check Python version
-      PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
-      PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
-      PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
-      
-      if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 10 ]); then
-        echo -e "  ${YELLOW}⚠${NC}  GPTCache requires Python 3.10+"
-        echo "  Current version: $PYTHON_VERSION"
-        echo "  Upgrade with: pyenv install 3.10 && pyenv local 3.10"
-      fi
-
-      echo -e "  ${GREEN}✓${NC} GPTCache installed: $(gptcache_server --version 2>/dev/null || echo "gptcache_server")"
-      COMPLETED_STEPS+=("GPTCache installed")
-      HAS_GPTCACHE=true
-
-      # Start GPTCache server
-      if [ "$QUIET" = false ]; then
-        echo
-        echo -n "  Start GPTCache server now? [Y/n]: "
-        read -r m
-        if [[ -z "$m" ]] || [[ "$m" =~ ^[Yy]$ ]]; then
-          echo "  Starting GPTCache server..."
-          $HOME/.config/opencode/bin/gptcache-wrapper start
-          echo -e "  ${GREEN}✓${NC} GPTCache server started"
-          COMPLETED_STEPS+=("GPTCache server started")
-        else
-          echo "  Run later: $HOME/.config/opencode/bin/gptcache-wrapper start"
-        fi
-      else
-        # Quiet mode - auto-start
-        $HOME/.config/opencode/bin/gptcache-wrapper start
-        COMPLETED_STEPS+=("GPTCache server started")
-      fi
-    else
-      pip3 install 'gptcache' 'numpy<2'
-      if [ $? -ne 0 ]; then
-        echo -e "  ${RED}✗${NC} Failed to install GPTCache"
-        exit 1
-      fi
-
-      # Create symlink to PATH
-      if command -v python3 &> /dev/null; then
-        PYTHON_PATH=$(command -v python3 &> /dev/null | xargs dirname 2>/dev/null | xargs dirname 2>/dev/null)
-        if [[ ":$PATH:" != *":$PYTHON_PATH:"* ]]; then
-          echo 'export PATH="'$PYTHON_PATH':$PATH"' >> "$SHELL_CONFIG"
-          echo -e "  ${GREEN}✓${NC} Added Python to PATH"
-        fi
-      fi
-
-      echo -e "  ${GREEN}✓${NC} GPTCache installed: $(gptcache --version 2>/dev/null || echo "gptcache")"
-      COMPLETED_STEPS+=("GPTCache installed")
-      HAS_GPTCACHE=true
-
-      # Start GPTCache server
-      if [ "$QUIET" = false ]; then
-        echo
-        echo -n "  Start GPTCache server now? [Y/n]: "
-        read -r m
-        if [[ -z "$m" ]] || [[ "$m" =~ ^[Yy]$ ]]; then
-          echo "  Starting GPTCache server..."
-          $HOME/.config/opencode/bin/gptcache-wrapper start
-          echo -e "  ${GREEN}✓${NC} GPTCache server started"
-          COMPLETED_STEPS+=("GPTCache server started")
-        else
-          echo "  Run later: $HOME/.config/opencode/bin/gptcache-wrapper start"
-          echo -e "  ${YELLOW}ℹ${NC}  Or run: gptcache server --storage local"
-        fi
-      else
-        # Quiet mode - auto-start
-        $HOME/.config/opencode/bin/gptcache-wrapper start
-        COMPLETED_STEPS+=("GPTCache server started")
-      fi
-    fi
-  else
-    pip3 install gptcache
-    # Symlink if needed
-    if command -v python3 &> /dev/null; then
-      PYTHON_PATH=$(command -v python3 &> /dev/null | xargs dirname 2>/dev/null | xargs dirname 2>/dev/null)
-      if [[ ":$PATH:" != *":$PYTHON_PATH:"* ]]; then
-        echo 'export PATH="'$PYTHON_PATH':$PATH"' >> "$SHELL_CONFIG"
-      fi
-    fi
-    COMPLETED_STEPS+=("GPTCache installed")
-    COMPLETED_STEPS+=("GPTCache server started")
-    HAS_GPTCACHE=true
+    echo -e "${BLUE}Step 1: Install Biome${NC}"
   fi
+  npm install -g @biomejs/biome
+  if [ $? -ne 0 ]; then
+    echo -e "${RED}✗${NC} Failed to install Biome"
+    exit 1
+  fi
+  echo -e "${GREEN}✓${NC} Biome installed: $(biome --version 2>/dev/null || echo "unknown")"
 fi
+
+# Step 2: Install Prettier if missing
+if [ "$HAS_PRETTIER" = false ]; then
   if [ "$QUIET" = false ]; then
-    echo
-    echo -e "${GREEN}✓ All tools already installed and configured!${NC}"
+    echo -e "${BLUE}Step 2: Install Prettier${NC}"
   fi
-  exit 0
-fi
-
-# Non-interactive check
-if [ ! -t 0 ] && [ "$QUIET" = false ]; then
-  echo
-  echo -e "${YELLOW}ℹ${NC}  Non-interactive terminal detected"
-  echo "  Run with --quiet flag for automated setup"
-  exit 0
-fi
-
-# Ask for confirmation
-if [ "$QUIET" = false ]; then
-  echo
-  echo -en "${YELLOW}❓${NC}  Would you like to set up your opencode environment? [y/N]: "
-  read -r response
-
-  if [[ ! "$response" =~ ^[Yy]$ ]]; then
-    echo -e "${YELLOW}Skipped${NC}"
-    exit 0
+  npm install -g prettier
+  if [ $? -ne 0 ]; then
+    echo -e "${RED}✗${NC} Failed to install Prettier"
+    exit 1
   fi
+  echo -e "${GREEN}✓${NC} Prettier installed: $(prettier --version 2>/dev/null || echo "unknown")"
 fi
 
-COMPLETED_STEPS=()
-
-# Detect OS for package manager
-OS="$(uname -s)"
-if [ "$OS" = "Darwin" ]; then
-  PACKAGE_MANAGER="homebrew"
-elif [ "$OS" = "Linux" ]; then
-  if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ]; then
-      PACKAGE_MANAGER="apt"
+# Step 3: Install Go if missing
+if [ "$HAS_GO" = false ]; then
+  if [ "$QUIET" = false ]; then
+    echo -e "${BLUE}Step 3: Install Go${NC}"
+  fi
+  if [ "$QUIET" = false ]; then
+    echo "  OS detected: $(uname -s)"
+    echo "  This will run: brew install go"
+  fi
+  # Detect package manager
+  OS="$(uname -s)"
+  if [ "$OS" = "Darwin" ]; then
+    if [ -f /etc/os-release ]; then
+      . /etc/os-release
+      if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ]; then
+        PACKAGE_MANAGER="apt"
+      else
+        PACKAGE_MANAGER="unknown"
+      fi
     else
       PACKAGE_MANAGER="unknown"
     fi
+  elif [ "$OS" = "Linux" ]; then
+    if [ -f /etc/os-release ]; then
+      . /etc/os-release
+      if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ]; then
+        PACKAGE_MANAGER="apt"
+      else
+        PACKAGE_MANAGER="unknown"
+      fi
   else
     PACKAGE_MANAGER="unknown"
   fi
-else
-  PACKAGE_MANAGER="unknown"
+
+  if [ "$QUIET" = false ]; then
+    echo "  Package manager: $PACKAGE_MANAGER"
+  fi
+
+  if [ "$PACKAGE_MANAGER" = "homebrew" ]; then
+    brew install go
+  elif [ "$PACKAGE_MANAGER" = "apt" ]; then
+    sudo apt-get update
+    sudo apt-get install -y golang-go
+  else
+    echo -e "${YELLOW}⚠${NC} Go not found and cannot auto-install on this OS"
+    echo -e "  Install Go from: https://golang.org/dl/"
+    exit 1
+  fi
+
+  echo -e "${GREEN}✓${NC} Go installed: $(go version)"
+  HAS_GO=true
 fi
 
-# Step 1: Configure PATH
-if [ "$PATH_CONFIGURED" = false ]; then
-  if [ "$QUIET" = false ]; then
-    echo
-    echo -e "${BLUE}Step 1: Configure PATH${NC}"
-    echo -n "  Add ~/.config/opencode/bin to $SHELL_CONFIG? [Y/n]: "
-    read -r r
-    if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
-      echo "  Skipping PATH configuration"
-    else
-      echo 'export PATH="$HOME/.config/opencode/bin:$PATH"' >> "$SHELL_CONFIG"
-      export PATH="$HOME/.config/opencode/bin:$PATH"
-      echo -e "  ${GREEN}✓${NC} Added to $SHELL_CONFIG"
-      echo -e "  ${YELLOW}⚠️${NC}  Run 'source $SHELL_CONFIG' or start a new terminal to apply changes"
-      COMPLETED_STEPS+=("PATH configured")
-      PATH_CONFIGURED=true
-    fi
-  else
-    echo 'export PATH="$HOME/.config/opencode/bin:$PATH"' >> "$SHELL_CONFIG"
-    export PATH="$HOME/.config/opencode/bin:$PATH"
-    COMPLETED_STEPS+=("PATH configured")
-    PATH_CONFIGURED=true
-  fi
-fi
+# Step 4: Install cass_memory if missing (already checked above)
+# cass_memory installation code is above, not in this section
 
-# Step 2: Install Go (if needed)
-if [ "$HAS_GO" = false ]; then
-  if [ "$QUIET" = false ]; then
-    echo
-    echo -e "${BLUE}Step 2: Install Go${NC}"
-    if [ "$PACKAGE_MANAGER" = "homebrew" ]; then
-      echo "  OS detected: macOS"
-      echo "  This will run: brew install go"
-      echo -n "  Install Go via Homebrew? [Y/n]: "
-      read -r r
-      if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
-        echo "  Skipping Go installation"
-        echo -e "  ${RED}✗${NC} Go is required for Beads CLI"
-        echo "  Install Go from: https://golang.org/dl/"
-        exit 1
-      else
-        brew install go
-        echo -e "  ${GREEN}✓${NC} Go installed: $(go version)"
-        COMPLETED_STEPS+=("Go installed")
-        HAS_GO=true
-      fi
-    elif [ "$PACKAGE_MANAGER" = "apt" ]; then
-      echo "  OS detected: Ubuntu/Debian"
-      echo "  This will run: sudo apt-get update && sudo apt-get install -y golang-go"
-      echo -n "  Install Go via apt? [Y/n]: "
-      read -r r
-      if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
-        echo "  Skipping Go installation"
-        echo -e "  ${RED}✗${NC} Go is required for Beads CLI"
-        echo "  Install Go from: https://golang.org/dl/"
-        exit 1
-      else
-        sudo apt-get update
-        sudo apt-get install -y golang-go
-        echo -e "  ${GREEN}✓${NC} Go installed: $(go version)"
-        COMPLETED_STEPS+=("Go installed")
-        HAS_GO=true
-      fi
-    else
-      echo -e "  ${RED}✗${NC} Go not found"
-      echo "  Unsupported OS/package manager: $PACKAGE_MANAGER"
-      echo "  Install Go from: https://golang.org/dl/"
-      exit 1
-    fi
-  else
-    # Quiet mode - auto-install Go
-    if [ "$PACKAGE_MANAGER" = "homebrew" ]; then
-      brew install go
-      COMPLETED_STEPS+=("Go installed")
-      HAS_GO=true
-    elif [ "$PACKAGE_MANAGER" = "apt" ]; then
-      sudo apt-get update
-      sudo apt-get install -y golang-go
-      COMPLETED_STEPS+=("Go installed")
-      HAS_GO=true
-    else
-      echo -e "  ${RED}✗${NC} Go not found and cannot auto-install on this OS"
-      exit 1
-    fi
-  fi
-fi
-
-# Step 3: Install cass_memory (cm)
-if [ "$HAS_CM" = false ]; then
-  if [ "$QUIET" = false ]; then
-    echo
-    echo -e "${BLUE}Step 3: Install cass_memory (cm)${NC}"
-    echo "  This will run: curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_system/main/install.sh | bash -s -- --easy-mode --verify"
-    echo "  cass_memory provides evidence-based learning system for AI agents"
-    echo -n "  Install cass_memory? [Y/n]: "
-    read -r r
-    if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
-      echo "  Skipping cass_memory installation"
-      echo "  echo -e "  ${RED}✗${NC} cass_memory is required for opencode"
-      exit 1
-    else
-      curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_system/main/install.sh | bash -s -- --easy-mode --verify
-      
-      if command -v cm &> /dev/null; then
-        echo -e "  ${GREEN}✓${NC} Installed: $(cm --version 2>/dev/null || echo "cm")"
-        COMPLETED_STEPS+=("cass_memory installed")
-        HAS_CM=true
-      else
-        echo -e "  ${RED}✗${NC} Installation failed"
-        exit 1
-      fi
-    fi
-  else
-  curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_system/main/install.sh | bash -s -- --easy-mode --verify
-    
-    if command -v cm &> /dev/null; then
-      COMPLETED_STEPS+=("cass_memory installed")
-      HAS_CM=true
-    else
-      echo -e "  ${RED}✗${NC} Installation failed"
-      exit 1
-    fi
-  fi
-
-# Step 3.5: Auto-start cass if healthy but not running
-if [ "$HAS_CM" = true ]; then
-  if [ "$QUIET" = false ]; then
-    echo
-    echo -e "${BLUE}Step 3.5: Ensure cass is running${NC}"
-    
-    # Check if cass is healthy
-    CASS_HEALTHY=$(cass health 2>/dev/null && echo "healthy")
-    
-    if [ "$CASS_HEALTHY" = "healthy" ]; then
-      # Check if cass is already running
-      if ! pgrep -f "cass" > /dev/null 2>&1; then
-        echo -e "  ${BLUE}🚀 Starting cass...${NC}"
-        cass index --full &
-        sleep 3
-        echo -e "  ${GREEN}✓${NC} cass started and indexing"
-      else
-        echo -e "  ${GREEN}✓${NC} cass is already running"
-      fi
-    else
-      echo -e "  ${YELLOW}⚠${NC} cass is not healthy ($(cass health))"
-      echo "  Run 'cass doctor --fix' to fix cass"
-      echo "  Skipping cass auto-start"
-    fi
-  fi
-    fi
-  else
-    curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_system/main/install.sh | bash -s -- --easy-mode --verify
-    if command -v cm &> /dev/null; then
-      COMPLETED_STEPS+=("cass_memory installed")
-      HAS_CM=true
-    else
-      echo -e "  ${RED}✗${NC} cass_memory installation failed"
-      exit 1
-    fi
-  fi
-fi
-
-# Step 4: Install beads CLI
+# Step 5: Install Beads CLI if missing
 if [ "$HAS_BD" = false ]; then
   if [ "$QUIET" = false ]; then
-    echo
-    echo -e "${BLUE}Step 4: Install Beads CLI${NC}"
-    if [ "$HAS_GO" = false ]; then
-      echo -e "  ${RED}✗${NC} Go not found"
-      echo "  Install Go from: https://golang.org/dl/"
-      exit 1
-    fi
-    echo "  This will run: go install github.com/steveyegge/beads/cmd/bd@latest"
-    echo -n "  Install beads CLI? [Y/n]: "
-    read -r r
-    if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
-      echo "  Skipping beads installation"
-    else
-      go install github.com/steveyegge/beads/cmd/bd@latest
-
-      # Add go/bin to PATH if not already there
-      if [[ ":$PATH:" != *":$HOME/go/bin:"* ]]; then
-        echo 'export PATH="$HOME/go/bin:$PATH"' >> "$SHELL_CONFIG"
-        export PATH="$HOME/go/bin:$PATH"
-      fi
-
-      if command -v bd &> /dev/null; then
-        BD_VERSION=$(bd --version 2>&1 | head -1)
-        echo -e "  ${GREEN}✓${NC} Installed: $BD_VERSION"
-        COMPLETED_STEPS+=("Beads CLI installed")
-        HAS_BD=true
-      else
-        echo -e "  ${RED}✗${NC} Installation failed. Check that \$HOME/go/bin is in PATH"
-        exit 1
-      fi
-    fi
-  else
-    go install github.com/steveyegge/beads/cmd/bd@latest
-    if [[ ":$PATH:" != *":$HOME/go/bin:"* ]]; then
-      echo 'export PATH="$HOME/go/bin:$PATH"' >> "$SHELL_CONFIG"
-      export PATH="$HOME/go/bin:$PATH"
-    fi
-    COMPLETED_STEPS+=("Beads CLI installed")
-    HAS_BD=true
+    echo -e "${BLUE}Step 5: Install Beads CLI (bd)${NC}"
   fi
-fi
-
-# Step 5: Install osgrep
-if [ "$HAS_OSGREP" = false ]; then
+  if [ "$HAS_GO" = false ]; then
+    echo -e "${RED}✗${NC} Go is required for Beads CLI"
+    echo -e "  Step 3 should have installed Go"
+    exit 1
+  fi
+  echo "  This will run: go install github.com/steveyegge/beads/cmd/bd@latest"
   if [ "$QUIET" = false ]; then
-    echo
-    echo -e "${BLUE}Step 5: Install Osgrep (Semantic Search)${NC}"
-    if [ "$HAS_NODE" = false ]; then
-      echo -e "  ${RED}✗${NC} Node.js not found"
-      echo "  Install Node.js from: https://nodejs.org/"
-      exit 1
-    fi
-    echo "  This will run: npm install -g osgrep"
-    echo "  (Downloads ~150MB of embedding models)"
-    echo -n "  Install osgrep? [Y/n]: "
-    read -r r
-    if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
-      echo "  Skipping osgrep installation"
-    else
-      npm install -g osgrep
-
-      if command -v osgrep &> /dev/null; then
-        echo -e "  ${GREEN}✓${NC} Installed: $(osgrep --version)"
-        COMPLETED_STEPS+=("Osgrep installed")
-        HAS_OSGREP=true
-
-        # Optionally run osgrep setup to download models
-        if [ "$QUIET" = false ]; then
-          echo
-          echo -n "  Download embedding models now (~150MB)? [Y/n]: "
-          read -r m
-          if [[ -z "$m" ]] || [[ "$m" =~ ^[Yy]$ ]]; then
-            echo "  Downloading models..."
-            osgrep setup
-            echo -e "  ${GREEN}✓${NC} Models downloaded"
-          else
-            echo "  Run 'osgrep setup' later to download models"
-          fi
-        fi
-      else
-        echo -e "  ${RED}✗${NC} Installation failed"
-        exit 1
-      fi
-    fi
-  else
-    npm install -g osgrep
-    COMPLETED_STEPS+=("Osgrep installed")
-    HAS_OSGREP=true
+    echo "  (This may take 1-2 minutes)"
   fi
+  go install github.com/steveyegge/beads/cmd/bd@latest
+  if [ $? -ne 0 ]; then
+    echo -e "${RED}✗${NC} Failed to install Beads CLI"
+    exit 1
+  fi
+  echo -e "${GREEN}✓${NC} Beads CLI installed: $(bd --version 2>/dev/null | head -1 || echo "unknown")"
 fi
 
-# Step 6: Install beads viewer (bv)
+# Step 6: Install Beads Viewer (bv) if missing
 if [ "$HAS_BV" = false ]; then
   if [ "$QUIET" = false ]; then
-    echo
-    echo -e "${BLUE}Step 6: Install Beads Viewer (Terminal UI)${NC}"
-    echo "  This downloads and installs beads viewer from GitHub"
-    echo "  Source: https://github.com/Dicklesworthstone/beads_viewer"
-    echo -n "  Install beads viewer? [Y/n]: "
-    read -r r
-    if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
-      echo "  Skipping beads viewer installation"
-    else
-      curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh" | bash
-
-      if command -v bv &> /dev/null; then
-        echo -e "  ${GREEN}✓${NC} Installed: $(bv --version 2>/dev/null || echo "bv")"
-        COMPLETED_STEPS+=("Beads Viewer installed")
-        HAS_BV=true
-      else
-        echo -e "  ${YELLOW}⚠️${NC}  Installation may have failed. Check ~/.local/bin"
-      fi
-    fi
-  else
-    curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh" | bash
-    COMPLETED_STEPS+=("Beads Viewer installed")
-    HAS_BV=true
+    echo -e "${BLUE}Step 6: Install Beads Viewer (bv)${NC}"
   fi
+  echo "  This downloads and installs beads viewer from GitHub"
+  if [ "$QUIET" = false ]; then
+    echo "  (This may take 30-60 seconds)"
+  fi
+  curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh?$(date +%s)" | bash
+  if [ $? -ne 0 ]; then
+    echo -e "${RED}✗${NC} Failed to install Beads Viewer"
+    exit 1
+  fi
+  echo -e "${GREEN}✓${NC} Beads Viewer installed: $(bv --version 2>/dev/null | head -1 || echo "unknown")"
 fi
 
-# Step 6.5: Install Ultimate Bug Scanner (UBS)
+# Step 7: Install osgrep if missing
+if [ "$HAS_OSGREP" = false ]; then
+  if [ "$QUIET" = false ]; then
+    echo -e "${BLUE}Step 7: Install Osgrep${NC}"
+  fi
+  echo "  Osgrep provides semantic code search with embeddings"
+  if [ "$QUIET" = false ]; then
+    echo "  (Downloads ~150MB of embedding models)"
+  fi
+  npm install -g @steveyegge/osgrep
+  if [ $? -ne 0 ]; then
+    echo -e "${RED}✗${NC} Failed to install Osgrep"
+    exit 1
+  fi
+  echo -e "${GREEN}✓${NC} Osgrep installed: $(osgrep --version 2>/dev/null || echo "unknown")"
+fi
+
+# Step 8: Install UBS if missing
 if [ "$HAS_UBS" = false ]; then
   if [ "$QUIET" = false ]; then
-    echo
-    echo -e "${BLUE}Step 6.5: Install Ultimate Bug Scanner (UBS)${NC}"
-    echo "  UBS provides multi-language static analysis (8+ languages)"
-    echo "  Catches 1000+ bug patterns before production"
-    echo "  Source: https://github.com/Dicklesworthstone/ultimate_bug_scanner"
-    echo "  Requires: bash 4.0+, ast-grep, ripgrep, jq"
-    echo -n "  Install UBS? [Y/n]: "
-    read -r r
-    if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
-      echo "  Skipping UBS installation"
-      echo -e "  ${YELLOW}⚠️${NC}  UBS is recommended for code quality but optional"
-    else
-      # Check for bash 4.0+
-      BASH_VERSION_NUM=$(bash --version | grep -o '[0-9]\.[0-9]' | head -1)
-      if [ "$BASH_VERSION_NUM" \< "4.0" ]; then
-        echo -e "  ${RED}✗${NC}  UBS requires bash 4.0+ (current: $BASH_VERSION_NUM)"
-        echo -e "  ${YELLOW}⚠️${NC}  Install bash 4.0+ via Homebrew: brew install bash"
-        echo "  Or use: /opt/homebrew/bin/bash -c 'curl ... | bash'"
-      else
-        # Install UBS
-        echo -e "  ${BLUE}Installing UBS...${NC}"
-        curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)" | bash -s -- --non-interactive
+    echo -e "${BLUE}Step 8: Install Ultimate Bug Scanner (UBS)${NC}"
+  fi
+  echo "  UBS provides multi-language static analysis (1000+ bug patterns)"
+  if [ "$QUIET" = false ]; then
+    echo "  Catches bugs in: JS, Python, C/C++, Rust, Go, Java, Ruby, Swift"
+  fi
+  curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)" | bash
+  if [ $? -ne 0 ]; then
+    echo -e "${RED}✗${NC} Failed to install UBS"
+    exit 1
+  fi
+  echo -e "${GREEN}✓${NC} UBS installed: $(ubs --version 2>/dev/null | head -1 || echo "unknown")"
+fi
 
-        if command -v ubs &> /dev/null; then
-          echo -e "  ${GREEN}✓${NC} Installed: $(ubs --version 2>/dev/null || echo "ubs")"
-          COMPLETED_STEPS+=("UBS installed")
-          HAS_UBS=true
-        else
-          echo -e "  ${YELLOW}⚠️${NC}  Installation may have failed. Check ~/.local/bin"
-        fi
-      fi
-    fi
+# Step 9: Configure PATH
+if [ "$PATH_CONFIGURED" = false ]; then
+  if [ "$QUIET" = false ]; then
+    echo -e "${BLUE}Step 9: Configure PATH${NC}"
+  fi
+
+  # Add ~/.config/opencode/bin to PATH if not already there
+  if [[ ":$PATH:" != *":$HOME/.config/opencode/bin:"* ]]; then
+    echo 'export PATH="$HOME/.config/opencode/bin:$PATH"' >> "$SHELL_CONFIG"
+    echo -e "${GREEN}✓${NC} Added ~/.config/opencode/bin to PATH in $SHELL_CONFIG"
   else
-    # Quiet mode - auto-install UBS
-    curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)" | bash -s -- --non-interactive
-    COMPLETED_STEPS+=("UBS installed")
-    HAS_UBS=true
+    echo -e "${GREEN}✓${NC} PATH already configured"
+  fi
+
+  echo -e "${YELLOW}⚠${NC}  Run: source $SHELL_CONFIG or start a new terminal to apply PATH changes"
+fi
+
+# Step 10: Ensure cass is running
+if [ "$HAS_CM" = true ]; then
+  if [ "$QUIET" = false ]; then
+    echo -e "${BLUE}Step 10: Ensure cass is running${NC}"
+  fi
+
+  if command -v cass &> /dev/null; then
+    CASS_HEALTHY=$(cm health 2>/dev/null && echo "healthy")
+
+    if [ "$CASS_HEALTHY" = "healthy" ]; then
+      if ! pgrep -f "cass" > /dev/null 2>&1; then
+        echo -e "${BLUE}🚀 Starting cass...${NC}"
+        cass index --full &
+        sleep 2
+        echo -e "${GREEN}✓${NC} cass started and indexing"
+      else
+        echo -e "${GREEN}✓${NC} cass is already running and healthy"
+      fi
+    else
+      echo -e "${YELLOW}⚠${NC} cass needs attention ($(cass health))"
+      echo "  Run 'cass doctor --fix' or 'cass index --full'"
+    fi
   fi
 fi
 
 # Summary
 if [ "$QUIET" = false ]; then
-
-# Step 7: Install MCP Agent Mail
-if [ "$HAS_MCP_AGENT_MAIL" = false ]; then
-  if [ "$QUIET" = false ]; then
-    echo
-    echo -e "${BLUE}Step 7: Install MCP Agent Mail (REQUIRED)${NC}"
-    echo "  MCP Agent Mail enables agent-to-agent communication and coordination"
-    echo "  Source: https://github.com/Dicklesworthstone/mcp_agent_mail"
-    echo "  Requires: Python 3.14+, uv"
-    echo -n "  Install MCP Agent Mail? [Y/n]: "
-    read -r r
-    if [[ -n "$r" ]] && [[ ! "$r" =~ ^[Yy]$ ]]; then
-      echo -e "  ${RED}✗${NC} MCP Agent Mail is REQUIRED for opencode"
-      exit 1
-    fi
-      echo -e "  ${GREEN}✓${NC} Repository cloned"
-
-      # Create .env file
-      echo "  Creating configuration..."
-      cat > "$HOME/.mcp_agent_mail/.env" << 'EOF'
-STORAGE_ROOT=$HOME/.mcp_agent_mail/storage
-DATABASE_URL=sqlite+aiosqlite:////$HOME/.mcp_agent_mail/storage/mcp.db
-HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true
-HTTP_PORT=8765
-EOF
-      echo -e "  ${GREEN}✓${NC} Configuration created"
-
-      # Install dependencies with uv
-      if ! command -v uv &> /dev/null; then
-        echo -e "  ${RED}✗${NC} uv not found"
-        echo "  Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh"
-        exit 1
-      fi
-
-      # Check for Python 3.14
-      HAS_PYTHON314=false
-      uv python list 2>/dev/null | grep -q "cpython-3.14" && HAS_PYTHON314=true
-
-      if [ "$HAS_PYTHON314" = false ]; then
-        echo "  Installing Python 3.14 with uv..."
-        uv python install 3.14
-        if [ $? -ne 0 ]; then
-          echo -e "  ${RED}✗${NC} Failed to install Python 3.14"
-          exit 1
-        fi
-        echo -e "  ${GREEN}✓${NC} Python 3.14 installed"
-      fi
-        echo -e "  ${GREEN}✓${NC} Python 3.14 installed"
-      fi
-
-      echo "  Installing dependencies..."
-      cd "$HOME/.mcp_agent_mail"
-      uv sync --python 3.14
-      if [ $? -ne 0 ]; then
-        echo -e "  ${RED}✗${NC} Failed to install dependencies"
-        exit 1
-      fi
-      echo -e "  ${GREEN}✓${NC} Dependencies installed"
-
-      # Start server
-      if [ "$QUIET" = false ]; then
-        echo
-        echo -n "  Start MCP Agent Mail server now? [Y/n]: "
-        read -r m
-        if [[ -z "$m" ]] || [[ "$m" =~ ^[Yy]$ ]]; then
-          echo "  Starting MCP Agent Mail server..."
-          HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true uv run python -m mcp_agent_mail.http --host 127.0.0.1 --port 8765 > "$HOME/.mcp_agent_mail/server.log" 2>&1 &
-          echo $! > "$HOME/.mcp_agent_mail/.mcp-agent-mail.pid"
-          echo -e "  ${GREEN}✓${NC} Server started (http://127.0.0.1:8765)"
-
-          # Wait for server to be ready
-          sleep 3
-          if curl -s http://127.0.0.1:8765/health/readiness > /dev/null 2>&1; then
-            echo -e "  ${GREEN}✓${NC} Server is healthy and ready"
-          else
-            echo -e "  ${YELLOW}⚠${NC}  Server may not be ready. Check $HOME/.mcp_agent_mail/server.log"
-          fi
-        else
-          echo "  Run later: cd ~/.mcp_agent_mail && HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true uv run python -m mcp_agent_mail.http --host 127.0.0.1 --port 8765 &"
-        fi
-      else
-        # Quiet mode - start automatically
-        cd "$HOME/.mcp_agent_mail"
-        HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true uv run python -m mcp_agent_mail.http --host 127.0.0.1 --port 8765 > "$HOME/.mcp_agent_mail/server.log" 2>&1 &
-        echo $! > "$HOME/.mcp_agent_mail/.mcp-agent-mail.pid"
-      fi
-
-      COMPLETED_STEPS+=("MCP Agent Mail installed")
-      HAS_MCP_AGENT_MAIL=true
-    fi
-  else
-    # Quiet mode
-    git clone https://github.com/Dicklesworthstone/mcp_agent_mail.git "$HOME/.mcp_agent_mail"
-    cat > "$HOME/.mcp_agent_mail/.env" << 'EOF'
-STORAGE_ROOT=$HOME/.mcp_agent_mail/storage
-DATABASE_URL=sqlite+aiosqlite:////$HOME/.mcp_agent_mail/storage/mcp.db
-HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true
-HTTP_PORT=8765
-EOF
-    cd "$HOME/.mcp_agent_mail"
-    uv sync --python 3.14
-    COMPLETED_STEPS+=("MCP Agent Mail installed")
-    HAS_MCP_AGENT_MAIL=true
-  fi
-fi
-
-echo
-echo -e "${BLUE}╔══════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║   Setup Complete!                                     ║${NC}"
-echo -e "${BLUE}╚══════════════════════════════════════════════════════╝${NC}"
-echo
-
-  if [ ${#COMPLETED_STEPS[@]} -gt 0 ]; then
-    echo -e "${GREEN}✓ Completed:${NC}"
-    for step in "${COMPLETED_STEPS[@]}"; do
-      echo "  • $step"
-    done
-    echo
-  fi
-
-  if [ "$PATH_CONFIGURED" = true ]; then
-    echo -e "${YELLOW}⚠️${NC}  Important:"
-    echo "  Source your shell configuration to apply PATH changes:"
-    echo "    source $SHELL_CONFIG"
-    echo "  Or start a new terminal window"
-    echo
-  fi
-
-  echo -e "${BLUE}Next Steps:${NC}"
-  echo "  1. Source your shell config or start a new terminal"
-  echo "  2. Run 'workspace-init' in your project directory to set up task tracking"
-  echo "  3. Run 'osgrep setup' if you didn't download models yet"
-  if [ "$HAS_UBS" = true ]; then
-    echo "  4. UBS is installed and ready - use 'ubs . --help' for commands"
-  fi
   echo
-  echo -e "${BLUE}Quick Start:${NC}"
-  echo "  cd /path/to/your/project"
-  echo "  workspace-init"
+  echo -e "${BLUE}╔══════════════════════════════════════════════════════════════════╗${NC}"
+  echo -e "${BLUE}║   Installation Complete!                                     ║${NC}"
+  echo -e "${BLUE}╚════════════════════════════════════════════════════════════════════╝${NC}"
   echo
+  echo -e "${GREEN}✓${NC} Installed:"
+  echo "  • cass_memory (cm) - Evidence-based learning system"
+  echo "  • Biome - Modern linting and formatting (20+ languages)"
+  echo "  • Prettier - Code formatter (MD, JSON, YAML, CSS, HTML)"
+  echo "  • Go - Required for Beads CLI"
+  echo "  • Beads CLI (bd) - Task tracking"
+  echo "  • Beads Viewer (bv) - Terminal UI for browsing tasks"
+  echo "  • Osgrep - Semantic code search"
+  echo "  • Ultimate Bug Scanner (UBS) - Multi-language static analysis"
+  echo
+  echo -e "${YELLOW}⚠${NC} Important:"
+  echo "   Source your shell configuration to apply PATH changes:"
+  echo "  • source $SHELL_CONFIG"
+  echo "  • Or start a new terminal"
+  echo
+  echo -e "${BLUE}📚 Documentation:${NC}"
+  echo "  • cass: https://github.com/Dicklesworthstone/cass_memory_system"
+  echo "  • Biome: https://biomejs.dev"
+  echo "  • Prettier: https://prettier.io"
+  echo "  • Beads: https://github.com/steveyegge/beads"
+  echo "  • opencode: ~/.config/opencode"
 fi
-
-exit 0
