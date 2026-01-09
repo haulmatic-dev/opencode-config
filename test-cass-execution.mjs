@@ -13,7 +13,7 @@ async function testPluginExecution() {
     client: {},
     $: {},
     directory: process.cwd(),
-    worktree: null
+    worktree: null,
   };
 
   try {
@@ -29,26 +29,38 @@ async function testPluginExecution() {
       agent: 'test-agent',
       model: 'gpt-4',
       messages: [
-        { role: 'user', content: 'How do I add GPTCache to this project?' }
-      ]
+        { role: 'user', content: 'How do I add GPTCache to this project?' },
+      ],
     };
 
     const beforeOutput = {};
-    
+
     if (hooks['agent.execute.before']) {
       await hooks['agent.execute.before'](beforeInput, beforeOutput);
-      
+
       console.log('   ✓ agent.execute.before executed');
-      
+
       if (beforeOutput.systemPrompt) {
-        console.log('   System prompt injected:', beforeOutput.systemPrompt.slice(0, 100) + '...');
+        console.log(
+          '   System prompt injected:',
+          beforeOutput.systemPrompt.slice(0, 100) + '...',
+        );
       }
-      
+
       if (beforeOutput.cassContext) {
         console.log('   Context retrieved:');
-        console.log('   - relevantBullets:', beforeOutput.cassContext.relevantBullets?.length || 0);
-        console.log('   - antiPatterns:', beforeOutput.cassContext.antiPatterns?.length || 0);
-        console.log('   - historySnippets:', beforeOutput.cassContext.historySnippets?.length || 0);
+        console.log(
+          '   - relevantBullets:',
+          beforeOutput.cassContext.relevantBullets?.length || 0,
+        );
+        console.log(
+          '   - antiPatterns:',
+          beforeOutput.cassContext.antiPatterns?.length || 0,
+        );
+        console.log(
+          '   - historySnippets:',
+          beforeOutput.cassContext.historySnippets?.length || 0,
+        );
       }
     }
 
@@ -58,18 +70,22 @@ async function testPluginExecution() {
       sessionID: 'test-session',
       agent: 'test-agent',
       model: 'gpt-4',
-      messages: beforeInput.messages
+      messages: beforeInput.messages,
     };
 
     const afterOutput = {
       response: 'Test response from agent',
-      cassContext: beforeOutput.cassContext
+      cassContext: beforeOutput.cassContext,
     };
 
     if (hooks['agent.execute.after']) {
       await hooks['agent.execute.after'](afterInput, afterOutput);
       console.log('   ✓ agent.execute.after executed');
-      console.log('   Outcome recorded for:', afterOutput.cassContext?.relevantBullets?.map(b => b.id).join(', ') || 'no rules');
+      console.log(
+        '   Outcome recorded for:',
+        afterOutput.cassContext?.relevantBullets?.map((b) => b.id).join(', ') ||
+          'no rules',
+      );
     }
 
     console.log('\n✅ Plugin execution test passed!');
@@ -78,7 +94,6 @@ async function testPluginExecution() {
     console.log('- agent.execute.before fetches context ✓');
     console.log('- agent.execute.after records outcome ✓');
     console.log('- System prompt injection works ✓');
-
   } catch (error) {
     console.error('\n❌ Plugin execution test failed:', error.message);
     console.error('Stack:', error.stack);

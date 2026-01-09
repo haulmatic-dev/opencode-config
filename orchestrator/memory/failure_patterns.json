@@ -3,19 +3,31 @@
     "missing_error_handling": {
       "pattern": "API endpoints without comprehensive error handling",
       "failure_rate": 70,
-      "warning_signs": ["try-catch blocks missing", "no validation", "500 errors"],
+      "warning_signs": [
+        "try-catch blocks missing",
+        "no validation",
+        "500 errors"
+      ],
       "solution": "Implement proper error boundaries, input validation, and graceful error responses"
     },
     "authentication_gaps": {
       "pattern": "Insecure authentication flows",
       "failure_rate": 80,
-      "warning_signs": ["plain text passwords", "no rate limiting", "JWT secrets in code"],
+      "warning_signs": [
+        "plain text passwords",
+        "no rate limiting",
+        "JWT secrets in code"
+      ],
       "solution": "Use bcrypt, implement rate limiting, secure JWT handling, OWASP compliance"
     },
     "dependency_hell": {
       "pattern": "Version conflicts and dependency management issues",
       "failure_rate": 60,
-      "warning_signs": ["npm install failures", "version conflicts", "security vulnerabilities"],
+      "warning_signs": [
+        "npm install failures",
+        "version conflicts",
+        "security vulnerabilities"
+      ],
       "solution": "Use lock files, regular updates, dependency scanning, semantic versioning"
     }
   },
@@ -37,14 +49,23 @@
     "non_atomic_requirements": {
       "pattern": "PRD requirements with too many acceptance criteria",
       "failure_rate": 75,
-      "warning_signs": ["> 3 acceptance criteria", "requirements spanning multiple components", "unclear scope"],
+      "warning_signs": [
+        "> 3 acceptance criteria",
+        "requirements spanning multiple components",
+        "unclear scope"
+      ],
       "solution": "Split into atomic requirements (max 3 ACs each), group by functional area",
       "detection_rule": "Count acceptance criteria - 4-6 ACs = warning, 7+ ACs = critical split required"
     },
     "oversized_tasks": {
       "pattern": "Tasks too large for individual agents to complete",
       "failure_rate": 70,
-      "warning_signs": ["> 3 sub-tasks per parent", "> 3 files touched", "vague success criteria", "estimated effort > 4 hours"],
+      "warning_signs": [
+        "> 3 sub-tasks per parent",
+        "> 3 files touched",
+        "vague success criteria",
+        "estimated effort > 4 hours"
+      ],
       "solution": "Use multi-level decomposition (X.0 → X.1 → X.1.1), split by component or file",
       "atomicity_rules": {
         "max_subtasks": 3,
@@ -56,7 +77,11 @@
     "vague_task_descriptions": {
       "pattern": "Task descriptions with multiple 'and' or vague scope",
       "failure_rate": 65,
-      "warning_signs": ["Update 5 files", "Implement X, Y, and Z", "Setup system"],
+      "warning_signs": [
+        "Update 5 files",
+        "Implement X, Y, and Z",
+        "Setup system"
+      ],
       "solution": "Be specific - one task per file or component, use imperative verbs (Create, Implement, Add, Test)"
     }
   }

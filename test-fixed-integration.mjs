@@ -19,7 +19,7 @@ async function testFixedIntegration() {
     client: {},
     $: {},
     directory: process.cwd(),
-    worktree: null
+    worktree: null,
   };
 
   let hooks;
@@ -31,7 +31,7 @@ async function testFixedIntegration() {
       type: 'plugin_init',
       severity: 'critical',
       description: 'Plugin initialization failed',
-      error: error.message
+      error: error.message,
     });
     console.log('   ✗ Plugin initialization failed:', error.message);
   }
@@ -41,7 +41,7 @@ async function testFixedIntegration() {
     sessionID: 'test-session',
     agent: 'test-agent',
     model: 'gpt-4',
-    messages: [{ role: 'user', content: 'Test' }]
+    messages: [{ role: 'user', content: 'Test' }],
   };
 
   const beforeOutput = {};
@@ -56,23 +56,30 @@ async function testFixedIntegration() {
           type: 'system_prompt',
           severity: 'high',
           description: 'No system prompt generated',
-          fix: 'Check formatRecommendations method'
+          fix: 'Check formatRecommendations method',
         });
         console.log('   ✗ No system prompt generated');
       } else {
         console.log('   ✓ System prompt generated');
         const lines = beforeOutput.systemPrompt.split('\n');
-        console.log(`   - ${lines.length} lines, ${beforeOutput.systemPrompt.length} chars`);
+        console.log(
+          `   - ${lines.length} lines, ${beforeOutput.systemPrompt.length} chars`,
+        );
 
         // Check for expected sections
-        const hasQuickRef = beforeOutput.systemPrompt.includes('Quick Reference');
-        const hasRecommendations = beforeOutput.systemPrompt.includes('Recommended Tasks');
+        const hasQuickRef =
+          beforeOutput.systemPrompt.includes('Quick Reference');
+        const hasRecommendations =
+          beforeOutput.systemPrompt.includes('Recommended Tasks');
         const hasQuickWins = beforeOutput.systemPrompt.includes('Quick Wins');
-        const hasProjectHealth = beforeOutput.systemPrompt.includes('Project Health');
+        const hasProjectHealth =
+          beforeOutput.systemPrompt.includes('Project Health');
 
         console.log('\n   Checking system prompt sections:');
         console.log(`     - Quick Reference: ${hasQuickRef ? '✓' : '✗'}`);
-        console.log(`     - Recommended Tasks: ${hasRecommendations ? '✓' : '✗'}`);
+        console.log(
+          `     - Recommended Tasks: ${hasRecommendations ? '✓' : '✗'}`,
+        );
         console.log(`     - Quick Wins: ${hasQuickWins ? '✓' : '✗'}`);
         console.log(`     - Project Health: ${hasProjectHealth ? '✓' : '✗'}`);
 
@@ -85,8 +92,8 @@ async function testFixedIntegration() {
               quick_ref: hasQuickRef,
               recommendations: hasRecommendations,
               quick_wins: hasQuickWins,
-              project_health: hasProjectHealth
-            }
+              project_health: hasProjectHealth,
+            },
           });
         }
       }
@@ -95,7 +102,7 @@ async function testFixedIntegration() {
         issues.push({
           type: 'triage_data',
           severity: 'high',
-          description: 'No triage data stored in output'
+          description: 'No triage data stored in output',
         });
         console.log('   ✗ No triage data stored');
       } else {
@@ -106,7 +113,7 @@ async function testFixedIntegration() {
         type: 'hook_execution',
         severity: 'critical',
         description: 'agent.execute.before hook failed',
-        error: error.message
+        error: error.message,
       });
       console.log('   ✗ Hook execution failed:', error.message);
     }
@@ -117,13 +124,13 @@ async function testFixedIntegration() {
     sessionID: 'test-session',
     agent: 'test-agent',
     model: 'gpt-4',
-    messages: [{ role: 'user', content: 'Test' }]
+    messages: [{ role: 'user', content: 'Test' }],
   };
 
   const afterSuccessOutput = {
     response: 'Task completed',
     error: null,
-    beadsTask: beforeOutput.beadsTriage?.recommendations?.[0]
+    beadsTask: beforeOutput.beadsTriage?.recommendations?.[0],
   };
 
   if (hooks && hooks['agent.execute.after']) {
@@ -135,7 +142,7 @@ async function testFixedIntegration() {
         type: 'after_hook',
         severity: 'high',
         description: 'agent.execute.after hook failed',
-        error: error.message
+        error: error.message,
       });
       console.log('   ✗ Hook execution failed:', error.message);
     }
@@ -146,13 +153,13 @@ async function testFixedIntegration() {
     sessionID: 'test-session',
     agent: 'test-agent',
     model: 'gpt-4',
-    messages: [{ role: 'user', content: 'Test' }]
+    messages: [{ role: 'user', content: 'Test' }],
   };
 
   const afterErrorOutput = {
     response: null,
     error: 'Task failed',
-    beadsTask: beforeOutput.beadsTriage?.recommendations?.[0]
+    beadsTask: beforeOutput.beadsTriage?.recommendations?.[0],
   };
 
   if (hooks && hooks['agent.execute.after']) {
@@ -164,7 +171,7 @@ async function testFixedIntegration() {
         type: 'after_hook_error',
         severity: 'medium',
         description: 'agent.execute.after hook failed on error',
-        error: error.message
+        error: error.message,
       });
       console.log('   ✗ Hook execution failed:', error.message);
     }
@@ -178,14 +185,16 @@ async function testFixedIntegration() {
     console.log('✅ No issues found! Plugin is working correctly.\n');
     console.log('System prompt preview:');
     console.log('---');
-    console.log(beforeOutput.systemPrompt?.substring(0, 500) || 'No system prompt');
+    console.log(
+      beforeOutput.systemPrompt?.substring(0, 500) || 'No system prompt',
+    );
     console.log('...\n');
   } else {
     console.log(`Found ${issues.length} issues:\n`);
 
-    const critical = issues.filter(i => i.severity === 'critical');
-    const high = issues.filter(i => i.severity === 'high');
-    const medium = issues.filter(i => i.severity === 'medium');
+    const critical = issues.filter((i) => i.severity === 'critical');
+    const high = issues.filter((i) => i.severity === 'high');
+    const medium = issues.filter((i) => i.severity === 'medium');
 
     if (critical.length > 0) {
       console.log('🔴 CRITICAL:');
@@ -223,7 +232,7 @@ async function testFixedIntegration() {
   process.exit(issues.length > 0 ? 1 : 0);
 }
 
-testFixedIntegration().catch(error => {
+testFixedIntegration().catch((error) => {
   console.error('\n❌ Test failed:', error);
   console.error(error.stack);
   process.exit(1);

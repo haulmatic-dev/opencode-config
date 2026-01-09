@@ -16,27 +16,29 @@ async function testBVBDSIntegration() {
   try {
     const { stdout } = await execAsync('bd ready', { maxBuffer: 1024 * 1024 });
     console.log('   ✓ bd ready works');
-    const taskLines = stdout.split('\n').filter(l => l.trim());
+    const taskLines = stdout.split('\n').filter((l) => l.trim());
     console.log(`   - Found ${taskLines.length} tasks`);
   } catch (error) {
     issues.push({
       type: 'bd_command',
       severity: 'critical',
       description: 'bd ready command failed',
-      error: error.message
+      error: error.message,
     });
     console.log('   ✗ bd ready failed:', error.message);
   }
 
   console.log('\n2. Testing bv --robot-triage...');
   try {
-    const { stdout } = await execAsync('bv --robot-triage', { maxBuffer: 5 * 1024 * 1024 });
+    const { stdout } = await execAsync('bv --robot-triage', {
+      maxBuffer: 5 * 1024 * 1024,
+    });
     const bvData = JSON.parse(stdout);
     console.log('   ✓ bv --robot-triage works');
 
     // Check top-level structure
     console.log('   - Top-level keys:', Object.keys(bvData));
-    
+
     if (!bvData.triage) {
       issues.push({
         type: 'bv_structure',
@@ -44,7 +46,7 @@ async function testBVBDSIntegration() {
         description: 'Missing .triage key in bv output',
         location: 'bv --robot-triage',
         expected: '.triage object',
-        actual: Object.keys(bvData)
+        actual: Object.keys(bvData),
       });
       console.log('   ✗ Missing .triage key');
     }
@@ -58,7 +60,7 @@ async function testBVBDSIntegration() {
       if (triage.quick_ref) {
         console.log('\n   Checking .quick_ref:');
         console.log('   - Keys:', Object.keys(triage.quick_ref));
-        
+
         if (!triage.quick_ref.ready_count) {
           issues.push({
             type: 'field_mismatch',
@@ -67,7 +69,7 @@ async function testBVBDSIntegration() {
             location: 'bv --robot-triage .triage.quick_ref',
             expected: 'ready_count',
             actual: Object.keys(triage.quick_ref),
-            replacement: 'Use open_count or actionable_count instead'
+            replacement: 'Use open_count or actionable_count instead',
           });
           console.log('   ✗ Missing ready_count (plugin expects this)');
         }
@@ -80,7 +82,7 @@ async function testBVBDSIntegration() {
             location: 'bv --robot-triage .triage.quick_ref',
             expected: 'total_count',
             actual: Object.keys(triage.quick_ref),
-            replacement: 'Use meta.issue_count or open_count + closed_count'
+            replacement: 'Use meta.issue_count or open_count + closed_count',
           });
           console.log('   ✗ Missing total_count (plugin expects this)');
         }
@@ -96,11 +98,12 @@ async function testBVBDSIntegration() {
           issues.push({
             type: 'field_mismatch',
             severity: 'medium',
-            description: 'recommendations[].unblocks is number, plugin expects array',
+            description:
+              'recommendations[].unblocks is number, plugin expects array',
             location: 'bv --robot-triage .triage.recommendations[]',
             expected: 'unblocks: [] (array)',
             actual: `unblocks: ${firstRec.unblocks} (number)`,
-            fix: 'Change plugin to use unblocks.length || 0'
+            fix: 'Change plugin to use unblocks.length || 0',
           });
           console.log('   ✗ unblocks is number, plugin expects array');
         }
@@ -109,11 +112,12 @@ async function testBVBDSIntegration() {
           issues.push({
             type: 'field_mismatch',
             severity: 'medium',
-            description: 'recommendations[].reason field missing, reasons array exists',
+            description:
+              'recommendations[].reason field missing, reasons array exists',
             location: 'bv --robot-triage .triage.recommendations[]',
             expected: 'reason (string)',
             actual: 'reasons (array)',
-            fix: 'Use reasons?.join(", ") or reasons[0]'
+            fix: 'Use reasons?.join(", ") or reasons[0]',
           });
           console.log('   ✗ Missing reason field, has reasons array instead');
         }
@@ -126,7 +130,7 @@ async function testBVBDSIntegration() {
             location: 'bv --robot-triage .triage.recommendations[]',
             expected: 'commands: { claim: "bd update ... }"',
             actual: 'undefined',
-            fix: 'Generate commands from issue data'
+            fix: 'Generate commands from issue data',
           });
           console.log('   ✗ Missing commands.claim field');
         }
@@ -142,11 +146,12 @@ async function testBVBDSIntegration() {
           issues.push({
             type: 'field_mismatch',
             severity: 'medium',
-            description: 'quick_wins[].impact field missing, reason field exists',
+            description:
+              'quick_wins[].impact field missing, reason field exists',
             location: 'bv --robot-triage .triage.quick_wins[]',
             expected: 'impact (string)',
             actual: 'reason (string)',
-            fix: 'Rename reason to impact or use reason as impact'
+            fix: 'Rename reason to impact or use reason as impact',
           });
           console.log('   ✗ Missing impact field, has reason instead');
         }
@@ -159,14 +164,17 @@ async function testBVBDSIntegration() {
             location: 'bv --robot-triage .triage.quick_wins[]',
             expected: 'command: "bd update ..."',
             actual: 'undefined',
-            fix: 'Generate commands from issue data'
+            fix: 'Generate commands from issue data',
           });
           console.log('   ✗ Missing command field');
         }
       }
 
       // Check blockers_to_clear
-      if (triage.blockers_to_clear === null || triage.blockers_to_clear.length === 0) {
+      if (
+        triage.blockers_to_clear === null ||
+        triage.blockers_to_clear.length === 0
+      ) {
         console.log('\n   Checking .blockers_to_clear:');
         console.log('   - Empty or null (no blockers in current project)');
       }
@@ -184,7 +192,7 @@ async function testBVBDSIntegration() {
             location: 'bv --robot-triage .triage.project_health',
             expected: 'status_distribution: { open: N, closed: M, ... }',
             actual: 'undefined',
-            fix: 'Use counts.by_status instead'
+            fix: 'Use counts.by_status instead',
           });
           console.log('   ✗ Missing status_distribution');
         }
@@ -197,7 +205,7 @@ async function testBVBDSIntegration() {
             location: 'bv --robot-triage .triage.project_health',
             expected: 'type_distribution: { epic: N, task: M, ... }',
             actual: 'undefined',
-            fix: 'Use counts.by_type instead'
+            fix: 'Use counts.by_type instead',
           });
           console.log('   ✗ Missing type_distribution');
         }
@@ -210,7 +218,7 @@ async function testBVBDSIntegration() {
             location: 'bv --robot-triage .triage.project_health',
             expected: 'priority_distribution: { "1": N, "2": M, ... }',
             actual: 'undefined',
-            fix: 'Use counts.by_priority instead'
+            fix: 'Use counts.by_priority instead',
           });
           console.log('   ✗ Missing priority_distribution');
         }
@@ -221,11 +229,12 @@ async function testBVBDSIntegration() {
         issues.push({
           type: 'test_issue',
           severity: 'low',
-          description: 'Test script checks for success field that does not exist',
+          description:
+            'Test script checks for success field that does not exist',
           location: 'test-beads.mjs',
           expected: 'success: true/false',
           actual: 'undefined',
-          fix: 'Remove success field check from test'
+          fix: 'Remove success field check from test',
         });
         console.log('\n   Note: No "success" field in bv output');
       }
@@ -235,7 +244,7 @@ async function testBVBDSIntegration() {
       type: 'bv_command',
       severity: 'critical',
       description: 'bv --robot-triage command failed',
-      error: error.message
+      error: error.message,
     });
     console.log('   ✗ bv --robot-triage failed:', error.message);
   }
@@ -250,10 +259,10 @@ async function testBVBDSIntegration() {
     console.log(`Found ${issues.length} issues:\n`);
 
     // Group by severity
-    const critical = issues.filter(i => i.severity === 'critical');
-    const high = issues.filter(i => i.severity === 'high');
-    const medium = issues.filter(i => i.severity === 'medium');
-    const low = issues.filter(i => i.severity === 'low');
+    const critical = issues.filter((i) => i.severity === 'critical');
+    const high = issues.filter((i) => i.severity === 'high');
+    const medium = issues.filter((i) => i.severity === 'medium');
+    const low = issues.filter((i) => i.severity === 'low');
 
     if (critical.length > 0) {
       console.log('🔴 CRITICAL:');
@@ -272,7 +281,8 @@ async function testBVBDSIntegration() {
         if (issue.location) console.log(`     Location: ${issue.location}`);
         if (issue.expected) console.log(`     Expected: ${issue.expected}`);
         if (issue.actual) console.log(`     Actual: ${issue.actual}`);
-        if (issue.replacement) console.log(`     Replacement: ${issue.replacement}`);
+        if (issue.replacement)
+          console.log(`     Replacement: ${issue.replacement}`);
         if (issue.fix) console.log(`     Fix: ${issue.fix}`);
         console.log('');
       });
@@ -310,7 +320,7 @@ async function testBVBDSIntegration() {
   process.exit(issues.length > 0 ? 1 : 0);
 }
 
-testBVBDSIntegration().catch(error => {
+testBVBDSIntegration().catch((error) => {
   console.error('\n❌ Test failed:', error);
   console.error(error.stack);
   process.exit(1);

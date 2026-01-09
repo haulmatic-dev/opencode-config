@@ -4,7 +4,13 @@
     "complexity": "medium",
     "estimated_setup_time": "30 minutes",
     "tech_stack": {
-      "frontend": ["Next.js 14", "React 18", "TypeScript", "Tailwind CSS", "shadcn/ui"],
+      "frontend": [
+        "Next.js 14",
+        "React 18",
+        "TypeScript",
+        "Tailwind CSS",
+        "shadcn/ui"
+      ],
       "backend": ["Node.js", "Prisma", "PostgreSQL", "tRPC"],
       "auth": ["NextAuth.js", "bcrypt"],
       "testing": ["Jest", "Playwright"],

@@ -29,9 +29,19 @@
     "saas-boilerplate": {
       "pattern": "SaaS application with authentication, billing, and dashboard",
       "success_rate": 85,
-      "phases": ["Authentication", "Core features", "Billing integration", "Dashboard", "Testing"],
+      "phases": [
+        "Authentication",
+        "Core features",
+        "Billing integration",
+        "Dashboard",
+        "Testing"
+      ],
       "tech_stack": ["Next.js", "Prisma", "Stripe", "Tailwind"],
-      "key_elements": ["Multi-tenant architecture", "Role-based access", "Subscription management"]
+      "key_elements": [
+        "Multi-tenant architecture",
+        "Role-based access",
+        "Subscription management"
+      ]
     }
   },
   "task_granularity": {

@@ -3,20 +3,52 @@
     "bug_fix_commits": {
       "characteristics": ["focused scope", "clear messages", "test coverage"],
       "success_rate": 94,
-      "common_patterns": ["fix(noun): description", "tests added", "version bump"],
-      "risk_indicators": ["large scope changes", "no test updates", "unclear commit messages"]
+      "common_patterns": [
+        "fix(noun): description",
+        "tests added",
+        "version bump"
+      ],
+      "risk_indicators": [
+        "large scope changes",
+        "no test updates",
+        "unclear commit messages"
+      ]
     },
     "feature_commits": {
-      "characteristics": ["incremental development", "clear feature boundaries", "documentation"],
+      "characteristics": [
+        "incremental development",
+        "clear feature boundaries",
+        "documentation"
+      ],
       "success_rate": 88,
-      "common_patterns": ["feat(noun): description", "breaking changes noted", "usage examples"],
-      "risk_indicators": ["monolithic commits", "missing documentation", "no breaking change notice"]
+      "common_patterns": [
+        "feat(noun): description",
+        "breaking changes noted",
+        "usage examples"
+      ],
+      "risk_indicators": [
+        "monolithic commits",
+        "missing documentation",
+        "no breaking change notice"
+      ]
     },
     "refactoring_commits": {
-      "characteristics": ["small focused changes", "preserved functionality", "improved structure"],
+      "characteristics": [
+        "small focused changes",
+        "preserved functionality",
+        "improved structure"
+      ],
       "success_rate": 91,
-      "common_patterns": ["refactor(noun): description", "test preservation", "performance notes"],
-      "risk_indicators": ["behavioral changes", "reduced test coverage", "performance regression"]
+      "common_patterns": [
+        "refactor(noun): description",
+        "test preservation",
+        "performance notes"
+      ],
+      "risk_indicators": [
+        "behavioral changes",
+        "reduced test coverage",
+        "performance regression"
+      ]
     }
   },
   "branch_patterns": {
@@ -27,85 +59,185 @@
       "merge_conflict_rate": 12
     },
     "long_running_branches": {
-      "characteristics": ["high conflict rate", "difficult merges", "stale features"],
+      "characteristics": [
+        "high conflict rate",
+        "difficult merges",
+        "stale features"
+      ],
       "success_rate": 45,
-      "risk_indicators": ["infrequent merges", "accumulated conflicts", "dependency drift"],
-      "resolution_strategies": ["regular rebasing", "small incremental merges", "feature flags"]
+      "risk_indicators": [
+        "infrequent merges",
+        "accumulated conflicts",
+        "dependency drift"
+      ],
+      "resolution_strategies": [
+        "regular rebasing",
+        "small incremental merges",
+        "feature flags"
+      ]
     }
   },
   "evolution_patterns": {
     "stable_architecture_evolution": {
-      "characteristics": ["gradual changes", "preserved interfaces", "backward compatibility"],
+      "characteristics": [
+        "gradual changes",
+        "preserved interfaces",
+        "backward compatibility"
+      ],
       "success_rate": 92,
-      "indicators": ["interface consistency", "migration paths", "deprecation notices"],
-      "common_technologies": ["microservices", "api versioning", "database migrations"]
+      "indicators": [
+        "interface consistency",
+        "migration paths",
+        "deprecation notices"
+      ],
+      "common_technologies": [
+        "microservices",
+        "api versioning",
+        "database migrations"
+      ]
     },
     "architecture_shifts": {
-      "characteristics": ["significant refactoring", "interface changes", "migration periods"],
+      "characteristics": [
+        "significant refactoring",
+        "interface changes",
+        "migration periods"
+      ],
       "success_rate": 78,
-      "risk_indicators": ["breaking changes", "migration complexity", "rollback requirements"],
-      "resolution_strategies": ["feature flags", "parallel deployment", "comprehensive testing"]
+      "risk_indicators": [
+        "breaking changes",
+        "migration complexity",
+        "rollback requirements"
+      ],
+      "resolution_strategies": [
+        "feature flags",
+        "parallel deployment",
+        "comprehensive testing"
+      ]
     }
   },
   "rollback_patterns": {
     "rollback_indicators": {
       "deployment_failures": {
         "frequency": 15,
-        "common_causes": ["database migrations", "breaking api changes", "configuration drift"],
+        "common_causes": [
+          "database migrations",
+          "breaking api changes",
+          "configuration drift"
+        ],
         "resolution_time_hours": 4,
-        "prevention_strategies": ["canary deployments", "database transaction wrapping", "health checks"]
+        "prevention_strategies": [
+          "canary deployments",
+          "database transaction wrapping",
+          "health checks"
+        ]
       },
       "performance_regression": {
         "frequency": 8,
         "common_causes": ["query changes", "index removal", "caching issues"],
         "resolution_time_hours": 6,
-        "prevention_strategies": ["performance monitoring", "query analysis", "gradual rollouts"]
+        "prevention_strategies": [
+          "performance monitoring",
+          "query analysis",
+          "gradual rollouts"
+        ]
       }
     }
   },
   "team_collaboration_patterns": {
     "effective_collaboration": {
-      "characteristics": ["small pull requests", "clear descriptions", "quick reviews"],
+      "characteristics": [
+        "small pull requests",
+        "clear descriptions",
+        "quick reviews"
+      ],
       "success_rate": 89,
       "pr_size_optimal": 300,
       "review_time_hours": 4
     },
     "collaboration_challenges": {
-      "characteristics": ["large pull requests", "unclear changes", "review delays"],
+      "characteristics": [
+        "large pull requests",
+        "unclear changes",
+        "review delays"
+      ],
       "success_rate": 65,
-      "risk_indicators": ["pr_size > 1000", "review time > 24h", "merge conflicts"],
-      "resolution_strategies": ["pr size guidelines", "review checklists", "automated testing"]
+      "risk_indicators": [
+        "pr_size > 1000",
+        "review time > 24h",
+        "merge conflicts"
+      ],
+      "resolution_strategies": [
+        "pr size guidelines",
+        "review checklists",
+        "automated testing"
+      ]
     }
   },
   "quality_indicators": {
     "code_quality_correlation": {
       "high_quality_commits": {
-        "characteristics": ["comprehensive tests", "documentation updates", "performance improvements"],
+        "characteristics": [
+          "comprehensive tests",
+          "documentation updates",
+          "performance improvements"
+        ],
         "bug_rate_reduction": 40,
         "success_rate": 95
       },
       "problematic_commits": {
-        "characteristics": ["no tests", "breaking changes", "poor error handling"],
+        "characteristics": [
+          "no tests",
+          "breaking changes",
+          "poor error handling"
+        ],
         "bug_rate_increase": 60,
         "success_rate": 55,
-        "resolution_patterns": ["code review enforcement", "required test coverage", "staging testing"]
+        "resolution_patterns": [
+          "code review enforcement",
+          "required test coverage",
+          "staging testing"
+        ]
       }
     }
   },
   "technology_specific_patterns": {
     "javascript_typescript": {
-      "common_issues": ["type errors", "async/await complexity", "dependency conflicts"],
-      "success_patterns": ["strict typing", "error boundaries", "dependency management"],
+      "common_issues": [
+        "type errors",
+        "async/await complexity",
+        "dependency conflicts"
+      ],
+      "success_patterns": [
+        "strict typing",
+        "error boundaries",
+        "dependency management"
+      ],
       "success_rate": 87
     },
     "python_patterns": {
-      "common_issues": ["dependency hell", "environment inconsistencies", "async complexity"],
-      "success_patterns": ["virtual environments", "requirements pinning", "async patterns"],
+      "common_issues": [
+        "dependency hell",
+        "environment inconsistencies",
+        "async complexity"
+      ],
+      "success_patterns": [
+        "virtual environments",
+        "requirements pinning",
+        "async patterns"
+      ],
       "success_rate": 84
     },
     "database_patterns": {
-      "common_issues": ["schema drift", "performance regression", "migration complexity"],
-      "success_patterns": ["migration scripts", "schema validation", "performance monitoring"],
+      "common_issues": [
+        "schema drift",
+        "performance regression",
+        "migration complexity"
+      ],
+      "success_patterns": [
+        "migration scripts",
+        "schema validation",
+        "performance monitoring"
+      ],
       "success_rate": 89
     }
   },
@@ -113,31 +245,63 @@
     "bug_reintroduction_patterns": {
       "frequency": 12,
       "common_areas": ["authentication", "data validation", "error handling"],
-      "prevention_strategies": ["comprehensive testing", "code review focus", "regression testing"]
+      "prevention_strategies": [
+        "comprehensive testing",
+        "code review focus",
+        "regression testing"
+      ]
     },
     "performance_patterns": {
       "optimization_success": {
         "frequency": 8,
-        "common_improvements": ["query optimization", "caching", "index addition"],
+        "common_improvements": [
+          "query optimization",
+          "caching",
+          "index addition"
+        ],
         "performance_gain": 45
       },
       "regression_causes": {
         "frequency": 15,
-        "common_causes": ["n+1 queries", "missing indexes", "inefficient algorithms"],
-        "prevention_strategies": ["query analysis", "performance monitoring", "automated testing"]
+        "common_causes": [
+          "n+1 queries",
+          "missing indexes",
+          "inefficient algorithms"
+        ],
+        "prevention_strategies": [
+          "query analysis",
+          "performance monitoring",
+          "automated testing"
+        ]
       }
     }
   },
   "learning_patterns": {
     "successful_learning": {
-      "characteristics": ["pattern documentation", "knowledge sharing", "process improvement"],
+      "characteristics": [
+        "pattern documentation",
+        "knowledge sharing",
+        "process improvement"
+      ],
       "success_rate": 92,
-      "indicators": ["reduced bug rates", "faster development", "better code quality"]
+      "indicators": [
+        "reduced bug rates",
+        "faster development",
+        "better code quality"
+      ]
     },
     "repeated_mistakes": {
       "frequency": 18,
-      "common_mistakes": ["insufficient testing", "poor error handling", "security gaps"],
-      "resolution_strategies": ["checklist enforcement", "code review guidelines", "automated testing"]
+      "common_mistakes": [
+        "insufficient testing",
+        "poor error handling",
+        "security gaps"
+      ],
+      "resolution_strategies": [
+        "checklist enforcement",
+        "code review guidelines",
+        "automated testing"
+      ]
     }
   },
   "last_updated": "2025-11-08T00:00:00Z",

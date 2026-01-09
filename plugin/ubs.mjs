@@ -1,6 +1,12 @@
 const UBSClient = require('../lib/ubs-client.js');
 
-export const UBSPPlugin = async ({ project, client, $, directory, worktree }) => {
+export const UBSPPlugin = async ({
+  project,
+  client,
+  $,
+  directory,
+  worktree,
+}) => {
   console.log('[UBS Plugin] Initializing...');
 
   const ubs = new UBSClient();
@@ -14,7 +20,9 @@ export const UBSPPlugin = async ({ project, client, $, directory, worktree }) =>
   const health = await ubs.healthCheck();
 
   if (!health.healthy) {
-    console.warn(`[UBS Plugin] Health check failed: ${health.issues.join(', ')}`);
+    console.warn(
+      `[UBS Plugin] Health check failed: ${health.issues.join(', ')}`,
+    );
     console.warn('[UBS Plugin] Graceful degradation - UBS features disabled');
     return {};
   }
@@ -53,9 +61,13 @@ export const UBSPPlugin = async ({ project, client, $, directory, worktree }) =>
         return;
       }
 
-      console.log(`[UBS Plugin] Scanning ${relevantFiles.length} changed files...`);
+      console.log(
+        `[UBS Plugin] Scanning ${relevantFiles.length} changed files...`,
+      );
 
-      const scanResult = await ubs.scan(relevantFiles, { ciMode: config.ciMode });
+      const scanResult = await ubs.scan(relevantFiles, {
+        ciMode: config.ciMode,
+      });
 
       if (scanResult.success) {
         console.log('[UBS Plugin] No issues found in pre-scan');
@@ -67,9 +79,13 @@ export const UBSPPlugin = async ({ project, client, $, directory, worktree }) =>
       console.log(`[UBS Plugin] Pre-scan results: ${parsed.summary}`);
 
       if (config.failOnCritical && parsed.critical > 0) {
-        console.error(`[UBS Plugin] Blocking execution - ${parsed.critical} critical issues found`);
+        console.error(
+          `[UBS Plugin] Blocking execution - ${parsed.critical} critical issues found`,
+        );
 
-        const error = new Error(`UBS found ${parsed.critical} critical issues. Fix them before proceeding.`);
+        const error = new Error(
+          `UBS found ${parsed.critical} critical issues. Fix them before proceeding.`,
+        );
         error.code = 'UBS_CRITICAL_ISSUES';
         error.ubsFindings = parsed;
         throw error;
@@ -103,9 +119,13 @@ export const UBSPPlugin = async ({ project, client, $, directory, worktree }) =>
         return;
       }
 
-      console.log(`[UBS Plugin] Scanning ${relevantFiles.length} modified files...`);
+      console.log(
+        `[UBS Plugin] Scanning ${relevantFiles.length} modified files...`,
+      );
 
-      const scanResult = await ubs.scan(relevantFiles, { ciMode: config.ciMode });
+      const scanResult = await ubs.scan(relevantFiles, {
+        ciMode: config.ciMode,
+      });
 
       if (scanResult.success) {
         console.log('[UBS Plugin] No issues found in post-scan');
@@ -116,9 +136,13 @@ export const UBSPPlugin = async ({ project, client, $, directory, worktree }) =>
       console.log(`[UBS Plugin] Post-scan results: ${parsed.summary}`);
 
       if (parsed.critical > 0) {
-        console.error(`[UBS Plugin] Agent introduced ${parsed.critical} critical issues`);
+        console.error(
+          `[UBS Plugin] Agent introduced ${parsed.critical} critical issues`,
+        );
 
-        const error = new Error(`Agent introduced ${parsed.critical} critical issues via UBS. Please fix them.`);
+        const error = new Error(
+          `Agent introduced ${parsed.critical} critical issues via UBS. Please fix them.`,
+        );
         error.code = 'UBS_REGRESSION';
         error.ubsFindings = parsed;
         throw error;
@@ -140,7 +164,7 @@ export const UBSPPlugin = async ({ project, client, $, directory, worktree }) =>
 
 ${quickRef}
 `;
-    }
+    },
   };
 };
 
@@ -156,16 +180,30 @@ function getChangedFiles() {
 
 function filterUBSSupportedFiles(files) {
   const ubsExtensions = [
-    'js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs',
-    'py', 'pyw', 'pyi',
-    'c', 'cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx',
+    'js',
+    'jsx',
+    'ts',
+    'tsx',
+    'mjs',
+    'cjs',
+    'py',
+    'pyw',
+    'pyi',
+    'c',
+    'cc',
+    'cpp',
+    'cxx',
+    'h',
+    'hh',
+    'hpp',
+    'hxx',
     'rs',
     'go',
     'java',
-    'rb'
+    'rb',
   ];
 
-  return files.filter(file => {
+  return files.filter((file) => {
     const ext = file.split('.').pop().toLowerCase();
     return ubsExtensions.includes(ext);
   });

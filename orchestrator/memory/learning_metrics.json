@@ -12,13 +12,21 @@
       "success_rate": 89,
       "average_completion_time": "1.8 hours",
       "common_use_cases": ["API services", "Microservices", "ML backends"],
-      "emerging_features": ["Background tasks", "WebSocket support", "OpenAPI auto-gen"]
+      "emerging_features": [
+        "Background tasks",
+        "WebSocket support",
+        "OpenAPI auto-gen"
+      ]
     },
     "tailwindcss": {
       "usage_count": 67,
       "success_rate": 95,
       "average_completion_time": "30 minutes",
-      "common_use_cases": ["Rapid prototyping", "Component systems", "Mobile-first design"]
+      "common_use_cases": [
+        "Rapid prototyping",
+        "Component systems",
+        "Mobile-first design"
+      ]
     }
   },
   "pattern_performance": {
@@ -31,7 +39,11 @@
     "security_first": {
       "adoption_rate": 85,
       "vulnerability_reduction": "65%",
-      "common practices": ["OWASP compliance", "Security audits", "Input validation"]
+      "common practices": [
+        "OWASP compliance",
+        "Security audits",
+        "Input validation"
+      ]
     }
   },
   "skill_gaps": {

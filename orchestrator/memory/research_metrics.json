@@ -15,7 +15,11 @@
         "usage_count": 25,
         "success_rate": 96,
         "intelligence_depth": "deep_architecture_and_patterns",
-        "common_findings": ["architectural decisions", "technical debt indicators", "team coding conventions"],
+        "common_findings": [
+          "architectural decisions",
+          "technical debt indicators",
+          "team coding conventions"
+        ],
         "time_to_insight_minutes": 8,
         "value_score": 95
       },
@@ -23,7 +27,11 @@
         "usage_count": 18,
         "success_rate": 94,
         "intelligence_depth": "historical_evolution_and_patterns",
-        "common_findings": ["evolution patterns", "bug introduction areas", "successful changes"],
+        "common_findings": [
+          "evolution patterns",
+          "bug introduction areas",
+          "successful changes"
+        ],
         "time_to_insight_minutes": 6,
         "value_score": 88
       },
@@ -31,7 +39,11 @@
         "usage_count": 14,
         "success_rate": 91,
         "intelligence_depth": "undocumented_capabilities_and_security",
-        "common_findings": ["hidden features", "security vulnerabilities", "optimization opportunities"],
+        "common_findings": [
+          "hidden features",
+          "security vulnerabilities",
+          "optimization opportunities"
+        ],
         "time_to_insight_minutes": 12,
         "value_score": 92
       },
@@ -39,7 +51,11 @@
         "usage_count": 22,
         "success_rate": 98,
         "intelligence_depth": "targeted_discovery",
-        "common_findings": ["relevant files", "code locations", "pattern matches"],
+        "common_findings": [
+          "relevant files",
+          "code locations",
+          "pattern matches"
+        ],
         "time_to_insight_minutes": 3,
         "value_score": 85
       },
@@ -47,7 +63,11 @@
         "usage_count": 16,
         "success_rate": 93,
         "intelligence_depth": "project_wide_understanding",
-        "common_findings": ["project scope", "stakeholder requirements", "business context"],
+        "common_findings": [
+          "project scope",
+          "stakeholder requirements",
+          "business context"
+        ],
         "time_to_insight_minutes": 7,
         "value_score": 87
       },
@@ -55,7 +75,11 @@
         "usage_count": 12,
         "success_rate": 95,
         "intelligence_depth": "specialized_domain_expertise",
-        "common_findings": ["domain best practices", "industry standards", "compliance requirements"],
+        "common_findings": [
+          "domain best practices",
+          "industry standards",
+          "compliance requirements"
+        ],
         "time_to_insight_minutes": 10,
         "value_score": 94
       }
@@ -84,19 +108,31 @@
   "research_patterns": {
     "successful_research_combinations": {
       "complex_system_analysis": {
-        "droids": ["codebase-researcher", "git-history-analyzer", "library-source-reader"],
+        "droids": [
+          "codebase-researcher",
+          "git-history-analyzer",
+          "library-source-reader"
+        ],
         "success_rate": 94,
         "use_case": "enterprise systems, legacy analysis",
         "intelligence_synthesis_rate": 91
       },
       "rapid_context_gathering": {
-        "droids": ["file-picker-agent", "context-researcher", "domain-specialist"],
+        "droids": [
+          "file-picker-agent",
+          "context-researcher",
+          "domain-specialist"
+        ],
         "success_rate": 96,
         "use_case": "new project discovery, scope definition",
         "intelligence_synthesis_rate": 89
       },
       "best_practices_discovery": {
-        "droids": ["best-practices-researcher", "library-source-reader", "domain-specialist"],
+        "droids": [
+          "best-practices-researcher",
+          "library-source-reader",
+          "domain-specialist"
+        ],
         "success_rate": 92,
         "use_case": "technology selection, compliance requirements",
         "intelligence_synthesis_rate": 95
@@ -201,7 +237,11 @@
         "parallel_droids": 6,
         "efficiency_gain": 400,
         "success_rate": 95,
-        "features": ["predictive scheduling", "auto-optimization", "cross-domain intelligence"]
+        "features": [
+          "predictive scheduling",
+          "auto-optimization",
+          "cross-domain intelligence"
+        ]
       }
     },
     "intelligence_quality_evolution": {
