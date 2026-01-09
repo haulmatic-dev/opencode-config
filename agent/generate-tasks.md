@@ -54,6 +54,166 @@ INTELLIGENCE GATHERING ACTIONS:
 ### Orchestrator Coordination Note
 
 When invoked by the orchestrator with pre-gathered research (from codebase-researcher, file-picker-agent, git-history-analyzer, best-practices-researcher), incorporate that intelligence directly into your parallel task generation process.
+### Layer 0.5: Optional Parallel Research Spawn
+
+**Purpose:** Spawn parallel research droids to gather additional intelligence beyond Layer 0 (optional but recommended for complex PRDs)
+
+**When to Use This Phase:**
+- Large PRDs with 50+ requirements
+- Multi-domain PRDs requiring specialized research
+- PRDs for enterprise features with unknown patterns
+- When user requests "deep research" or "thorough analysis"
+
+**Parallel Research Workers:**
+
+Spawn these research droids in parallel using Parallel Agent Spawn Middleware:
+```javascript
+const WorkerManager = require('../lib/parallel-agent-middleware');
+const worker_manager = new WorkerManager({
+  mode: 'subprocess',
+  maxWorkers: 4
+});
+
+// Spawn parallel research workers
+const research_workers = await worker_manager.spawn_parallel_workers([
+  {
+    agent_type: 'git-history-analyzer',
+    task_id: 'analyze-git-history',
+    task_description: `Analyze git history for similar features to: ${feature_name}. Identify: 1) Historical patterns, 2) Team collaboration patterns, 3) Change evolution, 4) Natural team boundaries. Output to ~/.orchestrator/memory/git_patterns.json`,
+    timeout: 300000 // 5 minutes
+  },
+  {
+    agent_type: 'library-source-reader',
+    task_id: 'read-library-source',
+    task_description: `Read third-party library source code for: ${libraries_used}. Identify: 1) Internal patterns, 2) Security vulnerabilities, 3) Performance characteristics, 4) Integration best practices. Output to ~/.orchestrator/memory/library_insights.json`,
+    timeout: 300000 // 5 minutes
+  },
+  {
+    agent_type: 'best-practices-researcher',
+    task_id: 'research-best-practices',
+    task_description: `Research industry best practices for: ${technology_stack}. Identify: 1) Architecture patterns, 2) Coding standards, 3) Security practices, 4) Testing strategies. Output to ~/.orchestrator/memory/best_practices.json`,
+    timeout: 300000 // 5 minutes
+  }
+]);
+
+// Wait for all research to complete
+const research_results = await worker_manager.wait_for_completion(research_workers);
+
+// Cleanup research workers
+worker_manager.cleanup_workers(research_workers.map(w => w.id));
+```
+
+**Research Output Locations:**
+- `~/.orchestrator/memory/git_patterns.json` - Historical patterns and team collaboration
+- `~/.orchestrator/memory/library_insights.json` - Third-party library analysis
+- `~/.orchestrator/memory/best_practices.json` - Industry best practices and standards
+
+**Using Research Results in Task Generation:**
+
+After research completes, incorporate findings into task breakdown:
+
+```markdown
+## Tasks (with Research Insights)
+
+### Track A: Backend Tasks
+Based on git history analysis, tasks for ${feature_name} should follow this order:
+1. [1.0] Database schema changes (Team: backend, Previous pattern: always start with schema)
+2. [2.0] API endpoints (Team: backend, High-risk integration)
+3. [3.0] Business logic (Team: backend, Lower risk)
+
+### Track B: Frontend Tasks
+Based on library insights and best practices:
+1. [6.0] Setup component structure (Best practice: use folder-by-feature)
+2. [8.0] Implement UI components (Library pattern: use existing components)
+3. [9.0] State management (Best practice: use centralized store)
+
+### Integration Tasks
+Based on collaboration patterns from git history:
+1. [7.0] API integration (Previous integration points: src/api/)
+2. [10.0] End-to-end testing (Historical collaboration: Frontend + Backend pair)
+```
+
+**Creating Research Tasks as Beads (Optional):**
+
+If research is complex or spans multiple sessions, create research tasks as Beads:
+
+```bash
+# Create git history analysis task
+bd create "Analyze git history for ${feature_name}" \
+  --type=research \
+  --priority=1 \
+  --description="Analyze git history for similar features, identify patterns and team boundaries" \
+  --deliverables="~/.orchestrator/memory/git_patterns.json"
+
+# Create library analysis task
+bd create "Analyze third-party libraries for ${feature_name}" \
+  --type=research \
+  --priority=1 \
+  --description="Read library source code, identify patterns, vulnerabilities, integration best practices" \
+  --deliverables="~/.orchestrator/memory/library_insights.json"
+
+# Create best practices research task
+bd create "Research best practices for ${technology_stack}" \
+  --type=research \
+  --priority=1 \
+  --description="Research industry best practices, architecture patterns, coding standards" \
+  --deliverables="~/.orchestrator/memory/best_practices.json"
+```
+
+**Benefits of Parallel Research for Task Generation:**
+- **Better Task Sequencing**: Git history shows optimal task order
+- **Risk Assessment**: Library analysis identifies high-risk integrations
+- **Best Practices**: Industry research improves task quality
+- **Team Awareness**: Git analysis reveals natural team boundaries
+- **Parallel Execution**: 3 research droids run simultaneously (5-10 minutes total)
+
+**When to Skip This Phase:**
+- Simple PRDs with < 20 requirements
+- Well-known feature types (CRUD operations, standard UI components)
+- Time-critical PRDs (research adds 5-10 minutes)
+- PRDs with clear task breakdown already
+
+**Example Workflow:**
+
+```
+Layer 0: Intelligence Gathering Phase (Direct Tool Usage)
+    - Read memory files
+    - Analyze codebase
+    - Search files
+    - Git analysis
+    ↓
+Layer 0.5: Optional Parallel Research Spawn (if complex PRD)
+    - Spawn git-history-analyzer
+    - Spawn library-source-reader
+    - Spawn best-practices-researcher
+    - Wait for all to complete (5-10 minutes)
+    - Read research results from memory files
+    ↓
+Layer 1: Generate Tasks (informed by research)
+    - Create parallel tracks
+    - Set dependencies based on git patterns
+    - Identify integration points based on library insights
+    ↓
+Layer 2: Validation & Review
+```
+
+**Error Handling:**
+
+If any research worker fails:
+1. Log the error
+2. Proceed with available research results
+3. Note missing research in task breakdown: "Research incomplete: [what failed]"
+4. Use default patterns when research unavailable
+
+**Timeout Management:**
+- git-history-analyzer: 5 minutes (300s)
+- library-source-reader: 5 minutes (300s)
+- best-practices-researcher: 5 minutes (300s)
+- Total parallel research time: ~5-10 minutes
+
+**Integration with Parallel Agent Orchestration:**
+
+The research workers spawned here will be tracked by orchestrator's main loop. Research completion will trigger automatic dependent task unblocking in Beads.
 
 ### Memory Update
 

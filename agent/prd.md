@@ -225,6 +225,168 @@ What is the primary goal of this feature?
 - Acknowledge their answer briefly before moving to next question
 - After all questions are answered, confirm: "I have all the context I need. Generating your PRD now..."
 
+### PHASE 2.5: Optional Parallel Research Spawn
+
+**Purpose:** Spawn parallel research droids to gather deep codebase intelligence (optional but recommended for complex projects)
+
+**When to Use This Phase:**
+- Complex/enterprise features requiring deep codebase analysis
+- Projects with unknown architecture patterns
+- Multi-domain features needing specialized expertise
+- When user requests "deep research" or "thorough analysis"
+
+**Parallel Research Workers:**
+
+Spawn these research droids in parallel using Parallel Agent Spawn Middleware:
+```javascript
+const WorkerManager = require('../lib/parallel-agent-middleware');
+const worker_manager = new WorkerManager({
+  mode: 'subprocess',
+  maxWorkers: 4
+});
+
+// Spawn parallel research workers
+const research_workers = await worker_manager.spawn_parallel_workers([
+  {
+    agent_type: 'codebase-researcher',
+    task_id: 'research-codebase-architecture',
+    task_description: `Analyze codebase architecture patterns for feature: ${feature_name}. Extract: 1) Architecture patterns (layered, microservices, monolith), 2) Coding conventions, 3) Security implementations, 4) Performance characteristics, 5) Key technical constraints. Output to ~/.orchestrator/memory/codebase_intelligence.json`,
+    timeout: 300000 // 5 minutes
+  },
+  {
+    agent_type: 'file-picker-agent',
+    task_id: 'find-relevant-files',
+    task_description: `Find relevant files for feature: ${feature_name}. Search for: 1) Files related to authentication/user management, 2) API endpoints, 3) Database models, 4) Configuration files, 5) Test files. Output file list with paths and descriptions. Output to ~/.orchestrator/memory/relevant_files.json`,
+    timeout: 180000 // 3 minutes
+  },
+  {
+    agent_type: 'domain-specialist',
+    task_id: 'domain-analysis',
+    task_description: `Analyze domain-specific requirements for feature: ${feature_name}. Identify: 1) Industry compliance requirements (GDPR, HIPAA, SOC2), 2) Best practices for ${domain}, 3) Security standards, 4) Common pitfalls and anti-patterns. Output to ~/.orchestrator/memory/domain_knowledge.json`,
+    timeout: 300000 // 5 minutes
+  }
+]);
+
+// Wait for all research to complete
+const research_results = await worker_manager.wait_for_completion(research_workers);
+
+// Cleanup research workers
+worker_manager.cleanup_workers(research_workers.map(w => w.id));
+```
+
+**Research Output Locations:**
+- `~/.orchestrator/memory/codebase_intelligence.json` - Architecture patterns, coding conventions, security implementations
+- `~/.orchestrator/memory/relevant_files.json` - List of relevant files with descriptions
+- `~/.orchestrator/memory/domain_knowledge.json` - Domain-specific expertise and compliance requirements
+
+**Using Research Results:**
+
+After research completes, incorporate findings into PRD:
+
+```markdown
+## Technical Considerations
+
+### Architecture Patterns (from codebase-researcher)
+- [Pattern 1]: Description
+- [Pattern 2]: Description
+- [Coding Conventions]: Style guide, naming conventions
+
+### Relevant Files (from file-picker-agent)
+- `src/auth/authentication.js` - Handles user authentication
+- `src/database/models/user.js` - User data model
+- `src/api/routes/users.js` - User API endpoints
+
+### Domain Requirements (from domain-specialist)
+- **Compliance**: GDPR, SOC2
+- **Best Practices**: [List practices]
+- **Security Standards**: [List standards]
+```
+
+**Integration with Clarifying Questions:**
+
+Use research findings to inform your clarifying questions in PHASE 2:
+- "Based on codebase architecture analysis, should this use the existing authentication service or create a new one?"
+- "Research found 3 relevant files for user management. Should I integrate with all of them or extend existing ones?"
+- "Domain analysis shows GDPR compliance requirements. Should we add data privacy requirements to the PRD?"
+
+**Creating Research Tasks as Beads (Optional):**
+
+If research is complex or spans multiple sessions, create research tasks as Beads:
+
+```bash
+# Create research task
+bd create "Analyze codebase architecture for ${feature_name}" \
+  --type=research \
+  --priority=1 \
+  --description="Analyze architecture patterns, coding conventions, security implementations" \
+  --deliverables="~/.orchestrator/memory/codebase_intelligence.json"
+
+# Create file search task
+bd create "Find relevant files for ${feature_name}" \
+  --type=research \
+  --priority=1 \
+  --description="Search for files related to authentication, API, database models" \
+  --deliverables="~/.orchestrator/memory/relevant_files.json"
+
+# Create domain analysis task
+bd create "Analyze domain requirements for ${feature_name}" \
+  --type=research \
+  --priority=1 \
+  --description="Identify compliance requirements, best practices, security standards" \
+  --deliverables="~/.orchestrator/memory/domain_knowledge.json"
+```
+
+**Benefits of Parallel Research:**
+- **Speed**: 3-4 research droids run in parallel instead of sequentially
+- **Depth**: Each droid specializes in its area (codebase, files, domain)
+- **Quality**: Research droids have access to full toolset (Grep, Glob, WebSearch, etc.)
+- **Reusability**: Research results saved to memory, can be reused by other agents
+- **Visibility**: Research tasks visible in Beads triage if created as tasks
+
+**When to Skip This Phase:**
+- Simple/small features with clear requirements
+- Bug fixes (existing codebase analysis not needed)
+- Features with well-known implementation patterns
+- Time-critical features (research adds 5-10 minutes)
+
+**Example Workflow:**
+
+```
+PHASE 1: Figma Data Extraction (if Figma link provided)
+    ↓
+PHASE 2.5: Optional Parallel Research Spawn (if complex feature)
+    - Spawn codebase-researcher
+    - Spawn file-picker-agent
+    - Spawn domain-specialist
+    - Wait for all to complete (5-10 minutes)
+    - Read research results from memory files
+    ↓
+PHASE 2: Clarifying Questions (informed by research)
+    - Ask questions based on research findings
+    ↓
+PHASE 3: Generate PRD (incorporates research results)
+    ↓
+PHASE 4: Validation & Review
+```
+
+**Error Handling:**
+
+If any research worker fails:
+1. Log the error
+2. Proceed with available research results
+3. Note missing research in PRD: "Research incomplete: [what failed]"
+4. Optionally create dependent task to retry research
+
+**Timeout Management:**
+
+- codebase-researcher: 5 minutes (300s)
+- file-picker-agent: 3 minutes (180s)
+- domain-specialist: 5 minutes (300s)
+- Total parallel research time: ~5-10 minutes
+
+**Integration with Parallel Agent Orchestration:**
+
+The research workers spawned here will be tracked by the orchestrator's main loop. Research completion will trigger automatic dependent task unblocking in Beads.
 ### PHASE 3: Generate PRD
 After receiving answers, generate a comprehensive PRD with this structure.
 
