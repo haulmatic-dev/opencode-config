@@ -1,7 +1,7 @@
 {
-  "last_failure": "2026-01-09T18:44:53.375042+05:30",
-  "failure_count": 5,
-  "backoff_until": "2026-01-09T18:54:53.375042+05:30",
+  "last_failure": "2026-01-09T20:14:10.570355+05:30",
+  "failure_count": 4,
+  "backoff_until": "2026-01-09T20:19:10.570356+05:30",
   "needs_manual_sync": true,
   "failure_reason": "git pull failed: exit status 1\nfatal: couldn't find remote ref feature/parallel-agent-orchestration-fresh\n"
 }
