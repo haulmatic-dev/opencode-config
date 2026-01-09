@@ -17,12 +17,6 @@ class SetupPlugin {
 
   async checkWorkspaceInit() {
     try {
-      const { stdout } = await execAsync(
-        'ls -la .beads .cass .git 2>/dev/null',
-        {
-          cwd: process.cwd(),
-        },
-      );
       const hasGit = existsSync(`${process.cwd()}/.git`);
       const hasBeads = existsSync(`${process.cwd()}/.beads`);
       const hasCass = existsSync(`${process.cwd()}/.cass`);
@@ -121,33 +115,6 @@ export const setup = async ({
   }
 
   return {
-    'chat.command.setup': async () => {
-      return {
-        response: `## OpenCode Setup Commands
-
-### System Setup
-- **System Setup**: Run system-wide tool installation
-  - Bash version (non-interactive): \`${SYSTEM_INIT}\`
-  - Interactive version: \`${SYSTEM_INIT_INTERACTIVE}\`
-
-### Workspace Setup
-- **Workspace Setup**: Initialize current project with git, cass_memory, and beads
-  - Run: \`${WORKSPACE_INIT}\`
-  - This initializes: git repo, cass_memory (cm init --repo), beads (bd init)
-
-### Quick Check
-- **Check Status**: See what's installed and what needs setup
-  - Run: \`~/.config/opencode/hooks/session-start.sh\`
-
-### Available Commands
-- \`opencode-init\` - System-wide tool installation (bash)
-- \`opencode-init-interactive\` - Interactive system setup (Node.js)
-- \`workspace-init\` - Initialize project workspace
-- \`session-start.sh\` - Check service status
-`,
-      };
-    },
-
     'session.start': async () => {
       if (!plugin || !plugin.enabled) {
         return;
@@ -188,7 +155,16 @@ export const setup = async ({
         parts.push('');
       }
 
-      parts.push('💡 Type \`/setup\` for setup commands');
+      parts.push('## Setup Commands');
+      parts.push(
+        '- System setup: `' +
+          SYSTEM_INIT_INTERACTIVE +
+          '` (interactive) or `' +
+          SYSTEM_INIT +
+          '` (non-interactive)',
+      );
+      parts.push('- Workspace setup: `' + WORKSPACE_INIT + '`');
+      parts.push('- Check status: `~/.config/opencode/hooks/session-start.sh`');
 
       return { systemPrompt: parts.join('\n') };
     },
@@ -210,12 +186,12 @@ export const setup = async ({
           !workspaceStatus.beads;
 
         if (missingSystemTools.length > 0 && missingSystemTools.length < 3) {
-          const helpMsg = `\n\n💡 Setup: Some tools are missing. Run \`opencode-init-interactive\` to install them.`;
+          const helpMsg = `\n\n💡 Setup: Some tools are missing. Run \`${SYSTEM_INIT_INTERACTIVE}\` to install them.`;
           output.systemPrompt = (output.systemPrompt || '') + helpMsg;
         }
 
         if (needsWorkspaceInit && message.toLowerCase().includes('workspace')) {
-          const helpMsg = `\n\n💡 Workspace: Run \`workspace-init\` to initialize your project.`;
+          const helpMsg = `\n\n💡 Workspace: Run \`${WORKSPACE_INIT}\` to initialize your project.`;
           output.systemPrompt = (output.systemPrompt || '') + helpMsg;
         }
       }

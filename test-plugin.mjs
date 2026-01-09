@@ -18,24 +18,6 @@ async function testPlugin() {
 
     console.log('✓ Plugin initialized\n');
 
-    // Test chat.command.setup
-    if (hooks['chat.command.setup']) {
-      console.log('Testing chat.command.setup hook...');
-      const result = await hooks['chat.command.setup']();
-      if (
-        result.response &&
-        result.response.includes('OpenCode Setup Commands')
-      ) {
-        console.log('✓ chat.command.setup hook works\n');
-      } else {
-        console.log('✗ chat.command.setup hook failed\n');
-        process.exit(1);
-      }
-    } else {
-      console.log('✗ chat.command.setup hook not found\n');
-      process.exit(1);
-    }
-
     // Test session.start
     if (hooks['session.start']) {
       console.log('Testing session.start hook...');
@@ -63,9 +45,12 @@ async function testPlugin() {
 
     console.log('All plugin tests passed! ✓');
     console.log('\nPlugin hooks available:');
-    console.log('  - chat.command.setup: /setup command');
     console.log('  - session.start: Check setup status on session start');
     console.log('  - chat.message: Auto-prompt when setup needed');
+    console.log(
+      '\nNote: Slash commands like /setup are not supported by opencode plugins.',
+    );
+    console.log('Users run setup commands directly in their terminal.');
     console.log('\nPlugin configuration: setup_config.json');
   } catch (error) {
     console.error(`✗ Plugin test failed: ${error.message}`);

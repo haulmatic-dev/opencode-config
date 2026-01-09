@@ -351,21 +351,36 @@ cd ~/.config/opencode/bin
 
 ### Setup Plugin Integration
 
-The **setup plugin** provides in-opencode commands and automatic setup checking:
+The **setup plugin** provides automatic setup checking and guidance within opencode:
+
+**Features:**
+
+- Auto-checks system tools on session start
+- Auto-checks workspace initialization status
+- Provides setup prompts when tools are missing
+- Suggests workspace setup when workspace topics are discussed
+
+**How It Works:**
+
+- On session start, plugin checks if required tools are installed
+- If tools are missing, displays setup guidance with commands
+- When you mention "workspace" in chat, suggests workspace initialization
+- No slash commands needed - just follow the suggested commands
+
+**Usage:**
 
 ```bash
-# Within opencode, type:
-/setup
+# The plugin automatically prompts when setup is needed
+# Just follow the suggested commands:
 
-# This shows available setup commands:
-# - System Setup (interactive)
-# - Workspace Setup
-# - Quick Check
-#
-# The plugin automatically:
-# - Checks if tools are installed on session start
-# - Prompts to run setup if tools are missing
-# - Provides setup guidance when workspace topics are discussed
+# System setup (interactive)
+~/.config/opencode/bin/opencode-init-interactive
+
+# System setup (non-interactive)
+~/.config/opencode/bin/opencode-init
+
+# Workspace setup
+~/.config/opencode/bin/workspace-init
 ```
 
 ### Interactive Mode
@@ -1082,10 +1097,10 @@ opencode plugin for setup integration:
 
 **Features:**
 
-- `/setup` command in opencode
 - Automatic checking on session start
 - Auto-prompt when setup needed
 - Workspace status checking
+- Contextual guidance when workspace topics are discussed
 
 **Configuration:** `~/.config/opencode/setup_config.json`
 
@@ -1095,6 +1110,8 @@ opencode plugin for setup integration:
   "autoPrompt": true
 }
 ```
+
+**Note:** The plugin automatically provides setup guidance - no slash commands needed. Follow the displayed commands directly in your terminal.
 
 ### session-start.sh (Interactive Mode)
 
