@@ -18,7 +18,10 @@ opencode brings together best-in-class AI development tools into a unified, hook
   - **best-practices-researcher** - Industry best practices and competitive analysis
   - **library-source-reader** - Third-party library deep analysis
   - **domain-specialist** - Domain-specific expertise and compliance
- - **semantic-search** (osgrep) - Conceptual code search with embedding models
+  - **semantic-search** (osgrep) - Conceptual code search with embedding models
+- **PM2 Process Manager** - Headless worker orchestration with auto-restart and scaling
+- **Code Quality Tools** - ESLint, Prettier, Husky, lint-staged for automated code quality
+- **Headless Worker Script** - Stateless task execution with Beads and MCP integration
 - **Plugin System** - Extensible architecture with:
   - **gptcache** - LLM response caching for 70-90% cost reduction
   - **beads-guardrails** - Enforce task tracking via beads
@@ -68,6 +71,102 @@ opencode implements a **6-stage atomic task cycle** managed by **Beads dependenc
 - **deployment-specialist** - Deployment automation (Stage 6)
 
 For detailed documentation, see [Task-to-Commit Cycle](./docs/task-to-commit.md).
+
+### Headless Swarm Architecture
+
+opencode implements **parallel headless worker execution** for maximum throughput:
+
+**Process Management (PM2):**
+- 4 parallel worker instances (configurable: `pm2 scale headless-swarm 8`)
+- Stateless workers: claim → execute → exit (PM2 auto-restarts)
+- Auto-restart on crash (max 10 restarts)
+- Memory limit: 1GB (max_memory_restart)
+- No custom CLI needed - uses PM2 built-in commands
+
+**PM2 Configuration (`~/.config/opencode/ecosystem.config.js`):**
+```javascript
+module.exports = {
+  apps: [{
+    name: 'headless-swarm',
+    script: './bin/headless-worker.js',
+    instances: 4,  // 4 parallel workers
+    autorestart: true,
+    max_restarts: 10,
+    max_memory_restart: '1G',
+    error_file: '~/.config/opencode/logs/err.log',
+    out_file: '~/.config/opencode/logs/out.log',
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    merge_logs: true,
+    kill_timeout: 5000
+  }]
+};
+```
+
+**Headless Worker Lifecycle (`bin/headless-worker.js`):**
+1. Poll Beads for available tasks
+2. Extract task_id and claim
+3. Reserve file paths via MCP (prevent conflicts)
+4. Execute task using opencode
+5. On success: close task, release reservations, exit
+6. On failure: mark failed, release reservations, exit
+7. PM2 auto-restarts worker → claims next task
+
+**PM2 Commands:**
+```bash
+# Start workers
+pm2 start ecosystem.config.js
+
+# Scale workers (1 → 8)
+pm2 scale headless-swarm 8    # 8 workers
+pm2 scale headless-swarm 2    # 2 workers
+
+# Monitor execution
+pm2 logs                  # Live logs
+pm2 monit                 # Real-time dashboard
+pm2 list                  # Show all workers and status
+
+# Control workers
+pm2 stop all              # Stop all workers
+pm2 restart all           # Restart all workers
+pm2 delete all            # Remove all from PM2
+
+# Save PM2 configuration (auto-start on system boot)
+pm2 save
+pm2 startup               # Generate startup script
+```
+
+**Code Quality Integration:**
+
+opencode includes automated code quality tools with pre-commit hooks:
+
+```bash
+# Run linting
+npm run lint              # ESLint check
+npm run lint:fix          # ESLint fix
+
+# Run formatting
+npm run format            # Prettier format all files
+npm run format:check      # Prettier check only
+
+# Pre-commit hooks (Husky + lint-staged)
+# Automatically runs lint and format on staged files
+```
+
+**Configuration Files:**
+- `.eslintrc.js` - ESLint configuration
+- `.prettierrc` - Prettier configuration
+- `.prettierignore` - Exclusions for formatting
+- `package.json` - Scripts and dependencies
+
+**Testing:**
+
+For local test scenarios, see [LOCAL_TEST_SCENARIOS.md](./LOCAL_TEST_SCENARIOS.md):
+
+- Scenario 1: Basic Worker Execution
+- Scenario 2: Worker Scaling
+- Scenario 3: Empty Task Queue
+- Scenario 4: Error Handling
+- Scenario 5: Code Quality Checks
 
 ### Design Principles
 
