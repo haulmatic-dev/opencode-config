@@ -5,6 +5,23 @@
 
 set -e
 
+INTERACTIVE=false
+SKIP_CASS_CHECK=false
+
+# Parse arguments
+for arg in "$@"; do
+  case $arg in
+    --interactive|-i)
+      INTERACTIVE=true
+      shift
+      ;;
+    --skip-cass)
+      SKIP_CASS_CHECK=true
+      shift
+      ;;
+  esac
+done
+
 # Check if cass is installed and accessible
 if ! command -v cm &> /dev/null; then
   echo "❌ cass_memory (cm): not found"
@@ -58,14 +75,36 @@ echo
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 if [ ${#FAILED_HOOKS[@]} -eq 0 ]; then
-    echo "✅ All required services are available"
-    exit 0
+  echo "✅ All required services are available"
+  exit 0
 else
-    echo "❌ Some required services are missing:"
-    printf '   - %s\n' "${FAILED_HOOKS[@]}"
-    echo
-    echo "To resolve:"
-    echo "  1. Install missing services (see README.md for installation instructions)"
-    echo "  2. Run session-start.sh again to verify"
-    exit 1
+  echo "❌ Some required services are missing:"
+  printf '   - %s\n' "${FAILED_HOOKS[@]}"
+  echo
+  
+  if [ "$INTERACTIVE" = true ]; then
+    echo "Would you like to run interactive setup to install missing services?"
+    read -p "Run opencode-init-interactive? [y/N]: " response
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+      echo
+      echo "Starting interactive setup..."
+      ~/.config/opencode/bin/opencode-init-interactive
+      exit_code=$?
+      if [ $exit_code -eq 0 ]; then
+        echo
+        echo "✅ Setup complete! Please run 'session-start.sh' again to verify."
+        exit 0
+      else
+        echo
+        echo "❌ Setup failed or was cancelled."
+        exit 1
+      fi
+    fi
+  fi
+  
+  echo "To resolve:"
+  echo "  1. Run interactive setup: ~/.config/opencode/bin/opencode-init-interactive"
+  echo "  2. Or install missing services manually (see README.md)"
+  echo "  3. Run session-start.sh again to verify"
+  exit 1
 fi

@@ -1,8 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "instructions": [
-    "/Users/buddhi/.config/opencode/AGENTS.md"
-  ],
+  "instructions": ["/Users/buddhi/.config/opencode/AGENTS.md"],
   "permission": "allow",
   "provider": {
     "glm-47": {
@@ -121,6 +119,7 @@
   "plugin": [
     "./plugin/gptcache.mjs",
     "./plugin/cass.mjs",
-    "./plugin/beads.mjs"
+    "./plugin/beads.mjs",
+    "./plugin/setup.mjs"
   ]
 }
