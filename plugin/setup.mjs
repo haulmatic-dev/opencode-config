@@ -136,23 +136,15 @@ export const setup = async ({
       const hooksDir = new URL('../hooks', import.meta.url).pathname;
       const sessionStartHook = `${hooksDir}/session-start.sh`;
 
-      // Execute session-start.sh hook
+      // Execute session-start.sh hook (await completion)
       console.log('[Setup Plugin] Running session-start.sh hook...');
       try {
-        exec(`bash ${sessionStartHook}`, (error, stdout, stderr) => {
-          if (error) {
-            console.error(
-              '[Setup Plugin] session-start.sh failed:',
-              error.message,
-            );
-            if (stderr) console.error('[Setup Plugin] stderr:', stderr);
-            return;
-          }
-          console.log('[Setup Plugin] session-start.sh completed successfully');
-          if (stdout) console.log(stdout);
-        });
+        const { stdout, stderr } = await execAsync(`bash ${sessionStartHook}`);
+        console.log('[Setup Plugin] session-start.sh completed successfully');
+        if (stdout) console.log(stdout);
       } catch (error) {
         console.error('[Setup Plugin] session-start.sh failed:', error.message);
+        if (error.stderr) console.error('[Setup Plugin] stderr:', error.stderr);
       }
 
       // Display status information
