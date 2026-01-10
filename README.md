@@ -399,13 +399,17 @@ The session-start hook supports interactive mode:
 ```
 
 **PATH Configuration:**
-The hook checks if `~/.config/opencode/bin` is in your PATH. If not, it shows a warning with instructions to add it. To configure PATH permanently, run:
 
-```bash
-source ~/.config/opencode/bin/opencode-init
-```
+The `opencode-init` script provides two levels of PATH configuration:
 
-This will add `~/.config/opencode/bin` to your shell config (`~/.zshrc` or `~/.bashrc`).
+1. **Current Session:** Exports `~/.config/opencode/bin` to current process
+2. **Permanent:** Adds `export PATH="~/.config/opencode/bin:$PATH"` to your shell config
+
+After running `opencode-init`:
+
+- Tools are available in **current session** (no restart needed)
+- Tools are **permanently** configured in your shell config
+- New terminals will have PATH automatically configured
 
 ```bash
 # Check services and prompt for interactive setup if needed

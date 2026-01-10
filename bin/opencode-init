@@ -233,6 +233,10 @@ async function configurePath() {
     try {
       const pathEntry = `export PATH="${OPENCODE_BIN}:$PATH"`;
       execSync(`echo '${pathEntry}' >> ${SHELL_CONFIG}`, { stdio: 'pipe' });
+      
+      // Also export for current process
+      process.env.PATH = `${OPENCODE_BIN}:${process.env.PATH}`;
+      
       spinner.succeed('PATH configured');
     } catch (error) {
       spinner.fail();
