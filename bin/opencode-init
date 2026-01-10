@@ -210,6 +210,9 @@ async function main() {
   console.log('  3. Initialize your project workspace:');
   console.log(chalk.cyan(`     ${BIN_DIR}/workspace-init`));
   console.log();
+  console.log(chalk.yellow('⚠️  Important: PATH is configured in your shell config file.'));
+  console.log(chalk.yellow('  You must source it or restart your terminal for changes to take effect.'));
+  console.log();
 }
 
 async function configurePath() {
