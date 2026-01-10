@@ -12,9 +12,9 @@ else
   exit 1
 fi
 
-# Test 2: Check if Node.js can parse the script
+# Test 2: Check if shell can parse the script
 echo -n "2. Syntax check... "
-if node -c /Users/buddhi/.config/opencode/bin/opencode-init 2>/dev/null; then
+if bash -n /Users/buddhi/.config/opencode/bin/opencode-init 2>/dev/null; then
   echo "✓"
 else
   echo "✗ FAILED"
