@@ -50,7 +50,7 @@ fi
 
 # Test 6: Check hook is updated
 echo -n "6. Session start hook updated... "
-if grep -q "INTERACTIVE" /Users/buddhi/.config/opencode/hooks/session-start.sh; then
+if grep -q "INTERACTIVE" /Users/buddhi/.config/opencode/hooks/session-start.sh && grep -q "PATH.*opencode/bin" /Users/buddhi/.config/opencode/hooks/session-start.sh; then
   echo "✓"
 else
   echo "✗ FAILED"

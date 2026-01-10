@@ -385,21 +385,27 @@ The **setup plugin** provides automatic setup checking and guidance within openc
 
 ### Interactive Mode
 
-The session-start hook now supports interactive mode AND auto-configures PATH:
+The session-start hook supports interactive mode:
 
 ```bash
-# Standard check (auto-adds ~/.config/opencode/bin to PATH)
+# Standard check
 ~/.config/opencode/hooks/session-start.sh
 
-# Interactive mode (same auto-PATH + prompts for setup if needed)
+# Interactive mode (prompts for setup if needed)
 ~/.config/opencode/hooks/session-start.sh --interactive
 
 # Skip cass check (for troubleshooting)
 ~/.config/opencode/hooks/session-start.sh --skip-cass
 ```
 
-**Auto-Path Configuration:**
-Every time you run `session-start.sh`, it automatically adds `~/.config/opencode/bin` to your PATH if not already there. This ensures all opencode tools are available without manual configuration.
+**PATH Configuration:**
+The hook checks if `~/.config/opencode/bin` is in your PATH. If not, it shows a warning with instructions to add it. To configure PATH permanently, run:
+
+```bash
+source ~/.config/opencode/bin/opencode-init
+```
+
+This will add `~/.config/opencode/bin` to your shell config (`~/.zshrc` or `~/.bashrc`).
 
 ```bash
 # Check services and prompt for interactive setup if needed

@@ -46,6 +46,15 @@ class SetupPlugin {
         status[name] = false;
       }
     }
+
+    // Check if ~/.config/opencode/bin is in PATH
+    try {
+      await execAsync('command -v opencode-init', { stdio: 'pipe' });
+      status['opencode_bin_in_path'] = true;
+    } catch {
+      status['opencode_bin_in_path'] = false;
+    }
+
     return status;
   }
 
@@ -83,6 +92,11 @@ class SetupPlugin {
     parts.push(
       '  Osgrep: ' + (status.osgrep ? '✓ installed' : '○ missing (optional)'),
     );
+
+    if (!status.opencode_bin_in_path) {
+      parts.push('  ~/.config/opencode/bin in PATH: ⚠️  NOT configured');
+    }
+
     parts.push('\n');
     return parts.join('\n');
   }
@@ -137,11 +151,22 @@ export const setup = async ({
       parts.push('## OpenCode Setup Status');
       parts.push('');
 
-      if (missingSystemTools.length > 0) {
-        parts.push('⚠️  Some system tools are missing:');
+      if (missingSystemTools.length > 0 || !systemStatus.opencode_bin_in_path) {
+        parts.push('⚠️  Setup needed:');
         parts.push(plugin.formatSystemStatus(systemStatus));
-        parts.push('To install missing tools:');
-        parts.push(`  - Run: ${SYSTEM_INIT}`);
+        parts.push('');
+
+        if (missingSystemTools.length > 0) {
+          parts.push('To install missing tools:');
+          parts.push(`  - Run: ${SYSTEM_INIT}`);
+        }
+
+        if (!systemStatus.opencode_bin_in_path) {
+          parts.push('');
+          parts.push('To configure PATH:');
+          parts.push(`  - Run: source ${SYSTEM_INIT}`);
+        }
+
         parts.push('');
       }
 
@@ -177,8 +202,11 @@ export const setup = async ({
           !workspaceStatus.cass ||
           !workspaceStatus.beads;
 
-        if (missingSystemTools.length > 0 && missingSystemTools.length < 3) {
-          const helpMsg = `\n\n💡 Setup: Some tools are missing. Run \`${SYSTEM_INIT}\` to install them.`;
+        if (
+          (missingSystemTools.length > 0 && missingSystemTools.length < 3) ||
+          !systemStatus.opencode_bin_in_path
+        ) {
+          const helpMsg = `\n\n💡 Setup: Run \`${SYSTEM_INIT}\` to install and configure tools.`;
           output.systemPrompt = (output.systemPrompt || '') + helpMsg;
         }
 

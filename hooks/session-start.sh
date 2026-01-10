@@ -22,27 +22,6 @@ for arg in "$@"; do
   esac
 done
 
-# Auto-configure PATH for opencode/bin
-OPENCODE_BIN="$HOME/.config/opencode/bin"
-if [[ ":$PATH:" != *":$OPENCODE_BIN:"* ]]; then
-  export PATH="$OPENCODE_BIN:$PATH"
-  
-  # Also add to shell config for persistence
-  SHELL_CONFIG="$HOME/.zshrc"
-  if [ -n "$ZSH_VERSION" ]; then
-    SHELL_CONFIG="$HOME/.zshrc"
-  elif [ -n "$BASH_VERSION" ]; then
-    SHELL_CONFIG="$HOME/.bashrc"
-  fi
-  
-  # Check if already in config
-  if ! grep -q "$OPENCODE_BIN" "$SHELL_CONFIG" 2>/dev/null; then
-    echo "" >> "$SHELL_CONFIG"
-    echo "# OpenCode PATH (auto-added by session-start)" >> "$SHELL_CONFIG"
-    echo "export PATH=\"$OPENCODE_BIN:\$PATH\"" >> "$SHELL_CONFIG"
-  fi
-fi
-
 # Check if cass is installed and accessible
 if ! command -v cm &> /dev/null; then
   echo "❌ cass_memory (cm): not found"
@@ -93,10 +72,20 @@ for hook in "${REQUIRED_HOOKS[@]}"; do
 done
 
 echo
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 if [ ${#FAILED_HOOKS[@]} -eq 0 ]; then
   echo "✅ All required services are available"
+  
+  # Check if PATH is configured
+  if [[ ":$PATH:" != *":$HOME/.config/opencode/bin:"* ]]; then
+    echo ""
+    echo "⚠️  ~/.config/opencode/bin is not in your PATH"
+    echo "   To fix, run: source ~/.config/opencode/bin/opencode-init"
+    echo "   Or add to your ~/.zshrc or ~/.bashrc:"
+    echo "   export PATH=\"\$HOME/.config/opencode/bin:\$PATH\""
+  fi
+  
   exit 0
 else
   echo "❌ Some required services are missing:"
