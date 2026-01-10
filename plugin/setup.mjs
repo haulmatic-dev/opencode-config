@@ -7,7 +7,6 @@ const execAsync = promisify(exec);
 const BIN_DIR = new URL('../bin', import.meta.url).pathname;
 const WORKSPACE_INIT = `${BIN_DIR}/workspace-init`;
 const SYSTEM_INIT = `${BIN_DIR}/opencode-init`;
-const SYSTEM_INIT_INTERACTIVE = `${BIN_DIR}/opencode-init-interactive`;
 
 class SetupPlugin {
   constructor(options = {}) {
@@ -142,8 +141,7 @@ export const setup = async ({
         parts.push('⚠️  Some system tools are missing:');
         parts.push(plugin.formatSystemStatus(systemStatus));
         parts.push('To install missing tools:');
-        parts.push(`  - Run interactive setup: ${SYSTEM_INIT_INTERACTIVE}`);
-        parts.push(`  - Or run bash setup: ${SYSTEM_INIT}`);
+        parts.push(`  - Run: ${SYSTEM_INIT}`);
         parts.push('');
       }
 
@@ -156,14 +154,8 @@ export const setup = async ({
       }
 
       parts.push('## Setup Commands');
-      parts.push(
-        '- System setup: `' +
-          SYSTEM_INIT_INTERACTIVE +
-          '` (interactive) or `' +
-          SYSTEM_INIT +
-          '` (non-interactive)',
-      );
-      parts.push('- Workspace setup: `' + WORKSPACE_INIT + '`');
+      parts.push(`- System setup: \`${SYSTEM_INIT}\``);
+      parts.push(`- Workspace setup: \`${WORKSPACE_INIT}\``);
       parts.push('- Check status: `~/.config/opencode/hooks/session-start.sh`');
 
       return { systemPrompt: parts.join('\n') };
@@ -186,7 +178,7 @@ export const setup = async ({
           !workspaceStatus.beads;
 
         if (missingSystemTools.length > 0 && missingSystemTools.length < 3) {
-          const helpMsg = `\n\n💡 Setup: Some tools are missing. Run \`${SYSTEM_INIT_INTERACTIVE}\` to install them.`;
+          const helpMsg = `\n\n💡 Setup: Some tools are missing. Run \`${SYSTEM_INIT}\` to install them.`;
           output.systemPrompt = (output.systemPrompt || '') + helpMsg;
         }
 

@@ -1,11 +1,11 @@
 #!/bin/bash
 # Test script for opencode-init-interactive
 
-echo "Testing opencode-init-interactive..."
+echo "Testing opencode-init..."
 
 # Test 1: Check if script is executable
 echo -n "1. Script executable... "
-if [ -x "/Users/buddhi/.config/opencode/bin/opencode-init-interactive" ]; then
+if [ -x "/Users/buddhi/.config/opencode/bin/opencode-init" ]; then
   echo "✓"
 else
   echo "✗ FAILED"
@@ -14,7 +14,7 @@ fi
 
 # Test 2: Check if Node.js can parse the script
 echo -n "2. Syntax check... "
-if node -c /Users/buddhi/.config/opencode/bin/opencode-init-interactive 2>/dev/null; then
+if node -c /Users/buddhi/.config/opencode/bin/opencode-init 2>/dev/null; then
   echo "✓"
 else
   echo "✗ FAILED"
@@ -70,7 +70,7 @@ echo
 echo "All tests passed! ✓"
 echo
 echo "Usage:"
-echo "  Interactive setup: ./bin/opencode-init-interactive"
-echo "  Bash setup:        ./bin/opencode-init"
+echo "  Interactive setup: ./bin/opencode-init"
+echo "  Bash setup:        ./bin/opencode-init.bash"
 echo "  Workspace setup:    ./bin/workspace-init"
 echo "  Interactive hook:   ./hooks/session-start.sh --interactive"

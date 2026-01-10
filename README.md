@@ -308,13 +308,13 @@ Tool-Agnostic Services (Global):
 
 ## 🔧 Installation
 
-### Quick Install: opencode-init (Interactive)
+### Quick Install: opencode-init
 
-For an interactive system setup, use the **opencode-init-interactive** script:
+For an interactive system setup, use the **opencode-init** script:
 
 ```bash
 cd ~/.config/opencode/bin
-./opencode-init-interactive
+./opencode-init
 
 # This will guide you through:
 # - Selective tool installation (choose what you need)
@@ -332,13 +332,13 @@ cd ~/.config/opencode/bin
 # - Ultimate Bug Scanner (UBS) - Multi-language static analysis (optional)
 ```
 
-### Quick Install: opencode-init (Non-Interactive)
+### Quick Install: opencode-init.bash (Non-Interactive)
 
-For automated or CI/CD setup, use the bash **opencode-init** script:
+For automated or CI/CD setup, use the bash **opencode-init.bash** script:
 
 ```bash
 cd ~/.config/opencode/bin
-./opencode-init
+./opencode-init.bash
 
 # This will install:
 # - cass_memory (cm)
@@ -374,10 +374,10 @@ The **setup plugin** provides automatic setup checking and guidance within openc
 # Just follow the suggested commands:
 
 # System setup (interactive)
-~/.config/opencode/bin/opencode-init-interactive
+~/.config/opencode/bin/opencode-init
 
 # System setup (non-interactive)
-~/.config/opencode/bin/opencode-init
+~/.config/opencode/bin/opencode-init.bash
 
 # Workspace setup
 ~/.config/opencode/bin/workspace-init
@@ -385,7 +385,21 @@ The **setup plugin** provides automatic setup checking and guidance within openc
 
 ### Interactive Mode
 
-The session-start hook now supports interactive mode:
+The session-start hook now supports interactive mode AND auto-configures PATH:
+
+```bash
+# Standard check (auto-adds ~/.config/opencode/bin to PATH)
+~/.config/opencode/hooks/session-start.sh
+
+# Interactive mode (same auto-PATH + prompts for setup if needed)
+~/.config/opencode/hooks/session-start.sh --interactive
+
+# Skip cass check (for troubleshooting)
+~/.config/opencode/hooks/session-start.sh --skip-cass
+```
+
+**Auto-Path Configuration:**
+Every time you run `session-start.sh`, it automatically adds `~/.config/opencode/bin` to your PATH if not already there. This ensures all opencode tools are available without manual configuration.
 
 ```bash
 # Check services and prompt for interactive setup if needed
@@ -393,7 +407,7 @@ The session-start hook now supports interactive mode:
 
 # If services are missing, you'll be asked:
 # "Would you like to run interactive setup to install missing services? [y/N]:"
-# Answer 'y' to automatically run opencode-init-interactive
+# Answer 'y' to automatically run opencode-init
 ```
 
 ### Installing cass_memory
@@ -1053,7 +1067,7 @@ curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_sca
 
 ## 🛠 Setup Tools Reference
 
-### opencode-init-interactive (Node.js)
+### opencode-init (Node.js)
 
 Interactive setup tool with rich UI and user control:
 
@@ -1070,10 +1084,10 @@ Interactive setup tool with rich UI and user control:
 
 ```bash
 cd ~/.config/opencode/bin
-./opencode-init-interactive
+./opencode-init
 ```
 
-### opencode-init (Bash)
+### opencode-init.bash (Bash)
 
 Non-interactive automated setup for CI/CD:
 
@@ -1088,7 +1102,7 @@ Non-interactive automated setup for CI/CD:
 
 ```bash
 cd ~/.config/opencode/bin
-./opencode-init
+./opencode-init.bash
 ```
 
 ### setup.mjs Plugin
