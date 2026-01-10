@@ -1,31 +1,56 @@
 #!/bin/bash
 # opencode-init - System-wide setup for opencode
-# Installs cass_memory, beads CLI, beads viewer, osgrep, UBS, Biome
-# Run once per machine
-#
-# Biome is a modern toolchain for the web (formatter, linter, bundler)
-# Provides: Linting, formatting, and more for JavaScript/TypeScript, CSS, HTML, JSON, YAML, etc.
-# Replaces ESLint for linting, but Prettier is still useful for formatting
-#
-set -e
+# Installs and configures tools, sets up PATH
 
-# Colors for output
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+set -e
 
 # Detect shell and config file
 if [ -n "$ZSH_VERSION" ]; then
   SHELL_CONFIG="$HOME/.zshrc"
-  SHELL_NAME="zsh"
 elif [ -n "$BASH_VERSION" ]; then
   SHELL_CONFIG="$HOME/.bashrc"
-  SHELL_NAME="bash"
 else
   SHELL_CONFIG="$HOME/.profile"
-  SHELL_NAME="sh"
+fi
+
+# Run the Node.js setup script
+./opencode-init-node "$@"
+EXIT_CODE=$?
+
+# Always source the config file to apply PATH to current session
+if [ -f "$SHELL_CONFIG" ]; then
+  . "$SHELL_CONFIG"
+  echo "✓ PATH applied to current session (sourced $SHELL_CONFIG)"
+fi
+
+exit $EXIT_CODE
+
+# Check if already in PATH
+OPENCODE_BIN="$HOME/.config/opencode/bin"
+if [[ ":$PATH:" != *":$OPENCODE_BIN:"* ]]; then
+  PATH_CONFIGURED=false
+else
+  PATH_CONFIGURED=true
+fi
+
+# Run the Node.js setup script
+./opencode-init-node "$@" || exit $?
+
+# If PATH was configured, source the shell config to apply to current session
+if [ "$PATH_CONFIGURED" = false ]; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "✓ Setup complete!"
+  echo ""
+  echo "⚠️  IMPORTANT: Applying PATH changes to current session..."
+  echo ""
+  echo "  $SOURCE_CMD"
+  echo ""
+  echo "  Or restart your terminal."
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  
+  # Apply PATH to current session
+  export PATH="$OPENCODE_BIN:$PATH"
 fi
 
 # Parse arguments

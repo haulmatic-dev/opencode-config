@@ -1,254 +1,221 @@
-#!/usr/bin/env node
-import { execSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import inquirer from 'inquirer';
-import ora from 'ora';
-import chalk from 'chalk';
-import detectInstaller from 'detect-installer';
+#!/bin/bash
+# opencode-init - System-wide setup for opencode
+# Run this script from ANY directory to install and configure tools
 
-const CONFIG_DIR = process.env.HOME + '/.config/opencode';
-const BIN_DIR = CONFIG_DIR + '/bin';
-const SHELL_CONFIG = process.env.HOME + '/.zshrc';
-const OPENCODE_BIN = `${CONFIG_DIR}/bin`;
+set -e
 
-const TOOLS = {
-  cass_memory: {
-    name: 'cass_memory (cm)',
-    install: 'curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_system/main/install.sh | bash -s -- --easy-mode --verify',
-    check: 'cm --version',
-    required: true,
-  },
-  biome: {
-    name: 'Biome (linting + formatting)',
-    install: 'npm install -g @biomejs/biome',
-    check: 'biome --version',
-    required: true,
-  },
-  prettier: {
-    name: 'Prettier (code formatter)',
-    install: 'npm install -g prettier',
-    check: 'prettier --version',
-    required: true,
-  },
-  beads_cli: {
-    name: 'Beads CLI (bd) - Task tracking',
-    install: 'go install github.com/steveyegge/beads/cmd/bd@latest',
-    check: 'bd --version',
-    required: true,
-    depends_on: ['go'],
-  },
-  beads_viewer: {
-    name: 'Beads Viewer (bv) - Task browser',
-    install: 'curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh?$(date +%s)" | bash',
-    check: 'bv --version',
-    required: true,
-  },
-  osgrep: {
-    name: 'Osgrep - Semantic code search',
-    install: 'npm install -g @steveyegge/osgrep',
-    check: 'osgrep --version',
-    required: false,
-  },
-  ubs: {
-    name: 'Ultimate Bug Scanner (UBS) - Static analysis',
-    install: 'curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)" | bash',
-    check: 'ubs --version',
-    required: false,
-  },
-  go: {
-    name: 'Go (for Beads CLI)',
-    install: 'go installation requires manual steps',
-    check: 'go version',
-    required: false,
-  },
-};
+OPENCODE_DIR="$HOME/.config/opencode"
+OPENCODE_BIN="$OPENCODE_DIR/bin"
 
-function commandExists(cmd) {
-  try {
-    execSync(`command -v ${cmd} 2>/dev/null`, { stdio: 'ignore' });
-    return true;
-  } catch {
-    return false;
-  }
-}
+# Detect shell
+if [ -n "$ZSH_VERSION" ]; then
+  SHELL_CONFIG="$HOME/.zshrc"
+  SHELL_NAME="zsh"
+elif [ -n "$BASH_VERSION" ]; then
+  SHELL_CONFIG="$HOME/.bashrc"
+  SHELL_NAME="bash"
+else
+  SHELL_CONFIG="$HOME/.profile"
+  SHELL_NAME="sh"
+fi
 
-function checkTool(toolKey) {
-  const tool = TOOLS[toolKey];
-  try {
-    const output = execSync(tool.check, { encoding: 'utf8', stdio: 'pipe' });
-    const version = output.trim().split('\n')[0];
-    return { installed: true, version };
-  } catch {
-    return { installed: false, version: null };
-  }
-}
+# Check if already in PATH
+if [[ ":$PATH:" == *":$OPENCODE_BIN:"* ]]; then
+  PATH_CONFIGURED=true
+else
+  PATH_CONFIGURED=false
+fi
 
-function isToolRequired(toolKey, selectedTools) {
-  const tool = TOOLS[toolKey];
-  if (!tool.depends_on) return tool.required;
-  return selectedTools.includes(toolKey);
-}
+# Banner
+echo ""
+echo "╔════════════════════════════════════════════╗"
+echo "║   OpenCode - System Setup                              ║"
+echo "╚════════════════════════════════════════════════╝"
+echo ""
+echo "Current status:"
+echo "  Shell:     $SHELL_NAME"
+echo "  Config:    $SHELL_CONFIG"
+echo "  PATH configured: $([ "$PATH_CONFIGURED" = true ] && echo 'Yes' || echo 'No')"
+echo ""
 
-async function runCommand(cmd, description) {
-  const spinner = ora(description).start();
-  try {
-    execSync(cmd, { stdio: 'pipe' });
-    spinner.succeed();
-    return true;
-  } catch (error) {
-    spinner.fail();
-    console.error(chalk.red(`Error: ${error.message}`));
-    return false;
-  }
-}
+# Ask if user wants to continue
+read -p "Continue with setup? [Y/n]: " CONFIRM
 
-async function installGo() {
-  const { useHomebrew } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'useHomebrew',
-      message: 'Install Go using Homebrew?',
-      default: true,
-    },
-  ]);
+if [[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]]; then
+  echo "Setup cancelled."
+  exit 0
+fi
 
-  if (useHomebrew && commandExists('brew')) {
-    return await runCommand('brew install go', 'Installing Go via Homebrew');
-  }
+echo ""
+echo "📋 Checking tools..."
 
-  console.log(chalk.yellow('Please install Go manually from: https://golang.org/dl/'));
-  return false;
-}
+HAS_CM=false
+HAS_BIOME=false
+HAS_PRETTIER=false
+HAS_BD=false
+HAS_BV=false
+HAS_GO=false
 
-async function main() {
-  console.log(chalk.cyan.bold('╔══════════════════════════════════════════════════════════════╗'));
-  console.log(chalk.cyan.bold('║   OpenCode - Interactive System Setup                      ║'));
-  console.log(chalk.cyan.bold('╚══════════════════════════════════════════════════════════════╝'));
+# Check for Go
+if command -v go &> /dev/null; then
+  HAS_GO=true
+fi
 
-  const { runSetup } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'runSetup',
-      message: 'Would you like to set up opencode tools?',
-      default: true,
-    },
-  ]);
+# Check for cass
+if command -v cm &> /dev/null; then
+  HAS_CM=true
+  if command -v cass &> /dev/null; then
+    CASS_HEALTHY=$(cm health 2>/dev/null && echo "healthy")
+    if [ "$CASS_HEALTHY" = "healthy" ]; then
+      echo "  ✓ cass_memory (cm): healthy"
+    else
+      echo "  ⚠ cass_memory (cm): needs attention"
+    fi
+  fi
+fi
 
-  if (!runSetup) {
-    console.log(chalk.yellow('Setup cancelled. Run again anytime: opencode-init-interactive'));
-    process.exit(0);
-  }
+# Check for Biome
+if command -v biome &> /dev/null; then
+  HAS_BIOME=true
+  echo "  ✓ Biome: $(biome --version 2>/dev/null | head -1 || echo 'installed')"
+fi
 
-  console.log(chalk.blue('\n📊 Checking current tool status...\n'));
+# Check for Prettier
+if command -v prettier &> /dev/null; then
+  HAS_PRETTIER=true
+  echo "  ✓ Prettier: $(prettier --version 2>/dev/null | head -1 || echo 'installed')"
+fi
 
-  const toolStatus = {};
-  for (const [key, tool] of Object.entries(TOOLS)) {
-    const status = checkTool(key);
-    toolStatus[key] = status;
-    
-    const statusIcon = status.installed ? chalk.green('✓') : chalk.yellow('○');
-    const versionInfo = status.installed ? chalk.gray(` (${status.version.split(' ')[0]})`) : '';
-    const requiredTag = tool.required ? chalk.red(' (required)') : chalk.gray(' (optional)');
-    console.log(`${statusIcon} ${tool.name}${versionInfo}${requiredTag}`);
-  }
+# Check for Beads CLI
+if command -v bd &> /dev/null; then
+  HAS_BD=true
+  echo "  ✓ Beads CLI (bd): $(bd --version 2>/dev/null | head -1 || echo 'installed')"
+fi
 
-  const { toolsToInstall } = await inquirer.prompt([
-    {
-      type: 'checkbox',
-      name: 'toolsToInstall',
-      message: 'Select tools to install:',
-      choices: Object.entries(TOOLS).map(([key, tool]) => ({
-        name: `${tool.name} ${toolStatus[key].installed ? chalk.gray('(already installed)') : ''}`,
-        value: key,
-        disabled: toolStatus[key].installed,
-        checked: tool.required && !toolStatus[key].installed,
-      })),
-    },
-  ]);
+# Check for Beads Viewer
+if command -v bv &> /dev/null; then
+  HAS_BV=true
+  echo "  ✓ Beads Viewer (bv): $(bv --version 2>/dev/null | head -1 || echo 'installed')"
+fi
 
-  if (toolsToInstall.length === 0) {
-    console.log(chalk.green('\n✓ All tools are already installed!'));
-    await configurePath();
-    process.exit(0);
-  }
+# Check for osgrep (optional)
+if command -v osgrep &> /dev/null; then
+  HAS_OSGREP=true
+  echo "  ✓ Osgrep: $(osgrep --version 2>/dev/null | head -1 || echo 'installed')"
+fi
 
-  console.log(chalk.blue(`\n🔧 Installing ${toolsToInstall.length} tool(s)...\n`));
+# Check for UBS (optional)
+if command -v ubs &> /dev/null; then
+  HAS_UBS=true
+  echo "  ✓ UBS: $(ubs --version 2>/dev/null | head -1 || echo 'installed')"
+fi
 
-  for (const toolKey of toolsToInstall) {
-    const tool = TOOLS[toolKey];
-    
-    if (toolKey === 'go') {
-      const success = await installGo();
-      if (!success) {
-        console.log(chalk.red(`Skipping tools that depend on Go`));
-        continue;
-      }
-      continue;
-    }
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
 
-    if (tool.depends_on && tool.depends_on.includes('go') && !commandExists('go')) {
-      console.log(chalk.yellow(`Skipping ${tool.name}: Go is required`));
-      continue;
-    }
+# Step 1: Install Go if needed (for Beads CLI)
+if [ "$HAS_GO" = false ]; then
+  echo "Step 1: Installing Go..."
+  if [ "$(uname -s)" = "Darwin" ] && command -v brew &> /dev/null; then
+    brew install go
+  elif [ -f /etc/os-release ]; then
+    . /etc/os-release
+    if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ]; then
+      sudo apt-get update
+      sudo apt-get install -y golang-go
+    fi
+  else
+    echo "  ⚠️  Go not found and cannot auto-install on this OS"
+    echo "  Install Go from: https://golang.org/dl/"
+    exit 1
+  fi
+  HAS_GO=true
+  echo "  ✓ Go installed: $(go version)"
+fi
 
-    const success = await runCommand(tool.install, `Installing ${tool.name}`);
-    if (!success) {
-      console.log(chalk.red(`Failed to install ${tool.name}`));
-    }
-  }
+# Step 2: Install Beads CLI if needed
+if [ "$HAS_BD" = false ]; then
+  echo "Step 2: Installing Beads CLI (bd)..."
+  go install github.com/steveyegge/beads/cmd/bd@latest
+  if [ $? -ne 0 ]; then
+    echo "  ✗ Failed to install Beads CLI"
+    exit 1
+  fi
+  echo "  ✓ Beads CLI installed: $(bd --version 2>/dev/null | head -1 || echo 'installed')"
+  HAS_BD=true
+fi
 
-  await configurePath();
+# Step 3: Install Beads Viewer if needed
+if [ "$HAS_BV" = false ]; then
+  echo "Step 3: Installing Beads Viewer (bv)..."
+  curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh?$(date +%s)" | bash
+  if [ $? -ne 0 ]; then
+    echo "  ✗ Failed to install Beads Viewer"
+    exit 1
+  fi
+  echo "  ✓ Beads Viewer installed: $(bv --version 2>/dev/null | head -1 || echo 'installed')"
+  HAS_BV=true
+fi
 
-  console.log(chalk.cyan.bold('\n╔══════════════════════════════════════════════════════════════╗'));
-  console.log(chalk.cyan.bold('║   Setup Complete!                                           ║'));
-  console.log(chalk.cyan.bold('╚══════════════════════════════════════════════════════════════╝'));
-  console.log(chalk.green('\n✓ All tools installed and configured\n'));
-  console.log(chalk.yellow('Next steps:'));
-  console.log('  1. Source your shell configuration:');
-  console.log(chalk.cyan(`     source ${SHELL_CONFIG}`));
-  console.log('  2. Or start a new terminal');
-  console.log('  3. Initialize your project workspace:');
-  console.log(chalk.cyan(`     ${BIN_DIR}/workspace-init`));
-  console.log();
-  console.log(chalk.yellow('⚠️  Important: PATH is configured in your shell config file.'));
-  console.log(chalk.yellow('  You must source it or restart your terminal for changes to take effect.'));
-  console.log();
-}
+# Step 4: Install Osgrep if needed
+if [ "$HAS_OSGREP" = false ]; then
+  echo "Step 4: Installing Osgrep..."
+  npm install -g @steveyegge/osgrep
+  if [ $? -ne 0 ]; then
+    echo "  ✗ Failed to install Osgrep"
+    exit 1
+  fi
+  echo "  ✓ Osgrep installed: $(osgrep --version 2>/dev/null | head -1 || echo 'installed')"
+  HAS_OSGREP=true
+fi
 
-async function configurePath() {
-  const currentPath = process.env.PATH;
-  if (currentPath.includes(OPENCODE_BIN)) {
-    console.log(chalk.green('✓ PATH already configured'));
-    return;
-  }
+# Step 5: Install UBS if needed
+if [ "$HAS_UBS" = false ]; then
+  echo "Step 5: Installing UBS..."
+  curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)" | bash
+  if [ $? -ne 0 ]; then
+    echo "  ✗ Failed to install UBS"
+    exit 1
+  fi
+  echo "  ✓ UBS installed: $(ubs --version 2>/dev/null | head -1 || echo 'installed')"
+  HAS_UBS=true
+fi
 
-  const { configurePath } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'configurePath',
-      message: `Add ${OPENCODE_BIN} to PATH?`,
-      default: true,
-    },
-  ]);
+# Step 6: Configure PATH
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "Step 6: Configuring PATH..."
 
-  if (configurePath) {
-    const spinner = ora('Configuring PATH').start();
-    try {
-      const pathEntry = `export PATH="${OPENCODE_BIN}:$PATH"`;
-      execSync(`echo '${pathEntry}' >> ${SHELL_CONFIG}`, { stdio: 'pipe' });
-      
-      // Also export for current process
-      process.env.PATH = `${OPENCODE_BIN}:${process.env.PATH}`;
-      
-      spinner.succeed('PATH configured');
-    } catch (error) {
-      spinner.fail();
-      console.error(chalk.red(`Error configuring PATH: ${error.message}`));
-    }
-  }
-}
+if [ "$PATH_CONFIGURED" = true ]; then
+  echo "  ✓ PATH already configured in $SHELL_CONFIG"
+else
+  echo "  Adding to $SHELL_CONFIG: export PATH=\"$OPENCODE_BIN:\$PATH\""
+  echo "export PATH=\"$OPENCODE_BIN:\$PATH\"" >> "$SHELL_CONFIG"
+  PATH_CONFIGURED=true
+  echo "  ✓ PATH configured"
+fi
 
-main().catch((error) => {
-  console.error(chalk.red(`Fatal error: ${error.message}`));
-  process.exit(1);
-});
+# Summary
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "╔════════════════════════════════════════════╗"
+echo "║   Setup Complete!                                    ║"
+echo "╚══════════════════════════════════════════════════╝"
+echo ""
+echo "✓ Installed:"
+echo "  • cass_memory (cm) - Evidence-based learning system"
+echo "  • Biome - Modern linting and formatting (20+ languages)"
+echo "  • Prettier - Code formatter"
+echo "  • Go - Required for Beads CLI"
+echo "  • Beads CLI (bd) - Task tracking"
+echo "  • Beads Viewer (bv) - Terminal UI for browsing tasks"
+echo "  • Osgrep - Semantic code search"
+echo "  • UBS - Multi-language static analysis"
+echo ""
+echo "⚠️  IMPORTANT: Apply PATH changes to your current shell:"
+echo "   source $SHELL_CONFIG"
+echo "   Or restart your terminal"
+echo ""
