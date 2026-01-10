@@ -1,5 +1,6 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import { readFileSync } from 'node:fs';
 
 const execAsync = promisify(exec);
 
@@ -152,10 +153,8 @@ export const cass = async ({
   let config = { enabled: true };
 
   try {
-    const configContent = await fetch(configPath);
-    if (configContent.ok) {
-      config = await configContent.json();
-    }
+    const configContent = readFileSync(configPath, 'utf8');
+    config = JSON.parse(configContent);
   } catch (_e) {
     console.log('[CassMemory] No config found, using defaults');
   }
