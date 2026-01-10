@@ -39,7 +39,7 @@ if [[ ":$PATH:" != *":$OPENCODE_BIN:"* ]]; then
   if ! grep -q "$OPENCODE_BIN" "$SHELL_CONFIG" 2>/dev/null; then
     echo "" >> "$SHELL_CONFIG"
     echo "# OpenCode PATH (auto-added by session-start)" >> "$SHELL_CONFIG"
-    echo "export PATH=\"\$OPENCODE_BIN:\$PATH\"" >> "$SHELL_CONFIG"
+    echo "export PATH=\"$OPENCODE_BIN:\$PATH\"" >> "$SHELL_CONFIG"
   fi
 fi
 
