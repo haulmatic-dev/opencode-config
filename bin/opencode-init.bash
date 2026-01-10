@@ -360,7 +360,7 @@ if [ "$PATH_CONFIGURED" = false ]; then
 
   # Add ~/.config/opencode/bin to PATH if not already there
   if [[ ":$PATH:" != *":$HOME/.config/opencode/bin:"* ]]; then
-    echo 'export PATH="$HOME/.config/opencode/bin:$PATH"' >> "$SHELL_CONFIG"
+    echo "export PATH=$HOME/.config/opencode/bin:\$PATH" >> "$SHELL_CONFIG"
     echo -e "${GREEN}✓${NC} Added ~/.config/opencode/bin to PATH in $SHELL_CONFIG"
   else
     echo -e "${GREEN}✓${NC} PATH already configured"

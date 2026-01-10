@@ -310,7 +310,7 @@ Tool-Agnostic Services (Global):
 
 ### Quick Install: opencode-init
 
-For an interactive system setup, use the **opencode-init** script:
+For system setup, use the **opencode-init** script:
 
 ```bash
 cd ~/.config/opencode/bin
@@ -334,7 +334,7 @@ cd ~/.config/opencode/bin
 
 ### Quick Install: opencode-init.bash (Non-Interactive)
 
-For automated or CI/CD setup, use the bash **opencode-init.bash** script:
+For automated or CI/CD setup, use bash **opencode-init.bash** script:
 
 ```bash
 cd ~/.config/opencode/bin
@@ -373,11 +373,9 @@ The **setup plugin** provides automatic setup checking and guidance within openc
 # The plugin automatically prompts when setup is needed
 # Just follow the suggested commands:
 
-# System setup (interactive)
-~/.config/opencode/bin/opencode-init
-
-# System setup (non-interactive)
-~/.config/opencode/bin/opencode-init.bash
+# System setup (interactive or non-interactive)
+~/.config/opencode/bin/opencode-init  # Interactive
+~/.config/opencode/bin/opencode-init.bash  # Non-interactive
 
 # Workspace setup
 ~/.config/opencode/bin/workspace-init
