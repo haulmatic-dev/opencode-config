@@ -204,31 +204,31 @@ export const setup = async ({
     'chat.message': async (input, output) => {
       const { message } = input;
 
-      if (plugin && plugin.enabled && plugin.autoPrompt) {
-        const workspaceStatus = await plugin.checkWorkspaceInit();
-        const systemStatus = await plugin.checkSystemTools();
+      if (!message || !plugin || !plugin.enabled || !plugin.autoPrompt) {
+        return;
+      }
 
-        const missingSystemTools = Object.entries(systemStatus)
-          .filter(([_, installed]) => !installed)
-          .map(([name]) => name);
+      const workspaceStatus = await plugin.checkWorkspaceInit();
+      const systemStatus = await plugin.checkSystemTools();
 
-        const needsWorkspaceInit =
-          !workspaceStatus.git ||
-          !workspaceStatus.cass ||
-          !workspaceStatus.beads;
+      const missingSystemTools = Object.entries(systemStatus)
+        .filter(([_, installed]) => !installed)
+        .map(([name]) => name);
 
-        if (
-          (missingSystemTools.length > 0 && missingSystemTools.length < 3) ||
-          !systemStatus.opencode_bin_in_path
-        ) {
-          const helpMsg = `\n\n💡 Setup: Run \`${SYSTEM_INIT}\` to install and configure tools.`;
-          output.systemPrompt = (output.systemPrompt || '') + helpMsg;
-        }
+      const needsWorkspaceInit =
+        !workspaceStatus.git || !workspaceStatus.cass || !workspaceStatus.beads;
 
-        if (needsWorkspaceInit && message.toLowerCase().includes('workspace')) {
-          const helpMsg = `\n\n💡 Workspace: Run \`${WORKSPACE_INIT}\` to initialize your project.`;
-          output.systemPrompt = (output.systemPrompt || '') + helpMsg;
-        }
+      if (
+        (missingSystemTools.length > 0 && missingSystemTools.length < 3) ||
+        !systemStatus.opencode_bin_in_path
+      ) {
+        const helpMsg = `\n\n💡 Setup: Run \`${SYSTEM_INIT}\` to install and configure tools.`;
+        output.systemPrompt = (output.systemPrompt || '') + helpMsg;
+      }
+
+      if (needsWorkspaceInit && message.toLowerCase().includes('workspace')) {
+        const helpMsg = `\n\n💡 Workspace: Run \`${WORKSPACE_INIT}\` to initialize your project.`;
+        output.systemPrompt = (output.systemPrompt || '') + helpMsg;
       }
     },
   };
