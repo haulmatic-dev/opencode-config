@@ -6,11 +6,13 @@
 # TEST: Write timestamp to verify hook is executed when opencode starts
 echo "🔍 session-start.sh executed at: $(date '+%Y-%m-%d %H:%M:%S')" > /tmp/opencode-session-start-test.md
 
-# Source shell config to get PATH updates (use bash-specific config files only)
+# Source shell config to get PATH updates (check both bash and zsh configs)
 if [ -f ~/.bashrc ]; then
   source ~/.bashrc
 elif [ -f ~/.bash_profile ]; then
   source ~/.bash_profile
+elif [ -f ~/.zshrc ]; then
+  source ~/.zshrc
 elif [ -f ~/.profile ]; then
   source ~/.profile
 fi
