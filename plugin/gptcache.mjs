@@ -4,7 +4,7 @@ import path from 'node:path';
 let cacheMiddleware = null;
 
 async function createDefaultCacheMiddleware() {
-  const GPTCacheClient = await import('../lib/gptcache-client.js');
+  const GPTCacheClient = await import('../lib/gptcache/gptcache-client.js');
 
   class GPTCacheMiddleware {
     constructor(options = {}) {
@@ -69,7 +69,7 @@ export const gptcache = async ({
   directory: _directory,
   worktree: _worktree,
 }) => {
-  const configPath = path.join(__dirname, '..', 'gptcache_config.json');
+  const configPath = path.join(__dirname, '..', 'config', 'gptcache.json');
   const configContent = fs.readFileSync(configPath, 'utf-8');
   const config = JSON.parse(configContent);
 

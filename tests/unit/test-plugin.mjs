@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Test script for setup plugin
 
-import { setup } from './plugin/setup.mjs';
+import { setup } from '../../plugin/setup.mjs';
 
 async function testPlugin() {
   console.log('Testing setup plugin...\n');

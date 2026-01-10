@@ -3,7 +3,7 @@
 import { exec } from 'child_process';
 import { readFile } from 'fs/promises';
 import { promisify } from 'util';
-import { beads } from './plugin/beads.mjs';
+import { beads } from '../../plugin/beads.mjs';
 
 const execAsync = promisify(exec);
 
@@ -242,15 +242,15 @@ async function testBeadsIntegration() {
 
   try {
     const beadsConfig = JSON.parse(
-      await readFile('./beads_config.json', 'utf-8'),
+      await readFile('./config/beads.json', 'utf-8'),
     );
-    console.log('   ✓ beads_config.json exists and is valid');
+    console.log('   ✓ config/beads.json exists and is valid');
     console.log('   Configuration:');
     Object.entries(beadsConfig).forEach(([key, value]) => {
       console.log(`     - ${key}: ${value}`);
     });
   } catch (error) {
-    console.error('   ✗ beads_config.json missing or invalid:', error.message);
+    console.error('   ✗ config/beads.json missing or invalid:', error.message);
   }
 
   try {
@@ -287,7 +287,7 @@ async function testBeadsIntegration() {
   console.log('- bd and bv commands work ✓');
 
   console.log('\nNext Steps:');
-  console.log('1. Configure beads_config.json options as needed');
+  console.log('1. Configure config/beads.json options as needed');
   console.log('2. Set autoClaim=true to auto-claim recommended tasks');
   console.log('3. Set autoSync=true to auto-sync beads to git');
   console.log('4. Test with real agent workflow');

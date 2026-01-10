@@ -390,7 +390,7 @@ export const beads = async ({
   directory: _directory,
   worktree: _worktree,
 }) => {
-  const configPath = new URL('../beads_config.json', import.meta.url);
+  const configPath = new URL('../config/beads.json', import.meta.url);
   let config = {
     enabled: true,
     autoTriage: true,
