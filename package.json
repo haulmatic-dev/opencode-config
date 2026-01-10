@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@opencode-ai/plugin": "1.1.11",
+    "@opencode-ai/plugin": "1.0.220",
     "@the-convocation/twitter-scraper": "^0.21.1"
   },
   "devDependencies": {
@@ -22,6 +22,8 @@
     "biome:check:write": "biome check --write .",
     "biome:lint": "biome lint .",
     "biome:lint:fix": "biome lint --write .",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "start": "node bin/opencode-wrapper.js",
+    "session-start": "bash hooks/session-start.sh"
   }
 }
