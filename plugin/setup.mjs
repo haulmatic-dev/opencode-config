@@ -133,6 +133,19 @@ export const setup = async ({
         return;
       }
 
+      const hooksDir = new URL('../hooks', import.meta.url).pathname;
+      const sessionStartHook = `${hooksDir}/session-start.sh`;
+
+      // Execute session-start.sh hook
+      try {
+        console.log('[Setup Plugin] Running session-start.sh hook...');
+        await execAsync(`bash ${sessionStartHook}`, { stdio: 'inherit' });
+        console.log('[Setup Plugin] session-start.sh completed successfully');
+      } catch (error) {
+        console.error('[Setup Plugin] session-start.sh failed:', error.message);
+      }
+
+      // Display status information
       const workspaceStatus = await plugin.checkWorkspaceInit();
       const systemStatus = await plugin.checkSystemTools();
 
