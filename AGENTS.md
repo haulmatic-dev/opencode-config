@@ -491,6 +491,19 @@ bd sync                 # Commit any new beads changes
 git push                # Push to remote
 ```
 
+**CRITICAL: Never commit directly to main or master branch**
+
+Before committing, verify you're not on main/master:
+
+```bash
+CURRENT_BRANCH=$(git branch --show-current)
+if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
+  echo "ERROR: Cannot commit to $CURRENT_BRANCH"
+  echo "Create a feature branch first: git checkout -b feature/your-work"
+  exit 1
+fi
+```
+
 ### Best Practices
 
 - **ALWAYS** use `bv --robot-*` commands for AI agents (never bare `bv`)
@@ -500,6 +513,7 @@ git push                # Push to remote
 - Update status as you work (in_progress → closed)
 - Create new issues with `bd create` when you discover tasks
 - Always `bd sync` before ending session
+- **NEVER** commit to main or master branch - create a feature branch first
 
 ## Beads Plugin Integration
 
@@ -742,6 +756,19 @@ bd sync                 # Commit any new beads changes
 git push                # Push to remote
 ```
 
+**CRITICAL: Never commit directly to main or master branch**
+
+Before committing, verify you're not on main/master:
+
+```bash
+CURRENT_BRANCH=$(git branch --show-current)
+if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
+  echo "ERROR: Cannot commit to $CURRENT_BRANCH"
+  echo "Create a feature branch first: git checkout -b feature/your-work"
+  exit 1
+fi
+```
+
 ### Best Practices
 
 - **ALWAYS** use `bv --robot-*` commands for AI agents (never bare `bv`)
@@ -751,3 +778,4 @@ git push                # Push to remote
 - Update status as you work (in_progress → closed)
 - Create new issues with `bd create` when you discover tasks
 - Always `bd sync` before ending session
+- **NEVER** commit to main or master branch - create a feature branch first

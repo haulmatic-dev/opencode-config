@@ -10,55 +10,47 @@ OPENCODE_BIN="$OPENCODE_DIR/bin"
 # Detect shell
 if [ -n "$ZSH_VERSION" ]; then
   SHELL_CONFIG="$HOME/.zshrc"
-  SHELL_NAME="zsh"
 elif [ -n "$BASH_VERSION" ]; then
   SHELL_CONFIG="$HOME/.bashrc"
-  SHELL_NAME="bash"
 else
   SHELL_CONFIG="$HOME/.profile"
-  SHELL_NAME="sh"
 fi
 
-# Check if already in PATH
+# Check if PATH is already configured
+PATH_CONFIGURED=false
 if [[ ":$PATH:" == *":$OPENCODE_BIN:"* ]]; then
   PATH_CONFIGURED=true
-else
-  PATH_CONFIGURED=false
 fi
 
 # Banner
 echo ""
-echo "╔════════════════════════════════════════════╗"
+echo "╔══════════════════════════════════════════╗"
 echo "║   OpenCode - System Setup                              ║"
-echo "╚════════════════════════════════════════════════╝"
+echo "╚══════════════════════════════════════════════╝"
 echo ""
-echo "Current status:"
-echo "  Shell:     $SHELL_NAME"
+echo "📋 Current Status:"
+echo ""
+echo "  Shell:     $(basename $SHELL_CONFIG)"
 echo "  Config:    $SHELL_CONFIG"
 echo "  PATH configured: $([ "$PATH_CONFIGURED" = true ] && echo 'Yes' || echo 'No')"
 echo ""
 
-# Ask if user wants to continue
-read -p "Continue with setup? [Y/n]: " CONFIRM
-
-if [[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]]; then
-  echo "Setup cancelled."
-  exit 0
-fi
-
-echo ""
-echo "📋 Checking tools..."
-
+# Check tool status
+HAS_GO=false
 HAS_CM=false
 HAS_BIOME=false
 HAS_PRETTIER=false
 HAS_BD=false
 HAS_BV=false
-HAS_GO=false
+HAS_OSGREP=false
+HAS_UBS=false
 
 # Check for Go
 if command -v go &> /dev/null; then
   HAS_GO=true
+  echo "  Go: ✓"
+else
+  echo "  Go: ○ (needed for Beads CLI)"
 fi
 
 # Check for cass
@@ -66,156 +58,197 @@ if command -v cm &> /dev/null; then
   HAS_CM=true
   if command -v cass &> /dev/null; then
     CASS_HEALTHY=$(cm health 2>/dev/null && echo "healthy")
+    
     if [ "$CASS_HEALTHY" = "healthy" ]; then
-      echo "  ✓ cass_memory (cm): healthy"
+      if ! pgrep -f "cass" > /dev/null 2>&1; then
+        echo "  cass_memory (cm): ✓ (healthy)"
+      else
+        echo "  cass_memory (cm): ✓ (running)"
+      fi
     else
-      echo "  ⚠ cass_memory (cm): needs attention"
+      echo "  cass_memory (cm): ○ (needs health check)"
     fi
-  fi
+else
+  echo "  cass_memory (cm): ○ (not installed)"
 fi
 
 # Check for Biome
 if command -v biome &> /dev/null; then
   HAS_BIOME=true
-  echo "  ✓ Biome: $(biome --version 2>/dev/null | head -1 || echo 'installed')"
+  echo "  Biome: ✓ $(biome --version 2>/dev/null | head -1 || echo 'unknown')"
+else
+  echo "  Biome: ○ (not installed)"
 fi
 
 # Check for Prettier
 if command -v prettier &> /dev/null; then
   HAS_PRETTIER=true
-  echo "  ✓ Prettier: $(prettier --version 2>/dev/null | head -1 || echo 'installed')"
+  echo "  Prettier: ✓ $(prettier --version 2>/dev/null | head -1 || echo 'unknown')"
+else
+  echo "  Prettier: ○ (not installed)"
 fi
 
 # Check for Beads CLI
 if command -v bd &> /dev/null; then
   HAS_BD=true
-  echo "  ✓ Beads CLI (bd): $(bd --version 2>/dev/null | head -1 || echo 'installed')"
+  echo "  Beads CLI (bd): ✓ $(bd --version 2>/dev/null | head -1 || echo 'unknown')"
+else
+  echo "  Beads CLI (bd): ○ (not installed)"
 fi
 
 # Check for Beads Viewer
 if command -v bv &> /dev/null; then
   HAS_BV=true
-  echo "  ✓ Beads Viewer (bv): $(bv --version 2>/dev/null | head -1 || echo 'installed')"
+  echo "  Beads Viewer (bv): ✓ $(bv --version 2>/dev/null | head -1 || echo 'unknown')"
+else
+  echo "  Beads Viewer (bv): ○ (not installed)"
 fi
 
 # Check for osgrep (optional)
 if command -v osgrep &> /dev/null; then
   HAS_OSGREP=true
-  echo "  ✓ Osgrep: $(osgrep --version 2>/dev/null | head -1 || echo 'installed')"
+  echo "  Osgrep: ✓ $(osgrep --version 2>/dev/null | head -1 || echo 'unknown')"
+else
+  echo "  Osgrep: ○ (not installed)"
 fi
 
 # Check for UBS (optional)
 if command -v ubs &> /dev/null; then
   HAS_UBS=true
-  echo "  ✓ UBS: $(ubs --version 2>/dev/null | head -1 || echo 'installed')"
+  echo "  UBS: ✓ $(ubs --version 2>/dev/null | head -1 || echo 'unknown')"
+else
+  echo "  UBS: ○ (not installed)"
 fi
 
 echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Step 1: Install Go if needed (for Beads CLI)
-if [ "$HAS_GO" = false ]; then
-  echo "Step 1: Installing Go..."
-  if [ "$(uname -s)" = "Darwin" ] && command -v brew &> /dev/null; then
-    brew install go
-  elif [ -f /etc/os-release ]; then
-    . /etc/os-release
-    if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ]; then
+# Count tools that need to be installed
+MISSING_COUNT=0
+[ "$HAS_GO" = false ] && ((MISSING_COUNT++))
+[ "$HAS_BIOME" = false ] && ((MISSING_COUNT++))
+[ "$HAS_PRETTIER" = false ] && ((MISSING_COUNT++))
+[ "$HAS_BD" = false ] && ((MISSING_COUNT++))
+[ "$HAS_BV" = false ] && ((MISSING_COUNT++))
+[ "$HAS_OSGREP" = false ] && ((MISSING_COUNT++))
+[ "$HAS_UBS" = false ] && ((MISSING_COUNT++))
+
+if [ $MISSING_COUNT -eq 0 ]; then
+  echo ""
+  echo "✓ All tools are already installed and configured!"
+  echo ""
+  echo "What would you like to do?"
+  echo ""
+  echo "  1) Exit - Keep current configuration"
+  echo "  2) Reconfigure PATH - Ensure $OPENCODE_BIN is in PATH"
+  echo "  3) Exit and source config - Source $SHELL_CONFIG to apply PATH"
+  echo ""
+  read -p "Select option [1/2/3]: " CHOICE
+  
+  case "$CHOICE" in
+    1)
+      echo "Exiting..."
+      ;;
+    2)
+      # Reconfigure PATH
+      echo ""
+      echo "Adding $OPENCODE_BIN to PATH..."
+      echo "export PATH=\"$OPENCODE_BIN:\$PATH\"" >> "$SHELL_CONFIG"
+      echo "✓ PATH configured"
+      PATH_CONFIGURED=true
+      echo ""
+      echo "⚠️  IMPORTANT: Source your shell config to apply PATH:"
+      echo "  source $SHELL_CONFIG"
+      echo "  Or restart your terminal."
+      ;;
+    3)
+      echo "Exiting..."
+      echo ""
+      echo "⚠️  Don't forget to source your shell config to apply PATH:"
+      echo "  source $SHELL_CONFIG"
+      ;;
+  esac
+else
+  echo ""
+  echo "Found $MISSING_COUNT missing tool(s) that need installation."
+  echo ""
+  
+  # Install Go if needed
+  if [ "$HAS_GO" = false ]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Step 1: Install Go (required for Beads CLI)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    OS="$(uname -s)"
+    if [ "$OS" = "Darwin" ]; then
+      PACKAGE_MANAGER="homebrew"
+    elif [ -f /etc/os-release ]; then
+      . /etc/os-release
+      if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ]; then
+        PACKAGE_MANAGER="apt"
+      else
+        PACKAGE_MANAGER="unknown"
+      fi
+    else
+      PACKAGE_MANAGER="unknown"
+    fi
+    
+    if [ "$PACKAGE_MANAGER" = "homebrew" ]; then
+      brew install go
+      if [ $? -ne 0 ]; then
+        echo "✗ Failed to install Go"
+        exit 1
+      fi
+    elif [ "$PACKAGE_MANAGER" = "apt" ]; then
       sudo apt-get update
       sudo apt-get install -y golang-go
+      if [ $? -ne 0 ]; then
+        echo "✗ Failed to install Go"
+        exit 1
+      fi
+    else
+      echo "⚠️  Go not found and cannot auto-install on this OS"
+      echo "   Install Go from: https://golang.org/dl/"
+      echo ""
+      read -p "Press Enter to continue..." && read
     fi
-  else
-    echo "  ⚠️  Go not found and cannot auto-install on this OS"
-    echo "  Install Go from: https://golang.org/dl/"
-    exit 1
+    HAS_GO=true
+    echo "✓ Go installed"
   fi
-  HAS_GO=true
-  echo "  ✓ Go installed: $(go version)"
-fi
-
-# Step 2: Install Beads CLI if needed
-if [ "$HAS_BD" = false ]; then
-  echo "Step 2: Installing Beads CLI (bd)..."
-  go install github.com/steveyegge/beads/cmd/bd@latest
-  if [ $? -ne 0 ]; then
-    echo "  ✗ Failed to install Beads CLI"
-    exit 1
+  
+  # Install Biome if missing
+  if [ "$HAS_BIOME" = false ]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Step 2: Install Biome"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    npm install -g @biomejs/biome
+    if [ $? -ne 0 ]; then
+      echo "✗ Failed to install Biome"
+      exit 1
+    fi
+    echo "✓ Biome installed"
+    HAS_BIOME=true
   fi
-  echo "  ✓ Beads CLI installed: $(bd --version 2>/dev/null | head -1 || echo 'installed')"
-  HAS_BD=true
-fi
-
-# Step 3: Install Beads Viewer if needed
-if [ "$HAS_BV" = false ]; then
-  echo "Step 3: Installing Beads Viewer (bv)..."
-  curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh?$(date +%s)" | bash
-  if [ $? -ne 0 ]; then
-    echo "  ✗ Failed to install Beads Viewer"
-    exit 1
+  
+  # Install Prettier if missing
+  if [ "$HAS_PRETTIER" = false ]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Step 3: Install Prettier"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    npm install -g prettier
+    if [ $? -ne 0 ]; then
+      echo "✗ Failed to install Prettier"
+      exit 1
+    fi
+    echo "✓ Prettier installed"
+    HAS_PRETTIER=true
   fi
-  echo "  ✓ Beads Viewer installed: $(bv --version 2>/dev/null | head -1 || echo 'installed')"
-  HAS_BV=true
-fi
-
-# Step 4: Install Osgrep if needed
-if [ "$HAS_OSGREP" = false ]; then
-  echo "Step 4: Installing Osgrep..."
-  npm install -g @steveyegge/osgrep
-  if [ $? -ne 0 ]; then
-    echo "  ✗ Failed to install Osgrep"
-    exit 1
-  fi
-  echo "  ✓ Osgrep installed: $(osgrep --version 2>/dev/null | head -1 || echo 'installed')"
-  HAS_OSGREP=true
-fi
-
-# Step 5: Install UBS if needed
-if [ "$HAS_UBS" = false ]; then
-  echo "Step 5: Installing UBS..."
-  curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)" | bash
-  if [ $? -ne 0 ]; then
-    echo "  ✗ Failed to install UBS"
-    exit 1
-  fi
-  echo "  ✓ UBS installed: $(ubs --version 2>/dev/null | head -1 || echo 'installed')"
-  HAS_UBS=true
-fi
-
-# Step 6: Configure PATH
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "Step 6: Configuring PATH..."
-
-if [ "$PATH_CONFIGURED" = true ]; then
-  echo "  ✓ PATH already configured in $SHELL_CONFIG"
-else
-  echo "  Adding to $SHELL_CONFIG: export PATH=\"$OPENCODE_BIN:\$PATH\""
-  echo "export PATH=\"$OPENCODE_BIN:\$PATH\"" >> "$SHELL_CONFIG"
-  PATH_CONFIGURED=true
-  echo "  ✓ PATH configured"
-fi
-
-# Summary
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "╔════════════════════════════════════════════╗"
-echo "║   Setup Complete!                                    ║"
-echo "╚══════════════════════════════════════════════════╝"
-echo ""
-echo "✓ Installed:"
-echo "  • cass_memory (cm) - Evidence-based learning system"
-echo "  • Biome - Modern linting and formatting (20+ languages)"
-echo "  • Prettier - Code formatter"
-echo "  • Go - Required for Beads CLI"
-echo "  • Beads CLI (bd) - Task tracking"
-echo "  • Beads Viewer (bv) - Terminal UI for browsing tasks"
-echo "  • Osgrep - Semantic code search"
-echo "  • UBS - Multi-language static analysis"
-echo ""
-echo "⚠️  IMPORTANT: Apply PATH changes to your current shell:"
-echo "   source $SHELL_CONFIG"
-echo "   Or restart your terminal"
-echo ""
+  
+  # Install Beads CLI if missing
+  if [ "$HAS_BD" = false ] && [ "$HAS_GO" = true ]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Step 4: Install Beads CLI (bd)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━:
+    - When tools are installed, offer options to (1) Exit (2) Reconfigure PATH (3) Exit and source config
+    - Always install missing tools, then always configure PATH at the end
+    - Show clear next-step to apply PATH changes"
