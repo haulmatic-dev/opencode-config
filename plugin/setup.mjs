@@ -1,4 +1,4 @@
-import { exec } from 'node:child_process';
+import { exec, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { promisify } from 'node:util';
 
@@ -137,10 +137,20 @@ export const setup = async ({
       const sessionStartHook = `${hooksDir}/session-start.sh`;
 
       // Execute session-start.sh hook
+      console.log('[Setup Plugin] Running session-start.sh hook...');
       try {
-        console.log('[Setup Plugin] Running session-start.sh hook...');
-        await execAsync(`bash ${sessionStartHook}`, { stdio: 'inherit' });
-        console.log('[Setup Plugin] session-start.sh completed successfully');
+        exec(`bash ${sessionStartHook}`, (error, stdout, stderr) => {
+          if (error) {
+            console.error(
+              '[Setup Plugin] session-start.sh failed:',
+              error.message,
+            );
+            if (stderr) console.error('[Setup Plugin] stderr:', stderr);
+            return;
+          }
+          console.log('[Setup Plugin] session-start.sh completed successfully');
+          if (stdout) console.log(stdout);
+        });
       } catch (error) {
         console.error('[Setup Plugin] session-start.sh failed:', error.message);
       }
