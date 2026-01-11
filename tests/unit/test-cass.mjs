@@ -38,8 +38,8 @@ async function testCassMemory() {
     console.log('   ', lsPlugin.trim());
 
     console.log('\n4. Checking config file...');
-    const { stdout: catConfig } = await execAsync('cat cass_config.json');
-    console.log('   ✓ cass_config.json exists');
+    const { stdout: catConfig } = await execAsync('cat config/cass.json');
+    console.log('   ✓ config/cass.json exists');
     console.log('   ', catConfig.trim());
 
     console.log('\n5. Checking cm status...');

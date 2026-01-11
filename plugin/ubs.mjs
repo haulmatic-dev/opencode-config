@@ -1,4 +1,4 @@
-const UBSClient = require('../lib/ubs-client.js');
+const UBSClient = require('../lib/ubs/ubs-client.js');
 
 export const UBSPPlugin = async ({
   project,

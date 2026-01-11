@@ -19,11 +19,11 @@ fi
 # Check if config exists
 echo ""
 echo "2. Checking config file..."
-if [ -f "cass_config.json" ]; then
-    echo "   ✓ cass_config.json exists"
-    cat cass_config.json
+if [ -f "config/cass.json" ]; then
+    echo "   ✓ config/cass.json exists"
+    cat config/cass.json
 else
-    echo "   ✗ cass_config.json not found"
+    echo "   ✗ config/cass.json not found"
     exit 1
 fi
 
@@ -78,7 +78,7 @@ echo "✅ All checks passed!"
 echo ""
 echo "Integration Summary:"
 echo "- Plugin: plugin/cass.mjs ✓"
-echo "- Config: cass_config.json ✓"
+echo "- Config: config/cass.json ✓"
 echo "- Client: cm (installed) ✓"
 echo "- Hooks: agent.execute.before, agent.execute.after ✓"
-echo "- Test: node test-cass.mjs ✓"
+echo "- Test: node tests/unit/test-cass.mjs ✓"

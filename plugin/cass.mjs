@@ -149,7 +149,7 @@ export const cass = async ({
   directory: _directory,
   worktree: _worktree,
 }) => {
-  const configPath = new URL('../cass_config.json', import.meta.url);
+  const configPath = new URL('../config/cass.json', import.meta.url);
   let config = { enabled: true };
 
   try {

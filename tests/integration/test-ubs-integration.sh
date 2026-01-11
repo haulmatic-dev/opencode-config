@@ -14,7 +14,7 @@ echo "----------------------------------------"
 
 PLUGIN_FILES=(
     "plugin/ubs.mjs"
-    "lib/ubs-client.js"
+    "lib/ubs/ubs-client.js"
     "config/ubs_config.json"
     "hooks/check-ubs.sh"
 )
@@ -159,7 +159,7 @@ echo "✅ All critical tests passed!"
 echo ""
 echo "UBS Integration Components:"
 echo "  - Plugin: plugin/ubs.mjs"
-echo "  - Client: lib/ubs-client.js"
+echo "  - Client: lib/ubs/ubs-client.js"
 echo "  - Config: config/ubs_config.json"
 echo "  - Health Check: hooks/check-ubs.sh"
 echo "  - Pre-commit Hook: .githooks/pre-commit"

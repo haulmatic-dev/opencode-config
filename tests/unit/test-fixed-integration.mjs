@@ -2,7 +2,7 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { beads } from './plugin/beads.mjs';
+import { beads } from '../../plugin/beads.mjs';
 
 const execAsync = promisify(exec);
 

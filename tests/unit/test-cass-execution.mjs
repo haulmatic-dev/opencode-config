@@ -2,7 +2,7 @@
 
 // Simulate opencode plugin execution to test cass integration
 
-import { cass } from './plugin/cass.mjs';
+import { cass } from '../../plugin/cass.mjs';
 
 async function testPluginExecution() {
   console.log('Testing Cass Memory Plugin Execution Simulation\n');

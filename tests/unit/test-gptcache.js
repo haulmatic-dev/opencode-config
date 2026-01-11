@@ -1,4 +1,4 @@
-const GPTCacheClient = require('./lib/gptcache-client');
+const GPTCacheClient = require('../lib/gptcache/gptcache-client');
 
 const client = new GPTCacheClient('127.0.0.1', 8000);
 
