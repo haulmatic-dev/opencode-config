@@ -352,7 +352,272 @@ bd ready              # Find available work (no blockers)
 bd show <id>          # View issue details
 bd update <id> --status in_progress  # Claim work
 bd close <id>         # Complete work
+bd delete <id> --force  # Delete issues
 bd sync               # Sync with git
+```
+
+---
+
+## Beads Advanced Commands
+
+### Deleting Issues
+
+Delete single issue:
+
+```bash
+bd delete bd-123 --force
+```
+
+Delete with cascade (removes dependents):
+
+```bash
+bd delete bd-123 --cascade --force
+```
+
+Delete from file (batch):
+
+```bash
+bd delete --from-file deletions.txt --force
+```
+
+Preview before deleting:
+
+```bash
+bd delete bd-123 --dry-run
+```
+
+Permanent deletion (skip tombstones - DANGEROUS):
+
+```bash
+bd delete bd-123 --hard --force
+```
+
+Delete all issues:
+
+```bash
+bd list --format id | xargs bd delete --cascade --force
+```
+
+**Safety Notes:**
+
+- Use `--force` only after `--dry-run` confirms correct targets
+- `--hard` bypasses recovery - use only when absolutely certain
+- Tombstones allow recovery via `bd sync` from remote
+
+### Dependency Management
+
+Add dependency:
+
+```bash
+bd dep add bd-2 bd-1              # bd-1 blocks bd-2
+bd dep add bd-2 blocks:bd-1        # Explicit type
+```
+
+Remove dependency:
+
+```bash
+bd dep remove bd-2 bd-1
+```
+
+List dependencies:
+
+```bash
+bd dep list bd-2 dependents    # Show what bd-2 blocks
+bd dep list bd-2 dependencies   # Show what blocks bd-2
+```
+
+Show dependency tree:
+
+```bash
+bd dep tree bd-1
+```
+
+Detect cycles:
+
+```bash
+bd dep cycles
+```
+
+### Advanced Filtering
+
+Filter by status:
+
+```bash
+bd list --status open
+bd list --status in_progress
+```
+
+Filter by priority:
+
+```bash
+bd list --priority-min 0 --priority-max 2
+```
+
+Filter by label:
+
+```bash
+bd list --label backend --label urgent
+```
+
+Filter by date ranges:
+
+```bash
+bd list --created-after "2025-01-01"
+bd list --updated-after "30 days ago"
+```
+
+Search in content:
+
+```bash
+bd list --title-contains "bug"
+bd list --desc-contains "performance"
+```
+
+Sort and limit:
+
+```bash
+bd list --sort priority --reverse --limit 10
+```
+
+### Search
+
+Text search across title/description/ID:
+
+```bash
+bd search "authentication bug"
+bd search "login" --status open --limit 10
+bd search "bd-5q"  # Search by partial ID
+```
+
+### Label Management
+
+Add labels:
+
+```bash
+bd label add bd-123 backend urgent
+```
+
+Remove labels:
+
+```bash
+bd label remove bd-123 urgent
+```
+
+List all labels:
+
+```bash
+bd label list-all
+```
+
+### Creating Issues
+
+Basic create:
+
+```bash
+bd create "Fix authentication bug"
+```
+
+Full options:
+
+```bash
+bd create "Add user feedback feature" \
+  --description "Implement feedback form..." \
+  --type feature \
+  --priority 1 \
+  --labels backend,ui \
+  --deps bd-42,bd-45 \
+  --assignee alice \
+  --estimate 120
+```
+
+Interactive form:
+
+```bash
+bd create-form
+```
+
+### Editing Issues
+
+Edit description in $EDITOR:
+
+```bash
+bd edit bd-123
+```
+
+Edit specific field:
+
+```bash
+bd edit bd-123 --title
+bd edit bd-123 --design
+bd edit bd-123 --acceptance
+```
+
+### Issue State Management
+
+Defer issue:
+
+```bash
+bd defer bd-123
+bd defer bd-123 --until "next monday"
+```
+
+Undefer (restore):
+
+```bash
+bd undefer bd-123
+```
+
+Reopen closed issue:
+
+```bash
+bd reopen bd-123 --reason "Reopened for investigation"
+```
+
+Mark as duplicate:
+
+```bash
+bd duplicate bd-456 --of bd-123
+```
+
+Mark as superseded:
+
+```bash
+bd supersede bd-456 bd-789
+```
+
+### Comments
+
+View comments:
+
+```bash
+bd comments bd-123
+```
+
+Add comment:
+
+```bash
+bd comments add bd-123 "This is blocking release"
+```
+
+### Views & Reports
+
+Count issues:
+
+```bash
+bd count --status open
+bd count --label backend --priority-min 0
+```
+
+Show stale issues:
+
+```bash
+bd stale --days 30 --status in_progress
+```
+
+Database status:
+
+```bash
+bd status
 ```
 
 ---
@@ -568,22 +833,97 @@ The Beads plugin (`plugin/beads.mjs`) provides automatic integration with task t
 **BeadsClient** - Basic task management:
 
 ```javascript
+// CRUD Operations
 await beadsClient.ready(); // Get ready tasks
 await beadsClient.show(id); // Get task details
 await beadsClient.update(id, options); // Update task
 await beadsClient.close(id, reason); // Close task
 await beadsClient.sync(); // Sync to git
+await beadsClient.delete(ids, options); // Delete issues
+await beadsClient.create(options); // Create issue
+await beadsClient.edit(id, field); // Edit issue field
+await beadsClient.reopen(ids, reason); // Reopen issues
+
+// Search & Filtering
+await beadsClient.search(query, filters); // Search issues
+await beadsClient.list(filters); // List with filters
+await beadsClient.count(filters); // Count issues
+
+// Issue State
+await beadsClient.defer(ids, until); // Defer issues
+await beadsClient.undefer(ids); // Undefer issues
+await beadsClient.duplicate(id, canonicalId); // Mark duplicate
+await beadsClient.supersede(id, successorId); // Mark superseded
+
+// Comments
+await beadsClient.addComment(id, comment); // Add comment
+
+// Labels
+await beadsClient.addLabel(ids, labels); // Add labels
+await beadsClient.removeLabel(ids, labels); // Remove labels
+
+// Dependencies
+await beadsClient.depAdd(blockedId, blockerId, type); // Add dependency
+await beadsClient.depRemove(blockedId, blockerId); // Remove dependency
+await beadsClient.depList(id, direction); // List deps/dependents
+await beadsClient.depTree(id); // Show dependency tree
+await beadsClient.depCycles(); // Detect cycles
+
+// Reports
+await beadsClient.stale(options); // Show stale issues
+await beadsClient.status(); // Database status
 ```
 
 **BeadsViewerClient** - Graph-aware intelligence:
 
 ```javascript
+// Core Robot Commands
 await bvClient.triage(); // Get recommendations (main entry point)
+await bvClient.next(); // Single top pick (minimal triage)
 await bvClient.plan(options); // Get execution plan
 await bvClient.insights(options); // Get graph metrics
 await bvClient.alerts(); // Get alerts
 await bvClient.history(); // Get history
 await bvClient.labelHealth(); // Get label health
+
+// Analysis Commands
+await bvClient.capacity(options); // Capacity simulation
+await bvClient.drift(options); // Drift detection
+await bvClient.checkDrift(); // Check drift
+await bvClient.saveBaseline(description); // Save baseline
+
+// Search Commands
+await bvClient.search(query, options); // Semantic search
+
+// File Analysis
+await bvClient.fileBeads(filePath); // Beads touching file
+await bvClient.fileHotspots(); // Files touched most often
+await bvClient.fileRelations(filePath); // Files that co-change
+
+// Impact Analysis
+await bvClient.impact(filePaths); // Analyze file impact
+await bvClient.impactNetwork(beadId); // Bead impact network
+
+// Relationship Analysis
+await bvClient.related(beadId); // Related beads
+await bvClient.causality(beadId); // Causal chain
+await bvClient.blockerChain(beadId); // Full blocker chain
+
+// Correlation Commands
+await bvClient.correlationStats(); // Correlation statistics
+await bvClient.confirmCorrelation(sha, beadId); // Confirm correlation
+await bvClient.rejectCorrelation(sha, beadId); // Reject correlation
+await bvClient.explainCorrelation(sha, beadId); // Explain correlation
+
+// Orphans & Sprints
+await bvClient.orphans(); // Orphan commit candidates
+await bvClient.sprintList(); // List sprints
+await bvClient.sprintShow(sprintId); // Show sprint details
+await bvClient.recipes(); // Available recipes
+
+// Export Commands
+await bvClient.exportMd(outputPath); // Export Markdown
+await bvClient.exportGraph(outputPath, format); // Export graph
 ```
 
 ### Benefits over Manual Usage
