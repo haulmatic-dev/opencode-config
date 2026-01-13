@@ -1,7 +1,38 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import { readFileSync } from 'node:fs';
 
 const execAsync = promisify(exec);
+
+const BEADS_KEYWORDS = [
+  'bead',
+  'bd ',
+  'bd,',
+  'bd.',
+  'beads',
+  'task',
+  'issue',
+  'beads',
+  'update ',
+  'close ',
+  'create ',
+  'delete ',
+  'reopen ',
+  'status',
+  'bv ',
+  'triage',
+  'insights',
+  'orphans',
+  'drift',
+  'sprint',
+  'dependency',
+  'blocker',
+  'unblock',
+  'priority',
+  'assignee',
+];
+
+const BEADS_GUIDE_PATH = new URL('../skills/beads-agent.md', import.meta.url);
 
 class BeadsClient {
   constructor() {
@@ -1096,9 +1127,27 @@ export const beads = async ({
   }
 
   return {
-    'agent.execute.before': async (_input, output) => {
+    'agent.execute.before': async (input, output) => {
       if (!middleware || !config.enabled) {
         return;
+      }
+
+      const userInput = input?.prompt || input?.message || input?.content || '';
+      const inputLower = userInput.toLowerCase();
+
+      const needsBeadsContext = BEADS_KEYWORDS.some((keyword) =>
+        inputLower.includes(keyword.toLowerCase()),
+      );
+
+      if (needsBeadsContext) {
+        try {
+          const beadsGuide = readFileSync(BEADS_GUIDE_PATH, 'utf8');
+          output.beadsGuide = beadsGuide;
+          output.systemPrompt += '\n\n' + beadsGuide;
+          console.log('[BeadsPlugin] Injected beads context for task');
+        } catch (e) {
+          console.log('[BeadsPlugin] Could not load beads guide:', e.message);
+        }
       }
 
       if (middleware.autoTriage) {
@@ -1108,7 +1157,7 @@ export const beads = async ({
           const triagePrompt = await middleware.formatRecommendations(
             triage.triage,
           );
-          output.systemPrompt = triagePrompt;
+          output.systemPrompt += '\n\n' + triagePrompt;
           output.beadsTriage = triage.triage;
         }
       }
