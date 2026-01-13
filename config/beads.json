@@ -4,6 +4,10 @@
   "autoClaim": false,
   "autoClose": true,
   "autoSync": false,
-  "description": "Beads and Beads Viewer integration for opencode",
+  "deleteMode": "tombstone",
+  "enableSearch": true,
+  "enableDrift": false,
+  "enableCorrelation": false,
+  "description": "Beads and Beads Viewer integration for opencode with comprehensive command support",
   "docs": "https://github.com/steveyegge/beads and https://github.com/Dicklesworthstone/beads_viewer"
 }
