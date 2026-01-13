@@ -78,14 +78,75 @@ node bin/beads-api.mjs count                   # Count tasks
 node bin/beads-api.mjs bvTriage                # Get AI recommendations
 node bin/beads-api.mjs create '{"title":"...","priority":1}'  # Create task
 node bin/beads-api.mjs delete <ids> '{"force":true}'  # Delete tasks
+
+# Using beads_tools (native opencode tools - agents can call directly)
+beads_list --filters '{"status":"open"}'
+beads_show --id "opencode-abc"
+beads_create --options '{"title":"Fix bug","priority":1}'
+beads_update --id "opencode-abc" --options '{"status":"in_progress"}'
+beads_close --id "opencode-abc"
+beads_ready
+bv_triage
+bv_next
+bv_insights
 ```
 
 ### Rules
 
 - `.beads/` must never be edited manually
-- Task state changes via `bd` or `bin/beads-api.mjs`
+- Task state changes via `bd`, `bin/beads-api.mjs`, or `beads_*`/`bv_*` tools
 - Tasks define scope; agents execute only what the task specifies
 - All work must be linked to a task
+
+### Available Tools
+
+**Beads Management (beads\_\*):**
+| Tool | Description |
+|------|-------------|
+| `beads_list` | List tasks with optional filters |
+| `beads_show` | Show task details |
+| `beads_create` | Create a new task |
+| `beads_update` | Update task status/fields |
+| `beads_close` | Close a completed task |
+| `beads_delete` | Delete tasks |
+| `beads_ready` | Get actionable tasks |
+| `beads_count` | Count tasks |
+| `beads_status` | Get database status |
+| `beads_sync` | Sync to git |
+| `beads_reopen` | Reopen a closed task |
+| `beads_dep_add` | Add dependency |
+| `beads_dep_remove` | Remove dependency |
+| `beads_dep_tree` | Show dependency tree |
+| `beads_dep_cycles` | Check for cycles |
+| `beads_add_label` | Add labels |
+| `beads_remove_label` | Remove labels |
+| `beads_search` | Search tasks |
+| `beads_stale` | Find stale tasks |
+
+**Beads Viewer (bv\_\*):**
+| Tool | Description |
+|------|-------------|
+| `bv_triage` | AI-powered task recommendations |
+| `bv_next` | Next recommended task |
+| `bv_insights` | Graph insights (bottlenecks, cycles) |
+| `bv_alerts` | Stale issues, blocking cascades |
+| `bv_file_beads` | Tasks related to a file |
+| `bv_file_hotspots` | High-change files |
+| `bv_impact` | Impact analysis for files |
+| `bv_impact_network` | Impact network for a task |
+| `bv_related` | Related tasks |
+| `bv_causality` | Causality chain |
+| `bv_blocker_chain` | Blocker chain |
+| `bv_orphans` | Orphaned tasks |
+| `bv_history` | Git-history correlations |
+| `bv_label_health` | Label health metrics |
+| `bv_check_drift` | Baseline drift check |
+| `bv_recipes` | Available recipes |
+| `bv_sprint_list` | List sprints |
+| `bv_sprint_show` | Sprint details |
+| `bv_capacity` | Capacity recommendations |
+| `bv_drift` | Drift analysis |
+| `bv_search` | Semantic search |
 
 For comprehensive Beads documentation including advanced commands, dependency management, and workflow integration, see **[skills/beads-agent.md](./skills/beads-agent.md)**.
 
