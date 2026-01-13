@@ -4,358 +4,264 @@ import { BeadsClient, BeadsViewerClient } from '../lib/beads-client.mjs';
 const beadsClient = new BeadsClient();
 const bvClient = new BeadsViewerClient();
 
-const commands = {
-  // BeadsClient methods
-  ready: async () => {
-    const result = await beadsClient.ready();
-    console.log(JSON.stringify(result, null, 2));
+const COMMANDS = {
+  ready: { client: 'bd', method: 'ready', json: true },
+  show: { client: 'bd', method: 'show', args: ['id'] },
+  update: {
+    client: 'bd',
+    method: 'update',
+    args: ['id', 'options'],
+    json: ['options'],
   },
-
-  show: async () => {
-    const id = process.argv[3];
-    const result = await beadsClient.show(id);
-    console.log(result);
+  close: { client: 'bd', method: 'close', args: ['id', 'reason'] },
+  sync: { client: 'bd', method: 'sync' },
+  delete: {
+    client: 'bd',
+    method: 'delete',
+    args: ['ids', 'options'],
+    comma: ['ids'],
+    json: ['options'],
   },
-
-  update: async () => {
-    const id = process.argv[3];
-    const options = JSON.parse(process.argv[4] || '{}');
-    const result = await beadsClient.update(id, options);
-    console.log(result);
+  create: {
+    client: 'bd',
+    method: 'create',
+    args: ['options'],
+    json: ['options'],
   },
-
-  close: async () => {
-    const id = process.argv[3];
-    const reason = process.argv[4] || 'Completed';
-    const result = await beadsClient.close(id, reason);
-    console.log(result);
+  edit: { client: 'bd', method: 'edit', args: ['id', 'field'] },
+  search: {
+    client: 'bd',
+    method: 'search',
+    args: ['query', 'filters'],
+    json: ['filters'],
   },
-
-  sync: async () => {
-    const result = await beadsClient.sync();
-    console.log(result);
+  list: {
+    client: 'bd',
+    method: 'list',
+    args: ['filters'],
+    json: ['filters'],
+    jsonOut: true,
   },
-
-  delete: async () => {
-    const ids = process.argv[3].split(',');
-    const options = JSON.parse(process.argv[4] || '{}');
-    const result = await beadsClient.delete(ids, options);
-    console.log(result);
+  reopen: {
+    client: 'bd',
+    method: 'reopen',
+    args: ['ids', 'reason'],
+    comma: ['ids'],
   },
-
-  create: async () => {
-    const options = JSON.parse(process.argv[3]);
-    const result = await beadsClient.create(options);
-    console.log(result);
+  duplicate: { client: 'bd', method: 'duplicate', args: ['id', 'canonicalId'] },
+  defer: {
+    client: 'bd',
+    method: 'defer',
+    args: ['ids', 'until'],
+    comma: ['ids'],
   },
-
-  edit: async () => {
-    const id = process.argv[3];
-    const field = process.argv[4] || 'description';
-    const result = await beadsClient.edit(id, field);
-    console.log(result);
+  undefer: { client: 'bd', method: 'undefer', args: ['ids'], comma: ['ids'] },
+  supersede: { client: 'bd', method: 'supersede', args: ['id', 'successorId'] },
+  addComment: { client: 'bd', method: 'addComment', args: ['id', 'comment'] },
+  addLabel: {
+    client: 'bd',
+    method: 'addLabel',
+    args: ['ids', 'labels'],
+    comma: ['ids', 'labels'],
   },
-
-  search: async () => {
-    const query = process.argv[3];
-    const filters = JSON.parse(process.argv[4] || '{}');
-    const result = await beadsClient.search(query, filters);
-    console.log(result);
+  removeLabel: {
+    client: 'bd',
+    method: 'removeLabel',
+    args: ['ids', 'labels'],
+    comma: ['ids', 'labels'],
   },
-
-  list: async () => {
-    const filters = JSON.parse(process.argv[3] || '{}');
-    const result = await beadsClient.list(filters);
-    console.log(JSON.stringify(result, null, 2));
+  depAdd: {
+    client: 'bd',
+    method: 'depAdd',
+    args: ['blockedId', 'blockerId', 'type'],
   },
-
-  reopen: async () => {
-    const ids = process.argv[3].split(',');
-    const reason = process.argv[4] || '';
-    const result = await beadsClient.reopen(ids, reason);
-    console.log(result);
+  depRemove: {
+    client: 'bd',
+    method: 'depRemove',
+    args: ['blockedId', 'blockerId'],
   },
-
-  duplicate: async () => {
-    const id = process.argv[3];
-    const canonicalId = process.argv[4];
-    const result = await beadsClient.duplicate(id, canonicalId);
-    console.log(result);
+  depList: {
+    client: 'bd',
+    method: 'depList',
+    args: ['id'],
+    optionalArgs: ['direction'],
+    flagify: { direction: '--direction' },
   },
-
-  defer: async () => {
-    const ids = process.argv[3].split(',');
-    const until = process.argv[4];
-    const result = await beadsClient.defer(ids, until);
-    console.log(result);
+  depTree: { client: 'bd', method: 'depTree', args: ['id'] },
+  depCycles: { client: 'bd', method: 'depCycles' },
+  stale: {
+    client: 'bd',
+    method: 'stale',
+    args: ['options'],
+    json: ['options'],
   },
-
-  undefer: async () => {
-    const ids = process.argv[3].split(',');
-    const result = await beadsClient.undefer(ids);
-    console.log(result);
+  count: {
+    client: 'bd',
+    method: 'count',
+    args: ['filters'],
+    json: ['filters'],
   },
-
-  supersede: async () => {
-    const id = process.argv[3];
-    const successorId = process.argv[4];
-    const result = await beadsClient.supersede(id, successorId);
-    console.log(result);
+  status: { client: 'bd', method: 'status' },
+  bvTriage: { client: 'bv', method: 'triage', json: true },
+  bvPlan: {
+    client: 'bv',
+    method: 'plan',
+    args: ['options'],
+    json: ['options'],
+    jsonOut: true,
   },
-
-  addComment: async () => {
-    const id = process.argv[3];
-    const comment = process.argv[4];
-    const result = await beadsClient.addComment(id, comment);
-    console.log(result);
+  bvInsights: {
+    client: 'bv',
+    method: 'insights',
+    args: ['options'],
+    json: ['options'],
+    jsonOut: true,
   },
-
-  addLabel: async () => {
-    const ids = process.argv[3].split(',');
-    const labels = process.argv[4].split(',');
-    const result = await beadsClient.addLabel(ids, labels);
-    console.log(result);
+  bvAlerts: { client: 'bv', method: 'alerts', json: true },
+  bvHistory: { client: 'bv', method: 'history', json: true },
+  bvLabelHealth: { client: 'bv', method: 'labelHealth', json: true },
+  bvNext: { client: 'bv', method: 'next', json: true },
+  bvCapacity: {
+    client: 'bv',
+    method: 'capacity',
+    args: ['options'],
+    json: ['options'],
+    jsonOut: true,
   },
-
-  removeLabel: async () => {
-    const ids = process.argv[3].split(',');
-    const labels = process.argv[4].split(',');
-    const result = await beadsClient.removeLabel(ids, labels);
-    console.log(result);
+  bvDrift: {
+    client: 'bv',
+    method: 'drift',
+    args: ['options'],
+    json: ['options'],
+    jsonOut: true,
   },
-
-  depAdd: async () => {
-    const blockedId = process.argv[3];
-    const blockerId = process.argv[4];
-    const type = process.argv[5] || 'blocks';
-    const result = await beadsClient.depAdd(blockedId, blockerId, type);
-    console.log(result);
+  bvSearch: {
+    client: 'bv',
+    method: 'search',
+    args: ['query', 'options'],
+    json: ['options'],
+    jsonOut: true,
   },
-
-  depRemove: async () => {
-    const blockedId = process.argv[3];
-    const blockerId = process.argv[4];
-    const result = await beadsClient.depRemove(blockedId, blockerId);
-    console.log(result);
+  bvFileBeads: {
+    client: 'bv',
+    method: 'fileBeads',
+    args: ['filePath'],
   },
-
-  depList: async () => {
-    const id = process.argv[3];
-    const direction = process.argv[4] || 'dependents';
-    const result = await beadsClient.depList(id, direction);
-    console.log(result);
+  bvFileHotspots: { client: 'bv', method: 'fileHotspots', json: true },
+  bvFileRelations: {
+    client: 'bv',
+    method: 'fileRelations',
+    args: ['filePath'],
   },
-
-  depTree: async () => {
-    const id = process.argv[3];
-    const result = await beadsClient.depTree(id);
-    console.log(result);
+  bvImpact: { client: 'bv', method: 'impact', args: ['filePaths'] },
+  bvImpactNetwork: {
+    client: 'bv',
+    method: 'impactNetwork',
+    args: ['beadId'],
   },
-
-  depCycles: async () => {
-    const result = await beadsClient.depCycles();
-    console.log(result);
+  bvRelated: { client: 'bv', method: 'related', args: ['beadId'] },
+  bvCausality: { client: 'bv', method: 'causality', args: ['beadId'] },
+  bvBlockerChain: {
+    client: 'bv',
+    method: 'blockerChain',
+    args: ['beadId'],
   },
-
-  stale: async () => {
-    const options = JSON.parse(process.argv[3] || '{}');
-    const result = await beadsClient.stale(options);
-    console.log(result);
+  bvCorrelationStats: { client: 'bv', method: 'correlationStats', json: true },
+  bvConfirmCorrelation: {
+    client: 'bv',
+    method: 'confirmCorrelation',
+    args: ['sha', 'beadId'],
   },
-
-  count: async () => {
-    const filters = JSON.parse(process.argv[3] || '{}');
-    const result = await beadsClient.count(filters);
-    console.log(result);
+  bvRejectCorrelation: {
+    client: 'bv',
+    method: 'rejectCorrelation',
+    args: ['sha', 'beadId'],
   },
-
-  status: async () => {
-    const result = await beadsClient.status();
-    console.log(result);
+  bvExplainCorrelation: {
+    client: 'bv',
+    method: 'explainCorrelation',
+    args: ['sha', 'beadId'],
   },
-
-  // BeadsViewerClient methods
-  bvTriage: async () => {
-    const result = await bvClient.triage();
-    console.log(JSON.stringify(result, null, 2));
+  bvOrphans: { client: 'bv', method: 'orphans', json: true },
+  bvSprintList: { client: 'bv', method: 'sprintList', json: true },
+  bvSprintShow: { client: 'bv', method: 'sprintShow', args: ['sprintId'] },
+  bvRecipes: { client: 'bv', method: 'recipes', json: true },
+  bvCheckDrift: { client: 'bv', method: 'checkDrift', json: true },
+  bvSaveBaseline: {
+    client: 'bv',
+    method: 'saveBaseline',
+    args: ['description'],
   },
-
-  bvPlan: async () => {
-    const options = JSON.parse(process.argv[3] || '{}');
-    const result = await bvClient.plan(options);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvInsights: async () => {
-    const options = JSON.parse(process.argv[3] || '{}');
-    const result = await bvClient.insights(options);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvAlerts: async () => {
-    const result = await bvClient.alerts();
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvHistory: async () => {
-    const result = await bvClient.history();
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvLabelHealth: async () => {
-    const result = await bvClient.labelHealth();
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvNext: async () => {
-    const result = await bvClient.next();
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvCapacity: async () => {
-    const options = JSON.parse(process.argv[3] || '{}');
-    const result = await bvClient.capacity(options);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvDrift: async () => {
-    const options = JSON.parse(process.argv[3] || '{}');
-    const result = await bvClient.drift(options);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvSearch: async () => {
-    const query = process.argv[3];
-    const options = JSON.parse(process.argv[4] || '{}');
-    const result = await bvClient.search(query, options);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvFileBeads: async () => {
-    const filePath = process.argv[3];
-    const result = await bvClient.fileBeads(filePath);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvFileHotspots: async () => {
-    const result = await bvClient.fileHotspots();
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvFileRelations: async () => {
-    const filePath = process.argv[3];
-    const result = await bvClient.fileRelations(filePath);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvImpact: async () => {
-    const filePaths = process.argv[3];
-    const result = await bvClient.impact(filePaths);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvImpactNetwork: async () => {
-    const beadId = process.argv[3] || '';
-    const result = await bvClient.impactNetwork(beadId);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvRelated: async () => {
-    const beadId = process.argv[3];
-    const result = await bvClient.related(beadId);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvCausality: async () => {
-    const beadId = process.argv[3];
-    const result = await bvClient.causality(beadId);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvBlockerChain: async () => {
-    const beadId = process.argv[3];
-    const result = await bvClient.blockerChain(beadId);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvCorrelationStats: async () => {
-    const result = await bvClient.correlationStats();
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvConfirmCorrelation: async () => {
-    const sha = process.argv[3];
-    const beadId = process.argv[4];
-    const result = await bvClient.confirmCorrelation(sha, beadId);
-    console.log(result);
-  },
-
-  bvRejectCorrelation: async () => {
-    const sha = process.argv[3];
-    const beadId = process.argv[4];
-    const result = await bvClient.rejectCorrelation(sha, beadId);
-    console.log(result);
-  },
-
-  bvExplainCorrelation: async () => {
-    const sha = process.argv[3];
-    const beadId = process.argv[4];
-    const result = await bvClient.explainCorrelation(sha, beadId);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvOrphans: async () => {
-    const result = await bvClient.orphans();
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvSprintList: async () => {
-    const result = await bvClient.sprintList();
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvSprintShow: async () => {
-    const sprintId = process.argv[3];
-    const result = await bvClient.sprintShow(sprintId);
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvRecipes: async () => {
-    const result = await bvClient.recipes();
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvCheckDrift: async () => {
-    const result = await bvClient.checkDrift();
-    console.log(JSON.stringify(result, null, 2));
-  },
-
-  bvSaveBaseline: async () => {
-    const description = process.argv[3] || '';
-    const result = await bvClient.saveBaseline(description);
-    console.log(result);
-  },
-
-  bvExportMd: async () => {
-    const outputPath = process.argv[3];
-    const result = await bvClient.exportMd(outputPath);
-    console.log(result);
-  },
-
-  bvExportGraph: async () => {
-    const outputPath = process.argv[3];
-    const format = process.argv[4] || 'dot';
-    const result = await bvClient.exportGraph(outputPath, format);
-    console.log(result);
+  bvExportMd: { client: 'bv', method: 'exportMd', args: ['outputPath'] },
+  bvExportGraph: {
+    client: 'bv',
+    method: 'exportGraph',
+    args: ['outputPath', 'format'],
   },
 };
 
 const method = process.argv[2];
+const cmd = COMMANDS[method];
 
-if (commands[method]) {
-  commands[method]();
-} else {
+if (!cmd) {
   console.error('Unknown method:', method);
-  console.error('Available methods:', Object.keys(commands).join(', '));
+  console.error('Available methods:', Object.keys(COMMANDS).join(', '));
   process.exit(1);
 }
+
+const client = cmd.client === 'bd' ? beadsClient : bvClient;
+const methodName = cmd.method;
+
+const parseArg = (arg, index) => {
+  const raw = process.argv[3 + index];
+  if (cmd.json?.includes(arg)) {
+    return raw ? JSON.parse(raw) : {};
+  }
+  if (cmd.comma?.includes(arg)) {
+    return raw ? raw.split(',') : [];
+  }
+  return raw;
+};
+
+const buildArgs = () => {
+  if (!cmd.args) return [];
+
+  const parsed = cmd.args.map((arg, i) => parseArg(arg, i));
+
+  if (cmd.flagify) {
+    const result = [];
+    cmd.args.forEach((arg, i) => {
+      const value = parsed[i];
+      if (cmd.flagify[arg] && value) {
+        result.push(cmd.flagify[arg], value);
+      } else if (!cmd.flagify[arg]) {
+        result.push(value);
+      }
+    });
+    return result;
+  }
+
+  if (cmd.optionalArgs) {
+    const result = parsed.slice(0, cmd.args.length);
+    cmd.optionalArgs.forEach((arg, i) => {
+      const value = parseArg(arg, cmd.args.length + i);
+      if (cmd.flagify?.[arg] && value) {
+        result.push(cmd.flagify[arg], value);
+      } else if (value) {
+        result.push(value);
+      }
+    });
+    return result;
+  }
+
+  return parsed;
+};
+
+const args = cmd.args ? buildArgs() : [];
+
+(async () => {
+  const result = await client[methodName](...args);
+  console.log(
+    cmd.json || cmd.jsonOut ? JSON.stringify(result, null, 2) : result,
+  );
+})();
