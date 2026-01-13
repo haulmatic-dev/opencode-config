@@ -6,20 +6,17 @@ const execAsync = promisify(exec);
 
 const BEADS_KEYWORDS = [
   'bead',
-  'bd ',
-  'bd,',
-  'bd.',
+  'bd',
   'beads',
   'task',
   'issue',
-  'beads',
-  'update ',
-  'close ',
-  'create ',
-  'delete ',
-  'reopen ',
+  'update',
+  'close',
+  'create',
+  'delete',
+  'reopen',
   'status',
-  'bv ',
+  'bv',
   'triage',
   'insights',
   'orphans',
@@ -30,6 +27,53 @@ const BEADS_KEYWORDS = [
   'unblock',
   'priority',
   'assignee',
+  'ready',
+  'claim',
+  'assign',
+  'track',
+  'manage',
+  'organize',
+  'plan',
+  'roadmap',
+  'backlog',
+  'work item',
+  'ticket',
+  'card',
+  'milestone',
+  'deadline',
+  'due date',
+  'what.*work',
+  'what.*task',
+  'what.*do',
+  'next',
+  'pick up',
+  'continue',
+  'finish',
+  'wrap up',
+  'complete',
+  'done',
+  'progress',
+  'status',
+  'summary',
+];
+
+const BEADS_INTENTS = [
+  /where (was|left|am I|should)/i,
+  /what (should I|work on|to do|next|is left)/i,
+  /pick up|continue|finish|wrap up|complete/i,
+  /mark.*(done|complete|finished)/i,
+  /move.*(to|forward|along)/i,
+  /close (out|off)?/i,
+  /update (status|task|issue)/i,
+  /show (me)?.*(task|issue|bead|work)/i,
+  /list (my)?.*(task|issue|bead|work)/i,
+  /what.*depend/i,
+  /what.*block/i,
+  /get (me)?.*task/i,
+  /find.*work/i,
+  /give me.*work/i,
+  /need.*task/i,
+  /want.*task/i,
 ];
 
 const BEADS_GUIDE_PATH = new URL('../skills/beads-agent.md', import.meta.url);
@@ -1135,16 +1179,28 @@ export const beads = async ({
       const userInput = input?.prompt || input?.message || input?.content || '';
       const inputLower = userInput.toLowerCase();
 
-      const needsBeadsContext = BEADS_KEYWORDS.some((keyword) =>
+      const hasKeyword = BEADS_KEYWORDS.some((keyword) =>
         inputLower.includes(keyword.toLowerCase()),
       );
+
+      const hasIntent = BEADS_INTENTS.some((pattern) =>
+        pattern.test(userInput),
+      );
+
+      const needsBeadsContext = hasKeyword || hasIntent;
 
       if (needsBeadsContext) {
         try {
           const beadsGuide = readFileSync(BEADS_GUIDE_PATH, 'utf8');
           output.beadsGuide = beadsGuide;
           output.systemPrompt += '\n\n' + beadsGuide;
-          console.log('[BeadsPlugin] Injected beads context for task');
+          console.log(
+            '[BeadsPlugin] Injected beads context (keyword:',
+            hasKeyword,
+            ', intent:',
+            hasIntent,
+            ')',
+          );
         } catch (e) {
           console.log('[BeadsPlugin] Could not load beads guide:', e.message);
         }
