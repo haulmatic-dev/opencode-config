@@ -395,7 +395,7 @@ bd delete bd-123 --hard --force
 Delete all issues:
 
 ```bash
-bd list --format id | xargs bd delete --cascade --force
+ids=$(node bin/beads-api.mjs list | jq -r '.[].id' | tr '\n' ',' | sed 's/,$//') && node bin/beads-api.mjs delete "$ids" '{"cascade":true,"force":true}'
 ```
 
 **Safety Notes:**
