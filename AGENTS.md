@@ -65,17 +65,25 @@ Beads is the **only authoritative system** for work tracking. All work must map 
 ### Quick Reference
 
 ```bash
+# Using bd CLI directly
 bd ready              # Find available work (no blockers)
 bd show <id>          # View issue details
 bd update <id> --status in_progress  # Claim work
 bd close <id>         # Complete work
 bd sync               # Sync with git
+
+# Using beads-api.mjs (recommended for programmatic access)
+node bin/beads-api.mjs list                    # List all tasks (JSON)
+node bin/beads-api.mjs count                   # Count tasks
+node bin/beads-api.mjs bvTriage                # Get AI recommendations
+node bin/beads-api.mjs create '{"title":"...","priority":1}'  # Create task
+node bin/beads-api.mjs delete <ids> '{"force":true}'  # Delete tasks
 ```
 
 ### Rules
 
 - `.beads/` must never be edited manually
-- Task state changes only via `bd`
+- Task state changes via `bd` or `bin/beads-api.mjs`
 - Tasks define scope; agents execute only what the task specifies
 - All work must be linked to a task
 
