@@ -1,7 +1,0 @@
-{
-  "last_failure": "2026-01-13T16:00:01.527151+05:30",
-  "failure_count": 1,
-  "backoff_until": "2026-01-13T16:00:31.527151+05:30",
-  "needs_manual_sync": false,
-  "failure_reason": "git pull failed: exit status 1\nfatal: couldn't find remote ref feature/autonomous-agent-relay\n"
-}
