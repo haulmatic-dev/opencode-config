@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 import { beads } from '../../plugin/beads.mjs';
 
-const execAsync = promisify(exec);
+const _execAsync = promisify(exec);
 
 async function testFixedIntegration() {
   console.log('========================================');
@@ -46,7 +46,7 @@ async function testFixedIntegration() {
 
   const beforeOutput = {};
 
-  if (hooks && hooks['agent.execute.before']) {
+  if (hooks?.['agent.execute.before']) {
     try {
       await hooks['agent.execute.before'](beforeInput, beforeOutput);
       console.log('   ✓ Hook executed');
@@ -133,7 +133,7 @@ async function testFixedIntegration() {
     beadsTask: beforeOutput.beadsTriage?.recommendations?.[0],
   };
 
-  if (hooks && hooks['agent.execute.after']) {
+  if (hooks?.['agent.execute.after']) {
     try {
       await hooks['agent.execute.after'](afterSuccessInput, afterSuccessOutput);
       console.log('   ✓ Hook executed (success)');
@@ -162,7 +162,7 @@ async function testFixedIntegration() {
     beadsTask: beforeOutput.beadsTriage?.recommendations?.[0],
   };
 
-  if (hooks && hooks['agent.execute.after']) {
+  if (hooks?.['agent.execute.after']) {
     try {
       await hooks['agent.execute.after'](afterErrorInput, afterErrorOutput);
       console.log('   ✓ Hook executed (error)');

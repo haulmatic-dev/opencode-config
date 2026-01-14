@@ -6,12 +6,12 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 
-const gatesPath = join(process.cwd(), 'lib/runner/gates.js');
-const { runGates } = await import(gatesPath);
+const guardrailsPath = join(process.cwd(), 'lib/runner/guardrails.js');
+const { getInterceptor, GuardrailException } = await import(guardrailsPath);
 
 const testType = process.argv[2];
 
-const tests = ['2.4.1', '2.4.2', '2.4.3'];
+const tests = ['1.2.1', '1.2.2'];
 
 async function runTest() {
   try {
@@ -27,45 +27,45 @@ async function runTest() {
 
       console.log(`\n${passed}/${tests.length} tests passed`);
       process.exit(failed > 0 ? 1 : 0);
-    } else if (testType === '2.4.1') {
-      const results = await runGates(['tdd', 'mutation', 'lint'], []);
+    } else if (testType === '1.2.1') {
+      const consoleSpy = [];
+      const originalLog = console.log;
+      console.log = (...args) => {
+        consoleSpy.push(args.join(' '));
+      };
 
-      const allPassed =
-        Array.isArray(results) && results.every((r) => r.passed);
+      const interceptor = getInterceptor('opencode-test-123');
 
-      if (allPassed) {
-        console.log('PASS: All gates pass');
+      console.log = originalLog;
+
+      if (
+        interceptor instanceof Object &&
+        interceptor.taskId === 'opencode-test-123'
+      ) {
+        console.log('PASS: Guardrails initialized with task ID');
         process.exit(0);
       } else {
-        console.log('FAIL: Not all gates passed:', results);
+        console.log('FAIL: Guardrail interceptor not properly initialized');
         process.exit(1);
       }
-    } else if (testType === '2.4.2') {
-      const results = await runGates(['tdd', 'mutation', 'lint'], []);
+    } else if (testType === '1.2.2') {
+      const interceptor = getInterceptor(null);
 
-      const oneFailed =
-        Array.isArray(results) && results.some((r) => !r.passed || r.error);
-
-      if (oneFailed) {
-        console.log('PASS: One gate fails detected');
-        process.exit(0);
-      } else {
-        console.log('FAIL: Failed gate not detected:', results);
+      try {
+        interceptor.checkFileWrite('src/index.js');
+        console.log('FAIL: Should throw GuardrailException for no task ID');
         process.exit(1);
-      }
-    } else if (testType === '2.4.3') {
-      const results = await runGates(['tdd', 'unknown_gate', 'lint'], []);
-
-      const unknownHandled =
-        Array.isArray(results) &&
-        results.some((r) => r.name === 'unknown_gate');
-
-      if (unknownHandled) {
-        console.log('PASS: Unknown gate handled gracefully');
-        process.exit(0);
-      } else {
-        console.log('FAIL: Unknown gate not handled:', results);
-        process.exit(1);
+      } catch (error) {
+        if (
+          error instanceof GuardrailException &&
+          error.rule === 'no_task_id'
+        ) {
+          console.log('PASS: GuardrailException thrown with no_task_id rule');
+          process.exit(0);
+        } else {
+          console.log('FAIL: Wrong exception:', error);
+          process.exit(1);
+        }
       }
     } else {
       console.log('Unknown test type:', testType);
@@ -82,7 +82,7 @@ async function runSingleTest(testId) {
   return new Promise((resolve) => {
     const proc = spawn(
       process.execPath,
-      ['test-2.4-multiple-gates.mjs', testId],
+      ['test-1.2-guardrails-init.mjs', testId],
       {
         cwd: process.cwd(),
         stdio: 'pipe',

@@ -6,12 +6,14 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 
-const gatesPath = join(process.cwd(), 'lib/runner/gates.js');
-const { runGates } = await import(gatesPath);
+const smartContextPath = join(process.cwd(), 'lib/smart-context.mjs');
+const { extractMinimalContext, optimizeContextForAgent } = await import(
+  smartContextPath
+);
 
 const testType = process.argv[2];
 
-const tests = ['2.4.1', '2.4.2', '2.4.3'];
+const tests = ['1.4.1', '1.4.2'];
 
 async function runTest() {
   try {
@@ -27,44 +29,36 @@ async function runTest() {
 
       console.log(`\n${passed}/${tests.length} tests passed`);
       process.exit(failed > 0 ? 1 : 0);
-    } else if (testType === '2.4.1') {
-      const results = await runGates(['tdd', 'mutation', 'lint'], []);
+    } else if (testType === '1.4.1') {
+      const error = new Error('Test error with stack');
+      error.stack =
+        'Error: Test error\n    at testFunction (/path/to/file.js:10:5)\n    at main (/path/to/main.js:20:10)';
 
-      const allPassed =
-        Array.isArray(results) && results.every((r) => r.passed);
+      const context = await extractMinimalContext(error);
 
-      if (allPassed) {
-        console.log('PASS: All gates pass');
+      if (context?.error && Array.isArray(context.frames)) {
+        console.log('PASS: Basic context extraction works');
         process.exit(0);
       } else {
-        console.log('FAIL: Not all gates passed:', results);
+        console.log('FAIL: Context extraction failed:', context);
         process.exit(1);
       }
-    } else if (testType === '2.4.2') {
-      const results = await runGates(['tdd', 'mutation', 'lint'], []);
+    } else if (testType === '1.4.2') {
+      const error = new Error('Test error');
+      error.stack =
+        'Error: Test error\n    at testFunction (/path/to/file.js:10:5)';
 
-      const oneFailed =
-        Array.isArray(results) && results.some((r) => !r.passed || r.error);
+      const context = await extractMinimalContext(error, 1000);
 
-      if (oneFailed) {
-        console.log('PASS: One gate fails detected');
+      if (
+        context &&
+        typeof context.totalChars === 'number' &&
+        context.totalChars <= 2000
+      ) {
+        console.log('PASS: Context size limits respected');
         process.exit(0);
       } else {
-        console.log('FAIL: Failed gate not detected:', results);
-        process.exit(1);
-      }
-    } else if (testType === '2.4.3') {
-      const results = await runGates(['tdd', 'unknown_gate', 'lint'], []);
-
-      const unknownHandled =
-        Array.isArray(results) &&
-        results.some((r) => r.name === 'unknown_gate');
-
-      if (unknownHandled) {
-        console.log('PASS: Unknown gate handled gracefully');
-        process.exit(0);
-      } else {
-        console.log('FAIL: Unknown gate not handled:', results);
+        console.log('FAIL: Context size not limited:', context.totalChars);
         process.exit(1);
       }
     } else {
@@ -82,7 +76,7 @@ async function runSingleTest(testId) {
   return new Promise((resolve) => {
     const proc = spawn(
       process.execPath,
-      ['test-2.4-multiple-gates.mjs', testId],
+      ['test-1.4-context-distillation.mjs', testId],
       {
         cwd: process.cwd(),
         stdio: 'pipe',

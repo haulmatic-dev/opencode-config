@@ -21,7 +21,7 @@ async function testPlugin() {
     // Test session.start
     if (hooks['session.start']) {
       console.log('Testing session.start hook...');
-      const result = await hooks['session.start']();
+      const _result = await hooks['session.start']();
       console.log('✓ session.start hook works\n');
     } else {
       console.log('✗ session.start hook not found\n');
@@ -31,7 +31,7 @@ async function testPlugin() {
     // Test chat.message
     if (hooks['chat.message']) {
       console.log('Testing chat.message hook...');
-      const result = await hooks['chat.message'](
+      const _result = await hooks['chat.message'](
         {
           message: 'workspace',
         },
