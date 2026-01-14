@@ -11,6 +11,9 @@ opencode brings together best-in-class AI development tools into a unified, hook
 - **Beads CLI** (bd) - Dependency-aware task tracking with git persistence
 - **Beads Viewer** (bv) - Graph-aware task triage with AI agent integration
 - **Ultimate Bug Scanner (UBS)** - Multi-language static analysis catching 1000+ bug patterns
+- **Autonomous Agent "Relay" Architecture** - Code-driven quality-governed workflow execution with strict gates, smart context, and automatic handoff between agents
+- **Autonomous Agent "Relay" Architecture** - Code-driven quality-governed workflow execution
+- **Autonomous Agent "Relay" Architecture** - Code-driven quality-governed workflow execution with strict gates, smart context, and automatic handoff between agents
 - **7 Research Droids**:
   - **codebase-researcher** - Pattern discovery and technical debt identification
   - **git-history-analyzer** - Change evolution and team collaboration analysis
@@ -19,13 +22,13 @@ opencode brings together best-in-class AI development tools into a unified, hook
   - **library-source-reader** - Third-party library deep analysis
   - **domain-specialist** - Domain-specific expertise and compliance
   - **semantic-search** (osgrep) - Conceptual code search with embedding models
-- **PM2 Process Manager** - Headless worker orchestration with auto-restart and scaling
 - **Code Quality Tools** - ESLint, Prettier, Husky, lint-staged for automated code quality
 - **Headless Worker Script** - Stateless task execution with Beads and MCP integration
 - **Plugin System** - Extensible architecture with:
   - **gptcache** - LLM response caching for 70-90% cost reduction
   - **beads-guardrails** - Enforce task tracking via beads
   - **ubs** - Automated static analysis before/after agent execution
+- **Autonomous Agent "Relay" Architecture** - Code-driven quality-governed workflow execution with strict gates, smart context, and automatic handoff between agents
 - **Specialized Droids**:
   - **orchestrator** - Master coordinator with dual-mode operation (2000+ lines)
   - **prd** - Product Requirements Document generator
@@ -36,7 +39,7 @@ opencode brings together best-in-class AI development tools into a unified, hook
   - **feature-planning** - End-to-end PRD generation
   - **complex-project** - Enterprise feature planning
 - **Semantic Code Search**:
-  - osgrep integration for conceptual code queries
+  - **osgrep** integration for conceptual code queries
 - **Full Factory CLI workflows**:
   - droid-init (system setup)
   - workspace-init (project initialization)
