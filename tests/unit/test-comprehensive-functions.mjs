@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 
 const execAsync = promisify(exec);
 
@@ -419,7 +419,7 @@ async function testBeadsMiddleware() {
     const { stdout } = await execAsync('bv --robot-triage', {
       maxBuffer: 5 * 1024 * 1024,
     });
-    const bvData = JSON.parse(stdout);
+    const _bvData = JSON.parse(stdout);
 
     const input = {
       sessionID: 'test',

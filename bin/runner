@@ -1,0 +1,86 @@
+#!/bin/bash
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+show_help() {
+    cat << EOF
+OpenCode Agent Runner
+
+USAGE:
+    bin/runner --task <ID> --agent <TYPE> [--workflow <TYPE>]
+    bin/runner --help
+
+ARGUMENTS:
+    --task <ID>              Beads task ID (required)
+    --agent <TYPE>           Agent type to run (required)
+    --workflow <TYPE>        Workflow type: feature-dev, migration (default: feature-dev)
+    --help, -h               Show this help message
+
+EXAMPLES:
+    # Run a PRD agent with feature-dev workflow
+    bin/runner --task opencode-abc --agent prd-agent --workflow feature-dev
+
+    # Run a code agent with default workflow
+    bin/runner --task opencode-def --agent code-agent
+
+    # Show help
+    bin/runner --help
+
+WORKFLOWS:
+    feature-dev              Standard feature development workflow
+    migration                Migration/refactoring workflow
+
+EOF
+}
+
+parse_args() {
+    local args=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+            *)
+                args+=("$1")
+                ;;
+        esac
+        shift
+    done
+    echo "${args[@]}"
+}
+
+main() {
+    local args
+
+    for arg in "$@"; do
+        if [[ "$arg" == "--help" || "$arg" == "-h" ]]; then
+            show_help
+            exit 0
+        fi
+    done
+
+    args=$(parse_args "$@")
+
+    if [ -z "$args" ]; then
+        show_help
+        exit 0
+    fi
+
+    echo "[Runner] Starting agent runner..."
+
+    node "$PROJECT_ROOT/lib/runner/index.js" $args
+    exit_code=$?
+
+    if [ $exit_code -eq 0 ]; then
+        echo "[Runner] Completed successfully"
+    else
+        echo "[Runner] Failed with exit code: $exit_code"
+    fi
+
+    exit $exit_code
+}
+
+main "$@"

@@ -1,11 +1,11 @@
 const UBSClient = require('../lib/ubs/ubs-client.js');
 
 export const UBSPPlugin = async ({
-  project,
-  client,
-  $,
-  directory,
-  worktree,
+  project: _project,
+  client: _client,
+  $: _$,
+  directory: _directory,
+  worktree: _worktree,
 }) => {
   console.log('[UBS Plugin] Initializing...');
 
@@ -210,6 +210,6 @@ function filterUBSSupportedFiles(files) {
 }
 
 function execSync(command) {
-  const { execSync: exec } = require('child_process');
+  const { execSync: exec } = require('node:child_process');
   return exec(command);
 }

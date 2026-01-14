@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { exec } from 'child_process';
-import { readFile } from 'fs/promises';
-import { promisify } from 'util';
+import { exec } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
+import { promisify } from 'node:util';
 import { beads } from '../../plugin/beads.mjs';
 
 const execAsync = promisify(exec);
@@ -42,7 +42,7 @@ async function testBeadsIntegration() {
 
   const beforeOutput = {};
 
-  if (hooks && hooks['agent.execute.before']) {
+  if (hooks?.['agent.execute.before']) {
     await hooks['agent.execute.before'](beforeInput, beforeOutput);
     console.log('   ✓ agent.execute.before executed');
 
@@ -107,7 +107,7 @@ async function testBeadsIntegration() {
     beadsTask: beforeOutput.beadsTriage?.recommendations?.[0],
   };
 
-  if (hooks && hooks['agent.execute.after']) {
+  if (hooks?.['agent.execute.after']) {
     await hooks['agent.execute.after'](afterSuccessInput, afterSuccessOutput);
     console.log('   ✓ agent.execute.after executed (success)');
   }
@@ -127,7 +127,7 @@ async function testBeadsIntegration() {
     beadsTask: beforeOutput.beadsTriage?.recommendations?.[0],
   };
 
-  if (hooks && hooks['agent.execute.after']) {
+  if (hooks?.['agent.execute.after']) {
     await hooks['agent.execute.after'](afterErrorInput, afterErrorOutput);
     console.log('   ✓ agent.execute.after executed (error)');
   }
@@ -195,7 +195,7 @@ async function testBeadsIntegration() {
           `     - Data hash: ${triage.data_hash?.substring(0, 8)}...`,
         );
         console.log(`     - Triage keys:`, Object.keys(triage.triage));
-        if (triage.triage.recommendations && triage.triage.recommendations[0]) {
+        if (triage.triage.recommendations?.[0]) {
           console.log(
             '     First recommendation keys:',
             Object.keys(triage.triage.recommendations[0]),
@@ -258,8 +258,7 @@ async function testBeadsIntegration() {
       await readFile('./opencode.json', 'utf-8'),
     );
     const hasBeadsPlugin =
-      opencodeConfig.plugin &&
-      opencodeConfig.plugin.includes('./plugin/beads.mjs');
+      opencodeConfig.plugin?.includes('./plugin/beads.mjs');
     console.log(
       `   ✓ opencode.json ${hasBeadsPlugin ? 'includes' : 'does not include'} beads plugin`,
     );

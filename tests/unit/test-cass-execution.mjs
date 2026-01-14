@@ -43,7 +43,7 @@ async function testPluginExecution() {
       if (beforeOutput.systemPrompt) {
         console.log(
           '   System prompt injected:',
-          beforeOutput.systemPrompt.slice(0, 100) + '...',
+          `${beforeOutput.systemPrompt.slice(0, 100)}...`,
         );
       }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 import { beads } from '../../plugin/beads.mjs';
 
 const execAsync = promisify(exec);
@@ -39,7 +39,7 @@ async function testAgentCapabilities() {
     console.log('   ✗ Automatic task context injection failed');
   }
 
-  if (output.beadsTriage && output.beadsTriage.recommendations) {
+  if (output.beadsTriage?.recommendations) {
     capabilities.push({
       capability: 'Task recommendations access',
       status: 'available',
@@ -51,7 +51,7 @@ async function testAgentCapabilities() {
     );
   }
 
-  if (output.beadsTriage && output.beadsTriage.project_health) {
+  if (output.beadsTriage?.project_health) {
     capabilities.push({
       capability: 'Project health visibility',
       status: 'available',
@@ -104,7 +104,7 @@ async function testAgentCapabilities() {
       maxBuffer: 5 * 1024 * 1024,
       timeout: 10000,
     });
-    const triageData = JSON.parse(bvTriage);
+    const _triageData = JSON.parse(bvTriage);
     capabilities.push({
       capability: 'AI-powered task recommendations',
       status: 'available',
@@ -121,7 +121,7 @@ async function testAgentCapabilities() {
       maxBuffer: 5 * 1024 * 1024,
       timeout: 10000,
     });
-    const insightsData = JSON.parse(bvInsights);
+    const _insightsData = JSON.parse(bvInsights);
     capabilities.push({
       capability: 'Graph analytics insights',
       status: 'available',
@@ -139,7 +139,7 @@ async function testAgentCapabilities() {
       maxBuffer: 5 * 1024 * 1024,
       timeout: 10000,
     });
-    const alertsData = JSON.parse(bvAlerts);
+    const _alertsData = JSON.parse(bvAlerts);
     capabilities.push({
       capability: 'Project alerts',
       status: 'available',

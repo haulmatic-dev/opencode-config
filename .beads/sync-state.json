@@ -1,7 +1,0 @@
-{
-  "last_failure": "2026-01-10T22:58:38.069571+05:30",
-  "failure_count": 3,
-  "backoff_until": "2026-01-10T23:00:38.069572+05:30",
-  "needs_manual_sync": true,
-  "failure_reason": "git pull failed: exit status 1\nfatal: couldn't find remote ref refactor/reorganize-file-structure\n"
-}

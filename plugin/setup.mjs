@@ -1,4 +1,4 @@
-import { exec, spawn } from 'node:child_process';
+import { exec } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { promisify } from 'node:util';
 
@@ -50,9 +50,9 @@ class SetupPlugin {
     // Check if ~/.config/opencode/bin is in PATH
     try {
       await execAsync('command -v opencode-init', { stdio: 'pipe' });
-      status['opencode_bin_in_path'] = true;
+      status.opencode_bin_in_path = true;
     } catch {
-      status['opencode_bin_in_path'] = false;
+      status.opencode_bin_in_path = false;
     }
 
     return status;
@@ -76,21 +76,17 @@ class SetupPlugin {
         (status.cass_memory ? '✓ installed' : '○ missing'),
     );
     parts.push(
-      '  Beads CLI (bd): ' + (status.beads_cli ? '✓ installed' : '○ missing'),
+      `  Beads CLI (bd): ${status.beads_cli ? '✓ installed' : '○ missing'}`,
     );
     parts.push(
       '  Beads Viewer (bv): ' +
         (status.beads_viewer ? '✓ installed' : '○ missing'),
     );
-    parts.push('  Biome: ' + (status.biome ? '✓ installed' : '○ missing'));
+    parts.push(`  Biome: ${status.biome ? '✓ installed' : '○ missing'}`);
+    parts.push(`  Prettier: ${status.prettier ? '✓ installed' : '○ missing'}`);
+    parts.push(`  UBS: ${status.ubs ? '✓ installed' : '○ missing (optional)'}`);
     parts.push(
-      '  Prettier: ' + (status.prettier ? '✓ installed' : '○ missing'),
-    );
-    parts.push(
-      '  UBS: ' + (status.ubs ? '✓ installed' : '○ missing (optional)'),
-    );
-    parts.push(
-      '  Osgrep: ' + (status.osgrep ? '✓ installed' : '○ missing (optional)'),
+      `  Osgrep: ${status.osgrep ? '✓ installed' : '○ missing (optional)'}`,
     );
 
     if (!status.opencode_bin_in_path) {
@@ -139,7 +135,7 @@ export const setup = async ({
       // Execute session-start.sh hook (await completion)
       console.log('[Setup Plugin] Running session-start.sh hook...');
       try {
-        const { stdout, stderr } = await execAsync(`bash ${sessionStartHook}`);
+        const { stdout } = await execAsync(`bash ${sessionStartHook}`);
         console.log('[Setup Plugin] session-start.sh completed successfully');
         if (stdout) console.log(stdout);
       } catch (error) {

@@ -1,16 +1,22 @@
 {
+  "type": "module",
   "dependencies": {
-    "@opencode-ai/plugin": "1.1.11",
+    "@opencode-ai/plugin": "1.1.19",
     "@the-convocation/twitter-scraper": "^0.21.1"
   },
   "devDependencies": {
-    "prettier": "^3.0.0",
-    "husky": "^8.0.0",
-    "lint-staged": "^15.0.0",
-    "inquirer": "^9.2.0",
-    "ora": "^7.0.0",
+    "@biomejs/biome": "^2.3.11",
+    "@stryker-mutator/core": "^9.4.0",
+    "@stryker-mutator/vitest-runner": "^9.4.0",
+    "@vitest/coverage-v8": "^4.0.17",
     "chalk": "^5.3.0",
-    "detect-installer": "^1.0.0"
+    "detect-installer": "^1.0.0",
+    "husky": "^8.0.0",
+    "inquirer": "^9.2.0",
+    "lint-staged": "^15.0.0",
+    "ora": "^7.0.0",
+    "prettier": "^3.0.0",
+    "vitest": "^4.0.17"
   },
   "scripts": {
     "lint": "biome check .",
@@ -24,6 +30,20 @@
     "biome:lint:fix": "biome lint --write .",
     "prepare": "husky install",
     "start": "node bin/opencode-wrapper.js",
-    "session-start": "bash hooks/session-start.sh"
+    "session-start": "bash hooks/session-start.sh",
+    "test": "node tests/run-all.mjs",
+    "test:e2e": "vitest run test/e2e/",
+    "test:integration": "node tests/integration/run-all-tests.mjs",
+    "test:runner": "vitest run test/runner/",
+    "test:runner:watch": "vitest watch test/runner/",
+    "test:workflow": "node tests/integration/test-workflow-execution.mjs",
+    "test:handoff": "node tests/integration/test-handoff-agents.mjs",
+    "test:gates": "node tests/integration/test-gates-retry.mjs",
+    "test:guardrails": "node test-guardrails-integration.js",
+    "test:handoff-runner": "node test-handoff.js",
+    "test:components": "node tests/components/sections-1-5/run-all.mjs",
+    "test:unit": "node tests/unit/run-all.mjs",
+    "coverage": "vitest run --coverage",
+    "ubs": "ubs"
   }
 }

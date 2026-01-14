@@ -11,6 +11,63 @@ opencode brings together best-in-class AI development tools into a unified, hook
 - **Beads CLI** (bd) - Dependency-aware task tracking with git persistence
 - **Beads Viewer** (bv) - Graph-aware task triage with AI agent integration
 - **Ultimate Bug Scanner (UBS)** - Multi-language static analysis catching 1000+ bug patterns
+- **Autonomous Agent "Relay" Architecture** - Code-driven quality-governed workflow execution with strict gates, smart context, and automatic handoff between agents
+
+### Autonomous Agent "Relay" Architecture
+
+The **Relay Runner** pattern replaces traditional central coordination with a distributed, quality-first system:
+
+**Core Components:**
+
+- **Harness** (`lib/runner/index.js`) - Context setup, agent invocation, gatekeeping, handoff
+- **Gatekeeper** (`lib/runner/gates.js`) - TDD, Mutation, Lint verification with strict enforcement
+- **Relay** (`lib/runner/handoff.js`) - State machine driven agent spawning and retry budgets
+- **Guardrails** (`lib/runner/guardrails.js`) - Command interception, task branch isolation, irreversible action blocking
+- **Smart Context** (`lib/runner/smart-context.js`) - Stack trace slicing, error formatting, context distillation
+- **Progress Logger** (`lib/runner/progress.js`) - Learning tracking across agent handoffs
+
+**Workflows:**
+
+- **Feature Development** (`lib/workflows/feature-dev.js`) - planning → coding → testing → complete
+- **Migration** (`lib/workflows/migration.js`) - 5-phase lifecycle with irreversible guards
+
+**Specialized Agents:**
+
+- **adversarial-reviewer.md** - Security auditor with smart context integration
+- **fix-specialist.md** - Context-slice only (20 lines + error)
+- **conflict-resolver.md** - 3-way diff analysis for git rebase conflicts
+
+**Git Automation:**
+
+- **Reactive Rebase** - Automatically rebases task branches when main changes
+- **Squash-on-Green** - Atomic commits with hidden fix loops
+- **Task Branch Isolation** - All work happens on `beads/task-{id}` branches
+
+**Quality Gates:**
+
+- **TDD Enforcer** (`lib/runner/gates/tdd-enforcer.js`) - Red-green cycle validation
+- **Mutation Testing** (Stryker) - 80% score threshold
+- **Static Analysis** (UBS + Biome) - Pre/post-agent execution
+
+**CLI Entry Point:**
+
+```bash
+bin/runner --task <ID> --agent <TYPE> --workflow <TYPE>
+```
+
+**Documentation:**
+
+- `docs/runner-architecture.md` - Architecture overview and design patterns
+- `docs/runner-usage.md` - User guide and troubleshooting
+- `docs/agent-development.md` - Agent creation best practices
+
+**Test Coverage:**
+
+- 39 tests passing (unit, E2E, integration)
+- 100% test pass rate achieved
+
+For detailed implementation, see [docs/autonomous-agent-task-implementation-plan.md](./docs/autonomous-agent-task-implementation-plan.md).
+
 - **7 Research Droids**:
   - **codebase-researcher** - Pattern discovery and technical debt identification
   - **git-history-analyzer** - Change evolution and team collaboration analysis
@@ -19,9 +76,18 @@ opencode brings together best-in-class AI development tools into a unified, hook
   - **library-source-reader** - Third-party library deep analysis
   - **domain-specialist** - Domain-specific expertise and compliance
   - **semantic-search** (osgrep) - Conceptual code search with embedding models
-- **PM2 Process Manager** - Headless worker orchestration with auto-restart and scaling
-- **Code Quality Tools** - ESLint, Prettier, Husky, lint-staged for automated code quality
+- **Code Quality Tools** - Biome, Vitest, Prettier, Husky, lint-staged for automated code quality
 - **Headless Worker Script** - Stateless task execution with Beads and MCP integration
+- **Autonomous Agent "Relay" Architecture** - Code-driven quality-governed workflow execution
+  - **lib/runner/** - Core relay runner system (15 files, ~6,000 lines)
+  - **lib/workflows/** - Code-driven state machines for feature-dev and migration
+  - **Specialized Agents** - adversarial-reviewer, fix-specialist, conflict-resolver with smart context
+  - **Quality Gates** - TDD enforcer, mutation testing (Stryker), linting (UBS + Biome)
+  - **Guardrails** - Command interception, task branch isolation, irreversible action blocking
+  - **Smart Context** - Stack trace slicing, error formatting, context distillation
+  - **Test Suite** - Complete coverage (39 tests passing: unit, E2E, integration)
+  - **CLI Entry Point** - `bin/runner` with help documentation
+  - **Documentation** - runner-architecture.md, runner-usage.md, agent-development.md
 - **Plugin System** - Extensible architecture with:
   - **gptcache** - LLM response caching for 70-90% cost reduction
   - **beads-guardrails** - Enforce task tracking via beads
@@ -31,20 +97,19 @@ opencode brings together best-in-class AI development tools into a unified, hook
   - **prd** - Product Requirements Document generator
   - **generate-tasks** - Atomic task breakdown with dependencies
   - **task-coordinator** - Beads task creation and tracking
-- **3 Skills**:
+  - **3 Skills**:
   - **task-breakdown** - Feature → tasks workflow
   - **feature-planning** - End-to-end PRD generation
   - **complex-project** - Enterprise feature planning
-- **Semantic Code Search**:
-  - osgrep integration for conceptual code queries
-- **Full Factory CLI workflows**:
+  - **Semantic Code Search**:
+  - **osgrep** integration for conceptual code queries
+  - **Full Factory CLI workflows**:
   - droid-init (system setup)
   - workspace-init (project initialization)
   - Beads CLI installation and configuration
   - MCP Agent Mail setup and integration
-  - Complete test suite with 83 tests passing (100%)
-- **Hook-based Service Checks** - Verify services are available before session start (no installation from hooks)
-- **Task-to-Commit Cycle** - 6-stage atomic workflow managed by Beads dependency graphs with automated failure handling
+  - **Hook-based Service Checks** - Verify services are available before session start (no installation from hooks)
+  - **Task-to-Commit Cycle** - 6-stage atomic workflow managed by Beads dependency graphs with automated failure handling
 
 ### Task-to-Commit Workflow
 
