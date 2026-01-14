@@ -1,6 +1,6 @@
 import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
 import { readFileSync } from 'node:fs';
+import { promisify } from 'node:util';
 
 const execAsync = promisify(exec);
 
@@ -173,9 +173,9 @@ class BeadsClient {
       if (options.assignee) flags.push(`--assignee "${options.assignee}"`);
       if (options.priority) flags.push(`--priority ${options.priority}`);
       if (options.type) flags.push(`--type ${options.type}`);
-      if (options.labels && options.labels.length)
+      if (options.labels?.length)
         flags.push(`--labels "${options.labels.join(',')}"`);
-      if (options.deps && options.deps.length)
+      if (options.deps?.length)
         flags.push(`--deps "${options.deps.join(',')}"`);
       if (options.due) flags.push(`--due "${options.due}"`);
       if (options.estimate) flags.push(`--estimate ${options.estimate}`);
@@ -237,7 +237,7 @@ class BeadsClient {
     if (!this.enabled) return null;
     try {
       const args = Object.entries(filters)
-        .filter(([k, v]) => v !== undefined && v !== false)
+        .filter(([_k, v]) => v !== undefined && v !== false)
         .map(([k, v]) => `--${k} "${v}"`)
         .join(' ');
       const { stdout } = await execAsync(`bd list ${args}`, {
@@ -1193,7 +1193,7 @@ export const beads = async ({
         try {
           const beadsGuide = readFileSync(BEADS_GUIDE_PATH, 'utf8');
           output.beadsGuide = beadsGuide;
-          output.systemPrompt += '\n\n' + beadsGuide;
+          output.systemPrompt += `\n\n${beadsGuide}`;
           console.log(
             '[BeadsPlugin] Injected beads context (keyword:',
             hasKeyword,
@@ -1213,7 +1213,7 @@ export const beads = async ({
           const triagePrompt = await middleware.formatRecommendations(
             triage.triage,
           );
-          output.systemPrompt += '\n\n' + triagePrompt;
+          output.systemPrompt += `\n\n${triagePrompt}`;
           output.beadsTriage = triage.triage;
         }
       }

@@ -14,7 +14,7 @@ export class IrreversibleActionError extends Error {
 export function checkForIrreversibleAction(
   command,
   args,
-  options,
+  _options,
   taskMetadata,
 ) {
   const dangerousPatterns = [
