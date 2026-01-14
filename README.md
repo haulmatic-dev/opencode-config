@@ -1,6 +1,6 @@
 # opencode - AI Development Environment
 
-## 🚀 Overview
+## Overview
 
 opencode brings together best-in-class AI development tools into a unified, hook-based environment. It replaces Factory CLI with a modern, service-agnostic architecture where tools are installed independently and checked on-demand.
 
@@ -11,286 +11,41 @@ opencode brings together best-in-class AI development tools into a unified, hook
 - **Beads CLI** (bd) - Dependency-aware task tracking with git persistence
 - **Beads Viewer** (bv) - Graph-aware task triage with AI agent integration
 - **Ultimate Bug Scanner (UBS)** - Multi-language static analysis catching 1000+ bug patterns
-- **Autonomous Agent "Relay" Architecture** - Code-driven quality-governed workflow execution with strict gates, smart context, and automatic handoff between agents
-
-### Autonomous Agent "Relay" Architecture
-
-The **Relay Runner** pattern replaces traditional central coordination with a distributed, quality-first system:
-
-**Core Components:**
-
-- **Harness** (`lib/runner/index.js`) - Context setup, agent invocation, gatekeeping, handoff
-- **Gatekeeper** (`lib/runner/gates.js`) - TDD, Mutation, Lint verification with strict enforcement
-- **Relay** (`lib/runner/handoff.js`) - State machine driven agent spawning and retry budgets
-- **Guardrails** (`lib/runner/guardrails.js`) - Command interception, task branch isolation, irreversible action blocking
-- **Smart Context** (`lib/runner/smart-context.js`) - Stack trace slicing, error formatting, context distillation
-- **Progress Logger** (`lib/runner/progress.js`) - Learning tracking across agent handoffs
-
-**Workflows:**
-
-- **Feature Development** (`lib/workflows/feature-dev.js`) - planning → coding → testing → complete
-- **Migration** (`lib/workflows/migration.js`) - 5-phase lifecycle with irreversible guards
-
-**Specialized Agents:**
-
-- **adversarial-reviewer.md** - Security auditor with smart context integration
-- **fix-specialist.md** - Context-slice only (20 lines + error)
-- **conflict-resolver.md** - 3-way diff analysis for git rebase conflicts
-
-**Git Automation:**
-
-- **Reactive Rebase** - Automatically rebases task branches when main changes
-- **Squash-on-Green** - Atomic commits with hidden fix loops
-- **Task Branch Isolation** - All work happens on `beads/task-{id}` branches
-
-**Quality Gates:**
-
-- **TDD Enforcer** (`lib/runner/gates/tdd-enforcer.js`) - Red-green cycle validation
-- **Mutation Testing** (Stryker) - 80% score threshold
-- **Static Analysis** (UBS + Biome) - Pre/post-agent execution
-
-**CLI Entry Point:**
-
-```bash
-bin/runner --task <ID> --agent <TYPE> --workflow <TYPE>
-```
-
-**Documentation:**
-
-- `docs/runner-architecture.md` - Architecture overview and design patterns
-- `docs/runner-usage.md` - User guide and troubleshooting
-- `docs/agent-development.md` - Agent creation best practices
-
-**Test Coverage:**
-
-- 39 tests passing (unit, E2E, integration)
-- 100% test pass rate achieved
-
-For detailed implementation, see [docs/autonomous-agent-task-implementation-plan.md](./docs/autonomous-agent-task-implementation-plan.md).
-
-- **7 Research Droids**:
-  - **codebase-researcher** - Pattern discovery and technical debt identification
-  - **git-history-analyzer** - Change evolution and team collaboration analysis
-  - **context-researcher** - Project-wide context gathering (stakeholder analysis)
-  - **best-practices-researcher** - Industry best practices and competitive analysis
-  - **library-source-reader** - Third-party library deep analysis
-  - **domain-specialist** - Domain-specific expertise and compliance
-  - **semantic-search** (osgrep) - Conceptual code search with embedding models
-- **Code Quality Tools** - Biome, Vitest, Prettier, Husky, lint-staged for automated code quality
-- **Headless Worker Script** - Stateless task execution with Beads and MCP integration
-- **Autonomous Agent "Relay" Architecture** - Code-driven quality-governed workflow execution
-  - **lib/runner/** - Core relay runner system (15 files, ~6,000 lines)
-  - **lib/workflows/** - Code-driven state machines for feature-dev and migration
-  - **Specialized Agents** - adversarial-reviewer, fix-specialist, conflict-resolver with smart context
-  - **Quality Gates** - TDD enforcer, mutation testing (Stryker), linting (UBS + Biome)
-  - **Guardrails** - Command interception, task branch isolation, irreversible action blocking
-  - **Smart Context** - Stack trace slicing, error formatting, context distillation
-  - **Test Suite** - Complete coverage (39 tests passing: unit, E2E, integration)
-  - **CLI Entry Point** - `bin/runner` with help documentation
-  - **Documentation** - runner-architecture.md, runner-usage.md, agent-development.md
-- **Plugin System** - Extensible architecture with:
-  - **gptcache** - LLM response caching for 70-90% cost reduction
-  - **beads-guardrails** - Enforce task tracking via beads
-  - **ubs** - Automated static analysis before/after agent execution
-- **Specialized Droids**:
-  - **orchestrator** - Master coordinator with dual-mode operation (2000+ lines)
-  - **prd** - Product Requirements Document generator
-  - **generate-tasks** - Atomic task breakdown with dependencies
-  - **task-coordinator** - Beads task creation and tracking
-  - **3 Skills**:
-  - **task-breakdown** - Feature → tasks workflow
-  - **feature-planning** - End-to-end PRD generation
-  - **complex-project** - Enterprise feature planning
-  - **Semantic Code Search**:
-  - **osgrep** integration for conceptual code queries
-  - **Full Factory CLI workflows**:
-  - droid-init (system setup)
-  - workspace-init (project initialization)
-  - Beads CLI installation and configuration
-  - MCP Agent Mail setup and integration
-  - **Hook-based Service Checks** - Verify services are available before session start (no installation from hooks)
-  - **Task-to-Commit Cycle** - 6-stage atomic workflow managed by Beads dependency graphs with automated failure handling
-
-### Task-to-Commit Workflow
-
-opencode implements a **6-stage atomic task cycle** managed by **Beads dependency graphs**. Individual agents execute tasks, run quality gates, and handle success/failure. The Beads system automatically manages task dependencies, unlocking downstream tasks and blocking work when failures occur.
-
-**Key Concept:**
-
-- **Agents** are stateless workers that execute one task, then exit
-- **Success** = Close task → Beads automatically unlocks next dependent task
-- **Failure** = Create dependent fix task → Close task → Beads blocks downstream tasks
-- **Beads** handles ALL dependency logic - no orchestration needed in agents
-
-**Workflow Stages:**
-
-1. **Stage 0**: Discovery & Planning (PRD validation, risk assessment)
-2. **Stage 1**: Write Unit Tests (Test coverage ≥ 80%)
-3. **Stage 2**: Implement Code (Typecheck, build)
-4. **Stage 3**: Test Code (100% tests pass)
-5. **Stage 4**: Static Analysis & Security (UBS quality gate, 0 critical bugs)
-6. **Stage 5**: Code Review (PR validation, comment classification)
-7. **Stage 6**: Deployment (Smoke tests, health checks, monitoring)
-
-**Specialist Agents:**
-
-- **test-specialist** - Test generation and execution (Stages 1, 3)
-- **code-reviewer** - Automated code review (Stage 5)
-- **deployment-specialist** - Deployment automation (Stage 6)
-
-For detailed documentation, see [Task-to-Commit Cycle](./docs/task-to-commit.md).
-
-### Headless Swarm Architecture
-
-opencode implements **parallel headless worker execution** for maximum throughput:
-
-**Process Management (PM2):**
-
-- 4 parallel worker instances (configurable: `pm2 scale headless-swarm 8`)
-- Stateless workers: claim → execute → exit (PM2 auto-restarts)
-- Auto-restart on crash (max 10 restarts)
-- Memory limit: 1GB (max_memory_restart)
-- No custom CLI needed - uses PM2 built-in commands
-
-**PM2 Configuration (`~/.config/opencode/ecosystem.config.js`):**
-
-```javascript
-module.exports = {
-  apps: [
-    {
-      name: 'headless-swarm',
-      script: './bin/headless-worker.js',
-      instances: 4, // 4 parallel workers
-      autorestart: true,
-      max_restarts: 10,
-      max_memory_restart: '1G',
-      error_file: '~/.config/opencode/logs/err.log',
-      out_file: '~/.config/opencode/logs/out.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      merge_logs: true,
-      kill_timeout: 5000,
-    },
-  ],
-};
-```
-
-**Headless Worker Lifecycle (`bin/headless-worker.js`):**
-
-1. Poll Beads for available tasks
-2. Extract task_id and claim
-3. Reserve file paths via MCP (prevent conflicts)
-4. Execute task using opencode
-5. On success: close task, release reservations, exit
-6. On failure: mark failed, release reservations, exit
-7. PM2 auto-restarts worker → claims next task
-
-**PM2 Commands:**
-
-```bash
-# Start workers
-pm2 start ecosystem.config.js
-
-# Scale workers (1 → 8)
-pm2 scale headless-swarm 8    # 8 workers
-pm2 scale headless-swarm 2    # 2 workers
-
-# Monitor execution
-pm2 logs                  # Live logs
-pm2 monit                 # Real-time dashboard
-pm2 list                  # Show all workers and status
-
-# Control workers
-pm2 stop all              # Stop all workers
-pm2 restart all           # Restart all workers
-pm2 delete all            # Remove all from PM2
-
-# Save PM2 configuration (auto-start on system boot)
-pm2 save
-pm2 startup               # Generate startup script
-```
-
-**Code Quality Integration:**
-
-opencode includes automated code quality tools with pre-commit hooks:
-
-```bash
-# Run linting
-npm run lint              # ESLint check
-npm run lint:fix          # ESLint fix
-
-# Run formatting
-npm run format            # Prettier format all files
-npm run format:check      # Prettier check only
-
-# Pre-commit hooks (Husky + lint-staged)
-# Automatically runs lint and format on staged files
-```
-
-**Configuration Files:**
-
-- `.eslintrc.js` - ESLint configuration
-- `.prettierrc` - Prettier configuration
-- `.prettierignore` - Exclusions for formatting
-- `package.json` - Scripts and dependencies
-
-**Testing:**
-
-For local test scenarios, see [LOCAL_TEST_SCENARIOS.md](./LOCAL_TEST_SCENARIOS.md):
-
-- Scenario 1: Basic Worker Execution
-- Scenario 2: Worker Scaling
-- Scenario 3: Empty Task Queue
-- Scenario 4: Error Handling
-- Scenario 5: Code Quality Checks
-
-### Design Principles
-
-1. **Tool-Agnostic Services**: Services work with any AI tool (Claude, opencode, Factory, Cursor, etc.)
-2. **On-Demand Verification**: Hooks check service availability, don't install
-3. **Minimal Dependencies**: Only requires services to be in PATH
-4. **No Duplication**: Single installation of each service, shared across all tools
-5. **Graceful Degradation**: Works even when some services are unavailable
-6. **Git-Native**: Beads data persists in `.beads/` directory, synced with git
+- **Autonomous Agent Relay Architecture** - Code-driven quality-governed workflow execution
 
 ---
 
-## 📚 Table of Contents
+## Table of Contents
 
-- [Overview](#-overview)
-- [Task-to-Commit Workflow](#-task-to-commit-workflow)
-- [Quick Start](#-quick-start)
-- [Tool-Agnostic Architecture](#-tool-agnostic-architecture)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Plugin System](#-plugin-system)
-- [Hook System](#-hook-system)
-- [Workflow](#-workflow)
-- [bv Integration](#-bv-integration)
-- [Testing](#-testing)
-- [Troubleshooting](#-troubleshooting)
-
----
-
-## 🚀 Overview
-
-opencode is a minimal, hook-based AI development environment that replaces Factory CLI. It uses:
-
-- **cass_memory (cm)** - Primary learning system with evidence validation
-- **MCP Agent Mail** - Agent-to-agent communication and file reservations
-- **Beads CLI (bd)** - Task tracking with dependency management
-- **Beads Viewer (bv)** - Graph-aware triage with AI agent integration
-
-### Why Replace Factory CLI?
-
-1. **Tool Independence**: Services are installed globally, not per-tool
-2. **Hook-Based**: Services are checked, not installed by opencode
-3. **No Pre-Installation**: No `droid-init` script required
-4. **Evidence-Based Learning**: cass_memory's ACE pipeline validates rules
-5. **Graph Intelligence**: bv provides PageRank, critical path, cycles
+- [Quick Start](#quick-start)
+- [Installation & Setup](#installation--setup)
+  - [System Setup](#system-setup)
+  - [Project Initialization](#project-initialization)
+  - [Configuration](#configuration)
+- [How to Use](#how-to-use)
+  - [Typical Session Flow](#typical-session-flow)
+  - [Working with Beads Tasks](#working-with-beads-tasks)
+  - [Beads Viewer Commands](#beads-viewer-commands)
+- [Core Architecture Concepts](#core-architecture-concepts)
+  - [Autonomous Agent Relay Architecture](#autonomous-agent-relay-architecture)
+  - [Task-to-Commit Workflow](#task-to-commit-workflow)
+  - [Headless Swarm Architecture](#headless-swarm-architecture)
+- [Tools and Components](#tools-and-components)
+  - [cass_memory (cm)](#cass_memory-cm)
+  - [MCP Agent Mail](#mcp-agent-mail)
+  - [Beads CLI (bd)](#beads-cli-bd)
+  - [Beads Viewer (bv)](#beads-viewer-bv)
+  - [Ultimate Bug Scanner (UBS)](#ultimate-bug-scanner-ubs)
+  - [Plugin System](#plugin-system)
+- [Hook System](#hook-system)
+- [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
+- [Project Structure](#project-structure)
+- [Further Reading](#further-reading)
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### One-Command Setup
 
@@ -325,55 +80,13 @@ cm context "your task description" --json
 ~/.config/opencode/hooks/check-bv.sh
 ```
 
-### Work with Beads Tasks
-
-```bash
-# See what to work on
-bd ready
-
-# Create a new task
-bd create "task title" --description "what needs to be done"
-
-# Track progress
-bd update <id> --status in_progress
-bd close <id> --reason "Completed"
-```
-
 ---
 
-## 🏗 Tool-Agnostic Architecture
+## Installation & Setup
 
-### Service Installation Locations
+### System Setup
 
-```
-Tool-Agnostic Services (Global):
-├── ~/.cass-memory/              # cass_memory - Learning system (ALREADY INSTALLED)
-├── ~/.mcp-agent-mail/           # MCP Agent Mail - Agent coordination (REQUIRED)
-├── ~/.local/bin/bd              # Beads CLI - Task tracking (ALREADY INSTALLED)
-├── ~/.local/bin/bv              # Beads Viewer - TUI for browsing (ALREADY INSTALLED)
-└── ~/.config/opencode/         # Tool-specific configs
-    ├── AGENTS.md                  # Agent instructions
-    ├── hooks/                     # Service checks ONLY
-    └── .beads/                   # Beads data per project
-```
-
-### Service Management Strategy
-
-| Service               | Installation Method | Check Location            | Auto-Start     |
-| --------------------- | ------------------- | ------------------------- | -------------- | ----- |
-| **cass_memory**       | `cm init`           | `check-cass-memory.sh`    | ❌ No          |
-| **MCP Agent Mail**    | Clone + `uv sync`   | `check-mcp-agent-mail.sh` | ❌ No          |
-| **Beads CLI (bd)**    | `go install`        | `check-beads.sh`          | ❌ No          |
-| **Beads Viewer (bv)** | `curl install.sh`   | `check-bv.sh`             | ❌ No          |
-|                       | **UBS**             | `curl install.sh`         | `check-ubs.sh` | ❌ No |
-
-**Key Principle**: Services are **tool-agnostic** - they work with Factory CLI, opencode, Cursor, Claude Code, Codex, etc.
-
----
-
-## 🔧 Installation
-
-### Quick Install: opencode-init
+#### opencode-init (Interactive)
 
 For system setup, use the **opencode-init** script:
 
@@ -397,9 +110,9 @@ cd ~/.config/opencode/bin
 # - Ultimate Bug Scanner (UBS) - Multi-language static analysis (optional)
 ```
 
-### Quick Install: opencode-init.bash (Non-Interactive)
+#### opencode-init.bash (Automated)
 
-For automated or CI/CD setup, use bash **opencode-init.bash** script:
+For automated or CI/CD setup:
 
 ```bash
 cd ~/.config/opencode/bin
@@ -414,142 +127,24 @@ cd ~/.config/opencode/bin
 # - Configure PATH for ~/.config/opencode/bin
 ```
 
-### Setup Plugin Integration
+### Project Initialization
 
-The **setup plugin** provides automatic setup checking and guidance within opencode:
-
-**Features:**
-
-- Auto-checks system tools on session start
-- Auto-checks workspace initialization status
-- Provides setup prompts when tools are missing
-- Suggests workspace setup when workspace topics are discussed
-
-**How It Works:**
-
-- On session start, plugin checks if required tools are installed
-- If tools are missing, displays setup guidance with commands
-- When you mention "workspace" in chat, suggests workspace initialization
-- No slash commands needed - just follow the suggested commands
-
-**Usage:**
+#### workspace-init
 
 ```bash
-# The plugin automatically prompts when setup is needed
-# Just follow the suggested commands:
-
-# System setup (interactive or non-interactive)
-~/.config/opencode/bin/opencode-init  # Interactive
-~/.config/opencode/bin/opencode-init.bash  # Non-interactive
-
-# Workspace setup
+# Initialize project with opencode
+cd /path/to/your/project
 ~/.config/opencode/bin/workspace-init
+
+# This will:
+# - Initialize git repo (if missing)
+# - Initialize cass_memory (cm init --repo) - REQUIRED
+# - Initialize beads (bd init)
 ```
 
-### Interactive Mode
+### Configuration
 
-The session-start hook supports interactive mode:
-
-```bash
-# Standard check
-~/.config/opencode/hooks/session-start.sh
-
-# Interactive mode (prompts for setup if needed)
-~/.config/opencode/hooks/session-start.sh --interactive
-
-# Skip cass check (for troubleshooting)
-~/.config/opencode/hooks/session-start.sh --skip-cass
-```
-
-**PATH Configuration:**
-
-The `opencode-init` script provides two levels of PATH configuration:
-
-1. **Current Session:** Exports `~/.config/opencode/bin` to current process
-2. **Permanent:** Adds `export PATH="~/.config/opencode/bin:$PATH"` to your shell config
-
-After running `opencode-init`:
-
-- Tools are available in **current session** (no restart needed)
-- Tools are **permanently** configured in your shell config
-- New terminals will have PATH automatically configured
-
-```bash
-# Check services and prompt for interactive setup if needed
-~/.config/opencode/hooks/session-start.sh --interactive
-
-# If services are missing, you'll be asked:
-# "Would you like to run interactive setup to install missing services? [y/N]:"
-# Answer 'y' to automatically run opencode-init
-```
-
-### Installing cass_memory
-
-```bash
-# One-time installation
-curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_system/main/install.sh | bash -s -- --easy-mode --verify
-
-# Verify installation
-cm --version
-cm doctor --json
-```
-
-### Installing MCP Agent Mail
-
-```bash
-# Tool-agnostic location (works with Factory CLI, opencode, etc.)
-git clone https://github.com/Dicklesworthstone/mcp_agent_mail.git ~/.mcp-agent-mail
-cd ~/.mcp-agent-mail
-
-# Install Python 3.14 (required)
-uv python install 3.14
-
-# Install dependencies
-uv sync --python 3.14
-
-# Configure environment
-cat > .env << 'EOF'
-STORAGE_ROOT=~/.mcp-agent-mail/storage
-DATABASE_URL=sqlite+aiosqlite:////~/.mcp-agent-mail/storage/mcp.db
-HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true
-HTTP_PORT=8765
-EOF
-
-# Start server (manual or via hook)
-HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true uv run python -m mcp_agent_mail.http --host 127.0.0.1 --port 8765 &
-```
-
-### Installing Beads CLI (bd)
-
-```bash
-# Already installed? Check with:
-which bd
-bd --version
-
-# If not installed:
-go install github.com/steveyegge/beads/cmd/bd@latest
-
-# Add to PATH (if not already there)
-echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-### Installing Beads Viewer (bv)
-
-```bash
-# Already installed? Check with:
-which bv
-bv --version
-
-# If not installed:
-curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh?$(date +%s)" | bash
-```
-
----
-
-## ⚙️ Configuration
-
-### cass_memory Configuration
+#### cass_memory Configuration
 
 ```bash
 # View config
@@ -561,27 +156,12 @@ cm config set provider anthropic
 
 **API Key Setup:**
 
-API keys are stored in `~/.zshrc`, not in opencode config files. Run the setup script:
-
 ```bash
+# Run setup script
 ~/.config/opencode/bin/setup-api-keys.sh
 ```
 
-This will:
-
-1. Add OpenCode API section to your `~/.zshrc`
-2. Create a backup of your current `.zshrc`
-3. Provide instructions for adding your actual API keys
-4. Reload your shell configuration
-
-**Manual Setup:**
-
-If you prefer manual setup, add this to `~/.zshrc`:
-
-```bash
-# OpenCode API Keys (see ~/.config/opencode/.zshrc.example for template)
-export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
-```
+This adds OpenCode API section to your `~/.zshrc` with template for API keys.
 
 **Supported Providers:**
 
@@ -589,22 +169,7 @@ export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 - `openai` - GPT models
 - `google` - Gemini models
 
-**Optional API Keys:**
-
-- `FIGMA_API_TOKEN` - Figma design extraction (see `.zshrc.example`)
-
-**Security Best Practices:**
-
-- Never commit `.zshrc` to git
-- Rotate keys if compromised: https://console.anthropic.com
-- Use different keys for different environments
-- Reference `.zshrc.example` for template
-
-**API Key Health Check:**
-
-The API key health check runs automatically on session start and will alert you if required keys are missing.
-
-### Beads Configuration
+#### Beads Configuration
 
 ```bash
 # Initialize in project directory
@@ -618,29 +183,390 @@ git config merge.beads.driver "bd merge %A %O %A %B"
 bd hooks install
 ```
 
-### MCP Agent Mail Configuration
+#### MCP Agent Mail Configuration
 
 ```bash
-# Environment variables (can be set in .env or shell profile)
+# Environment variables
 export MCP_SERVER_HOST=127.0.0.1
 export MCP_SERVER_PORT=8765
 export MCP_AGENT_MAIL_DIR=~/.mcp-agent-mail
 ```
 
-### Using MCP Agent Mail in Agents
+---
 
-opencode provides a Python client helper `mcp_agent_mail_client.py` for agents to communicate with MCP Agent Mail server:
+## How to Use
+
+### Typical Session Flow
+
+```bash
+# 1. Start new session (cd to project)
+cd /path/to/your/project
+
+# 2. Run hook to verify services
+~/.config/opencode/hooks/session-start.sh
+
+# 3. Get context from cass_memory
+cm context "your task description" --json
+
+# 4. Check what to work on
+bd ready
+
+# 5. Create task
+bd create "task" --description "details"
+bd update <id> --status in_progress
+
+# 6. Complete task
+bd close <id> --reason "Done"
+
+# 7. Sync to git
+bd sync
+git push
+```
+
+### Working with Beads Tasks
+
+```bash
+# See what to work on
+bd ready
+
+# Create a new task
+bd create "task title" --description "what needs to be done"
+
+# Track progress
+bd update <id> --status in_progress
+bd close <id> --reason "Completed"
+
+# View task details
+bd show <id>
+```
+
+### Beads Viewer Commands
+
+```bash
+# THE ENTRY POINT - Use this before any task
+bv --robot-triage
+
+# Returns everything you need:
+# - quick_ref: counts + top 3 picks
+# - recommendations: ranked actionable items with scores
+# - quick_wins: low-effort high-impact items
+# - blockers_to_clear: items unblocking most downstream work
+# - project_health: status/type/priority distributions
+# - commands: copy-paste shell commands
+
+# What to work on next
+bv --robot-next
+
+# Full project analysis
+bv --robot-insights
+
+# Parallel execution tracks
+bv --robot-plan
+```
+
+---
+
+## Core Architecture Concepts
+
+### Autonomous Agent Relay Architecture
+
+The **Relay Runner** pattern replaces traditional central coordination with a distributed, quality-first system where agents automatically hand off work through strict quality gates.
+
+#### Core Components
+
+**Harness** (`lib/runner/index.js`)
+
+- Context setup and initialization
+- Agent invocation with proper parameters
+- Gatekeeping before agent execution
+- Handoff coordination between agents
+
+**Gatekeeper** (`lib/runner/gates.js`)
+
+- TDD enforcement (red-green cycle validation)
+- Mutation testing verification (80% score threshold with Stryker)
+- Lint verification with strict enforcement
+- Pre/post-execution quality checks
+
+**Relay** (`lib/runner/handoff.js`)
+
+- State machine driven agent spawning
+- Automatic retry budgets for failed attempts
+- Intelligent handoff decisions based on task requirements
+- Context preservation across agent handoffs
+
+**Guardrails** (`lib/runner/guardrails.js`)
+
+- Command interception for dangerous operations
+- Task branch isolation (all work on `beads/task-{id}` branches)
+- Irreversible action blocking
+- Safe rollback capabilities
+
+**Smart Context** (`lib/runner/smart-context.js`)
+
+- Stack trace slicing for focused error information
+- Error formatting and normalization
+- Context distillation for efficient LLM processing
+- Relevant code extraction (20 lines + error for fix specialists)
+
+**Progress Logger** (`lib/runner/progress.js`)
+
+- Learning tracking across agent handoffs
+- Context preservation for future sessions
+- Success/failure pattern analysis
+
+#### Workflows
+
+**Feature Development** (`lib/workflows/feature-dev.js`)
+
+- planning → coding → testing → complete
+- Automatic quality gate transitions
+- Rollback on failure
+
+**Migration** (`lib/workflows/migration.js`)
+
+- 5-phase lifecycle with irreversible guards
+- Validation at each phase
+- Safe rollback options
+
+#### Specialized Agents
+
+**adversarial-reviewer**
+
+- Security auditor with smart context integration
+- Automated vulnerability detection
+- Security best practices validation
+
+**fix-specialist**
+
+- Context-slice only operation (20 lines + error)
+- Focused error resolution
+- Minimal context for efficiency
+
+**conflict-resolver**
+
+- 3-way diff analysis for git rebase conflicts
+- Automatic merge resolution suggestions
+- Safe conflict handling
+
+#### Git Automation
+
+**Reactive Rebase**
+
+- Automatically rebases task branches when main changes
+- Conflict detection and resolution
+- Maintains clean history
+
+**Squash-on-Green**
+
+- Atomic commits with hidden fix loops
+- Clean commit history
+- All tests passing before commit
+
+**Task Branch Isolation**
+
+- All work happens on `beads/task-{id}` branches
+- Prevents conflicts between parallel tasks
+- Easy rollback and branch management
+
+#### Quality Gates
+
+**TDD Enforcer** (`lib/runner/gates/tdd-enforcer.js`)
+
+- Validates red-green cycle
+- Ensures test-first development
+- Blocks non-compliant code
+
+**Mutation Testing** (Stryker)
+
+- 80% score threshold requirement
+- Automatic mutation testing
+- Validates test quality
+
+**Static Analysis** (UBS + Biome)
+
+- Pre-agent execution: scans changed files
+- Post-agent execution: regression detection
+- 0 critical bugs requirement
+
+#### CLI Entry Point
+
+```bash
+bin/runner --task <ID> --agent <TYPE> --workflow <TYPE>
+```
+
+#### Documentation
+
+- `docs/runner-architecture.md` - Architecture overview and design patterns
+- `docs/runner-usage.md` - User guide and troubleshooting
+- `docs/agent-development.md` - Agent creation best practices
+
+#### Test Coverage
+
+- 39 tests passing (unit, E2E, integration)
+- 100% test pass rate achieved
+
+For detailed implementation, see [docs/autonomous-agent-task-implementation-plan.md](./docs/autonomous-agent-task-implementation-plan.md).
+
+### Task-to-Commit Workflow
+
+opencode implements a **6-stage atomic task cycle** managed by **Beads dependency graphs**. Individual agents execute tasks, run quality gates, and handle success/failure. The Beads system automatically manages task dependencies.
+
+**Key Concept:**
+
+- **Agents** are stateless workers that execute one task, then exit
+- **Success** = Close task → Beads automatically unlocks next dependent task
+- **Failure** = Create dependent fix task → Close task → Beads blocks downstream tasks
+- **Beads** handles ALL dependency logic - no orchestration needed in agents
+
+**Workflow Stages:**
+
+1. **Stage 0**: Discovery & Planning (PRD validation, risk assessment)
+2. **Stage 1**: Write Unit Tests (Test coverage ≥ 80%)
+3. **Stage 2**: Implement Code (Typecheck, build)
+4. **Stage 3**: Test Code (100% tests pass)
+5. **Stage 4**: Static Analysis & Security (UBS quality gate, 0 critical bugs)
+6. **Stage 5**: Code Review (PR validation, comment classification)
+7. **Stage 6**: Deployment (Smoke tests, health checks, monitoring)
+
+**Specialist Agents:**
+
+- **test-specialist** - Test generation and execution (Stages 1, 3)
+- **code-reviewer** - Automated code review (Stage 5)
+- **deployment-specialist** - Deployment automation (Stage 6)
+
+For detailed documentation, see [Task-to-Commit Cycle](./docs/task-to-commit.md).
+
+### Headless Swarm Architecture
+
+opencode implements **parallel headless worker execution** for maximum throughput using PM2 process management.
+
+**Process Management (PM2):**
+
+- 4 parallel worker instances (configurable: `pm2 scale headless-swarm 8`)
+- Stateless workers: claim → execute → exit (PM2 auto-restarts)
+- Auto-restart on crash (max 10 restarts)
+- Memory limit: 1GB (max_memory_restart)
+
+**PM2 Configuration (`~/.config/opencode/ecosystem.config.js`):**
+
+```javascript
+module.exports = {
+  apps: [
+    {
+      name: 'headless-swarm',
+      script: './bin/headless-worker.js',
+      instances: 4,
+      autorestart: true,
+      max_restarts: 10,
+      max_memory_restart: '1G',
+      error_file: '~/.config/opencode/logs/err.log',
+      out_file: '~/.config/opencode/logs/out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      merge_logs: true,
+      kill_timeout: 5000,
+    },
+  ],
+};
+```
+
+**Headless Worker Lifecycle (`bin/headless-worker.js`):**
+
+1. Poll Beads for available tasks
+2. Extract task_id and claim
+3. Reserve file paths via MCP (prevent conflicts)
+4. Execute task using opencode
+5. On success: close task, release reservations, exit
+6. On failure: mark failed, release reservations, exit
+7. PM2 auto-restarts worker → claims next task
+
+**PM2 Commands:**
+
+```bash
+# Start workers
+pm2 start ecosystem.config.js
+
+# Scale workers (1 → 8)
+pm2 scale headless-swarm 8
+pm2 scale headless-swarm 2
+
+# Monitor execution
+pm2 logs
+pm2 monit
+pm2 list
+
+# Control workers
+pm2 stop all
+pm2 restart all
+pm2 delete all
+
+# Save PM2 configuration (auto-start on system boot)
+pm2 save
+pm2 startup
+```
+
+### Design Principles
+
+1. **Tool-Agnostic Services**: Services work with any AI tool (Claude, opencode, Factory, Cursor, etc.)
+2. **On-Demand Verification**: Hooks check service availability, don't install
+3. **Minimal Dependencies**: Only requires services to be in PATH
+4. **No Duplication**: Single installation of each service, shared across all tools
+5. **Graceful Degradation**: Works even when some services are unavailable
+6. **Git-Native**: Beads data persists in `.beads/` directory, synced with git
+
+---
+
+## Tools and Components
+
+### cass_memory (cm)
+
+**Purpose**: Primary learning system with evidence validation
+
+**Features:**
+
+- Evidence-based rule validation through ACE pipeline
+- Cross-session learning from past work
+- Context extraction and anti-pattern detection
+- Integration with Beads Viewer for session correlation
+
+**Key Commands:**
+
+```bash
+cm context "task description" --json  # Get context before work
+cm doctor --json                      # Check system health
+cm playbook list                      # List all rules
+cm init --repo                       # Initialize in project
+```
+
+### MCP Agent Mail
+
+**Purpose**: Agent-to-agent communication and file reservations
+
+**Features:**
+
+- Tool-agnostic messaging system
+- File path reservations to prevent conflicts
+- Works with Factory CLI, opencode, Cursor, Claude Code, etc.
+- HTTP API for agent integration
+
+**Installation:**
+
+```bash
+git clone https://github.com/Dicklesworthstone/mcp_agent_mail.git ~/.mcp-agent-mail
+cd ~/.mcp-agent-mail
+uv python install 3.14
+uv sync --python 3.14
+```
+
+**Using MCP Agent Mail in Agents:**
 
 ```python
-# Import in agent files
 from mcp_agent_mail_client import (
     register_agent,
     send_message,
     fetch_inbox,
-    acknowledge_message,
     reserve_file_paths,
     release_file_reservations,
-    get_project_key
 )
 
 # Register agent
@@ -650,140 +576,145 @@ result = await register_agent(
     task_description="What this agent does"
 )
 
-# Send message to other agent
-result = await send_message(
-    sender_name="my-agent",
-    recipient_name="other-agent",
-    content={"type": "task_assignment", "task_id": "bd-123"}
-)
-
-# Fetch inbox for messages
-result = await fetch_inbox(agent_name="my-agent", limit=50)
-
 # Reserve file paths (prevent conflicts)
 result = await reserve_file_paths(
     agent_name="my-agent",
     paths=["src/**/*.ts"],
     ttl_seconds=3600
 )
-
-# Release reservations when done
-await release_file_reservations(agent_name="my-agent")
 ```
 
----
+### Beads CLI (bd)
 
-## 🔌 Plugin System
+**Purpose**: Task tracking with dependency management
 
-### Available Plugins
+**Features:**
 
-opencode plugins extend functionality through a hook-based architecture. All plugins are located in `./plugin/` directory.
+- Dependency-aware task tracking
+- Git-native persistence (`.beads/` directory)
+- Automatic task unlocking on completion
+- Integration with Git for atomic workflows
 
-#### beads-guardrails.mjs
+**Key Commands:**
 
-**Purpose**: Enforce task tracking via beads by blocking TodoWrite tool in beads workspaces
-
-**Features**:
-
-- Blocks TodoWrite tool when `.beads/` directory exists
-- Prevents task duplication between TodoWrite and Beads
-- Graceful degradation when beads not active
-
-**Behavior**:
-
-- Checks for `.beads/` directory at tool execution
-- Throws error: `[beads-guard] TodoWrite blocked in beads workspace. Use "bd create" instead for persistent tracking.`
-- Allows TodoWrite in non-beads workspaces
-
-**For detailed documentation**, see [docs/BEADS_GUARDRAILS_IMPLEMENTATION.md](./docs/BEADS_GUARDRAILS_IMPLEMENTATION.md)
-
-#### gptcache.mjs
-
-**Purpose**: LLM response caching to reduce API costs and improve response times
-
-**Features**:
-
-- Automatic caching of LLM responses
-- 70-90% cost reduction for repeated prompts
-- <50ms retrieval vs 2-5s LLM calls
-- SQLite-based storage with ONNX embeddings
-- Supports semantic similarity search
-
-**Configuration**:
-
-```json
-{
-  "enabled": true,
-  "host": "127.0.0.1",
-  "port": 8000,
-  "cacheKeyPrefix": "opencode"
-}
+```bash
+bd ready                                    # See unblocked issues
+bd create "task" --description "..."         # Create task
+bd show <id>                                # View task details
+bd update <id> --status in_progress          # Start working
+bd close <id> --reason "Done"               # Complete task
+bd sync                                      # Sync to git
+bd doctor                                    # Troubleshoot
 ```
 
-**Usage**:
+**Installation:**
 
-- Automatically caches agent responses when enabled
-- Configured in `gptcache_config.json`
-- Requires GPTCache server running on port 8000
+```bash
+go install github.com/steveyegge/beads/cmd/bd@latest
+echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
 
-**For detailed documentation**, see [docs/GPTCACHE_INTEGRATION.md](./docs/GPTCACHE_INTEGRATION.md)
+### Beads Viewer (bv)
 
-#### ubs.mjs
+**Purpose**: Graph-aware task triage with AI agent integration
 
-**Purpose**: Automated static analysis with Ultimate Bug Scanner for catching bugs before they reach production
+**Features:**
 
-**Features**:
+- Terminal UI with multiple views (List, Kanban, Graph, Tree)
+- Graph metrics (PageRank, betweenness, critical path, cycles)
+- Time-travel: compare project state across git revisions
+- Robot commands for AI agent integration
+- Impact network and causal chain analysis
+
+**Robot Commands:**
+
+| Command            | Purpose                                                   |
+| ------------------ | --------------------------------------------------------- |
+| `--robot-triage`   | Single entry point: recommendations, quick_wins, blockers |
+| `--robot-next`     | Top recommendation + claim command                        |
+| `--robot-insights` | Full metrics (PageRank, betweenness, cycles, etc.)        |
+| `--robot-plan`     | Parallel execution tracks                                 |
+| `--robot-priority` | Priority recommendations                                  |
+| `--robot-history`  | Bead-to-commit correlations                               |
+| `--robot-alerts`   | Stale issues, blocking cascades                           |
+
+**Installation:**
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh?$(date +%s)" | bash
+```
+
+**Keyboard Shortcuts:**
+
+| Key         | Action             |
+| ----------- | ------------------ |
+| `j` / `k`   | Navigate down/up   |
+| `g` / `G`   | Jump to top/bottom |
+| `Enter`     | Open/Select        |
+| `/`         | Start search       |
+| `b`         | Kanban board       |
+| `i`         | Insights dashboard |
+| `g`         | Graph visualizer   |
+| `E`         | Tree view          |
+| `h`         | History view       |
+| `?`         | Help               |
+| `q` / `Esc` | Quit               |
+
+### Ultimate Bug Scanner (UBS)
+
+**Purpose**: Multi-language static analysis catching 1000+ bug patterns
+
+**Features:**
 
 - Pre-agent scan: Automatically scans changed files before agent execution
 - Post-agent scan: Scans files modified by agent to catch regressions
 - Auto-update check: Updates UBS every 24 hours on session start
-- Quality gate: Integrates with Stage 3 (Static Analysis & Security) of task workflow
+- Quality gate: Integrates with Stage 3 (Static Analysis & Security)
 - Pre-commit hook: Blocks commits with critical bugs
 
-**Configuration**:
+**Key Commands:**
 
-```json
-{
-  "enabled": true,
-  "autoScan": true,
-  "failOnCritical": true,
-  "autoUpdate": true,
-  "updateInterval": 86400,
-  "categories": [],
-  "skipCategories": [],
-  "languageFilter": [],
-  "ciMode": false,
-  "verbose": false
-}
+```bash
+ubs file.ts                                  # Scan specific file
+ubs $(git diff --name-only --cached)          # Scan staged files
+ubs . --fail-on-warning                      # Stage 3 quality gate
 ```
 
-**Usage**:
+**Installation:**
 
-- Automatically runs before/after agent execution when enabled
-- Configured in `ubs_config.json`
-- Requires UBS installed (optional - graceful degradation if missing)
+```bash
+curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)" | bash
+```
 
-**For detailed documentation**, see [AGENTS.md](./AGENTS.md#ultimate-bug-scanner-ubs---static-analysis)
+### Plugin System
 
-### Plugin Registration
+opencode plugins extend functionality through a hook-based architecture.
 
-Plugins in `~/.config/opencode/plugin/` are automatically loaded at startup. No configuration in `opencode.json` is required.
+#### Available Plugins
 
-### Plugin Development
+**beads-guardrails.mjs**
 
-**Requirements**:
+- Enforce task tracking via beads
+- Block TodoWrite tool in beads workspaces
+- Graceful degradation when beads not active
 
-- Export named functions (e.g., `export const MyPlugin`)
-- Use `import` for ES modules (`.mjs` files)
-- Accept plugin context parameters: `{ project, client, $, directory, worktree }`
-- Return object with hook implementations
+**gptcache.mjs**
 
-**Example**:
+- LLM response caching to reduce API costs
+- 70-90% cost reduction for repeated prompts
+- <50ms retrieval vs 2-5s LLM calls
+
+**ubs.mjs**
+
+- Automated static analysis integration
+- Pre/post-agent execution scanning
+- Auto-update UBS every 24 hours
+
+#### Plugin Development
 
 ```javascript
 export const MyPlugin = async ({ project, client, $, directory, worktree }) => {
-  console.log('Plugin initialized!');
-
   return {
     'tool.execute.before': async (input, output) => {
       console.log('Tool:', input.tool);
@@ -792,28 +723,11 @@ export const MyPlugin = async ({ project, client, $, directory, worktree }) => {
 };
 ```
 
-**Available Hooks**:
-
-- `tool.execute.before` - Before tool execution
-- `tool.execute.after` - After tool execution
-- `agent.execute.before` - Before agent execution
-- `agent.execute.after` - After agent execution
-- `chat.message` - Chat message events
-- And many more (see [opencode docs](https://opencode.ai/docs/plugins/))
-
-**Dependencies**:
-
-- Use relative paths to access parent directory files
-- External npm packages require `package.json` in config directory
-- Dynamic imports work: `await import('../lib/module.js')`
-
-### Plugin Documentation
-
-For detailed plugin development guide, see [plugin/README.md](./plugin/README.md).
+For detailed plugin documentation, see [plugin/README.md](./plugin/README.md).
 
 ---
 
-## 🎣 Hook System
+## Hook System
 
 ### Hook Architecture
 
@@ -850,125 +764,14 @@ For detailed plugin development guide, see [plugin/README.md](./plugin/README.md
 ~/.config/opencode/hooks/check-mcp-agent-mail.sh
 ~/.config/opencode/hooks/check-beads.sh
 ~/.config/opencode/hooks/check-bv.sh
+
+# Interactive mode (prompts for setup if needed)
+~/.config/opencode/hooks/session-start.sh --interactive
 ```
 
 ---
 
-## 🔄 Workflow
-
-### Typical Session Flow
-
-```bash
-# 1. Start new session (cd to project)
-cd /path/to/your/project
-
-# 2. Run hook to verify services
-~/.config/opencode/hooks/session-start.sh
-
-# 3. Get context from cass_memory
-cm context "your task description" --json
-
-# 4. Check what to work on
-bd ready
-
-# 5. Create task
-bd create "task" --description "details"
-bd update <id> --status in_progress
-
-# 6. Complete task
-bd close <id> --reason "Done"
-
-# 7. Sync to git
-bd sync
-git push
-```
-
-### cass_memory Learning Protocol
-
-```bash
-# 1. Get context before work
-cm context "your task" --json
-
-# 2. Reference rules in code
-# Following rule b-8f3a2c: Always validate inputs
-// [cass: helpful b-8f3a2c] - rule helped catch edge case
-
-# 3. Work on task
-# ... code changes ...
-
-# 4. End session
-# Reflection happens automatically (schedule: cm reflect --days 7)
-```
-
----
-
-## 🤖 bv Integration for AI Agents
-
-### The One Command to Remember
-
-```bash
-# THE ENTRY POINT - Use this before any task
-bv --robot-triage
-
-# Returns everything you need:
-# - quick_ref: counts + top 3 picks
-# - recommendations: ranked actionable items with scores
-# - quick_wins: low-effort high-impact items
-# - blockers_to_clear: items unblocking most downstream work
-# - project_health: status/type/priority distributions
-# - commands: copy-paste shell commands
-```
-
-### Key bv Commands for AI Agents
-
-| Command            | Purpose                                                    | Use Case |
-| ------------------ | ---------------------------------------------------------- | -------- |
-| `--robot-triage`   | THE MEGA-COMMAND: single entry point for all analysis      |
-| `--robot-next`     | Minimal: just top pick + claim command                     |
-| `--robot-insights` | Full metrics: PageRank, betweenness, critical path, cycles |
-| `--robot-plan`     | Parallel execution tracks with dependency awareness        |
-| `--robot-priority` | Priority recommendations based on computed scores          |
-| `--robot-history`  | Bead-to-commit correlations with confidence scores         |
-| `--robot-alerts`   | Stale issues, blocking cascades, mismatches                |
-
-### Example AI Agent Workflow
-
-```bash
-# Step 1: Get triage
-TRIAGE=$(bv --robot-triage)
-
-# Step 2: Get top recommendation
-NEXT_TASK=$(echo "$TRIAGE" | jq -r '.recommendations[0].id')
-
-# Step 3: Get claim command
-CLAIM_CMD=$(echo "$TRIAGE" | jq -r '.commands.claim')
-
-# Step 4: Claim task (optional)
-eval $CLAIM_CMD
-
-# Step 5: Get context from cass_memory
-CONTEXT=$(cm context "implement $NEXT_TASK" --json)
-
-# Step 6: Work on task
-# ... implement ...
-
-# Step 7: Mark complete
-bd update $NEXT_TASK --status completed
-```
-
-### bv + cass_memory Integration
-
-```bash
-# bv checks for cass_memory automatically
-# If cass is installed and indexed, bv shows "🤖" in status bar
-
-# Session correlation
-# Press "V" on any bead to see cass sessions that contributed
-```
-
----
-
-## 🧪 Testing
+## Testing
 
 ### Running All Tests
 
@@ -986,15 +789,24 @@ cd ~/.config/opencode/tests
 - **bv Tests** (`tests/bv/`) - bv robot command validation
 - **Integration Tests** (`tests/integration/`) - End-to-end workflows
 
-### Quality Metrics
+### Code Quality
 
-- **Pass Rate**: Target 100% (matching Factory's 83/83)
-- **Coverage**: All critical paths tested
-- **Regression Prevention**: Tests prevent breaking existing functionality
+```bash
+# Run linting
+npm run lint              # ESLint check
+npm run lint:fix          # ESLint fix
+
+# Run formatting
+npm run format            # Prettier format all files
+npm run format:check      # Prettier check only
+
+# Pre-commit hooks (Husky + lint-staged)
+# Automatically runs lint and format on staged files
+```
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Service Not Installed?
 
@@ -1004,8 +816,7 @@ curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_syste
 
 # MCP Agent Mail not found
 git clone https://github.com/Dicklesworthstone/mcp_agent_mail.git ~/.mcp-agent-mail
-cd ~/.mcp-agent-mail
-uv sync
+cd ~/.mcp-agent-mail && uv sync
 
 # Beads CLI not found
 go install github.com/steveyegge/beads/cmd/bd@latest
@@ -1049,14 +860,8 @@ cm init
 # Check if server running
 curl -s http://127.0.0.1:8765/health/readiness
 
-# Check logs
-tail -f ~/.mcp-agent-mail/storage/mcp.db
-
 # Restart if needed
-# Kill existing process
 pkill -f "mcp_agent_mail.http"
-
-# Start fresh
 HTTP_ALLOW_LOCALHOST_UNAUTHENTICATED=true uv run python -m mcp_agent_mail.http --host 127.0.0.1 --port 8765
 ```
 
@@ -1070,57 +875,40 @@ bd doctor
 bd init
 ```
 
-### bv Issues?
-
-```bash
-# Check bv status
-bv --version
-
-# Re-install if needed
-curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh?$(date +%s)" | bash
-```
-
-### UBS Issues?
-
-```bash
-# Check UBS status
-ubs --version
-ubs doctor
-
-# Re-install if needed
-curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh?$(date +%s)" | bash
-```
-
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ~/.config/opencode/
-├── AGENTS.md                 # Agent instructions (THIS FILE)
+├── AGENTS.md                 # Agent instructions
 ├── README.md                 # This file
 ├── mcp_agent_mail_client.py # HTTP client for MCP Agent Mail
-├── bin/                     # opencode scripts
+├── bin/                      # opencode scripts
 │   ├── opencode-init          # System-wide setup
 │   └── workspace-init         # Project initialization
 ├── .beads/                   # Beads data (per project)
 ├── plugin/                   # Plugin system
-│   ├── beads-guardrails.mjs    # Task tracking enforcement
+│   ├── beads-guardrails.mjs  # Task tracking enforcement
 │   ├── gptcache.mjs          # LLM response caching
-│   ├── ubs.mjs                # UBS static analysis
-│   └── README.md              # Plugin documentation
+│   ├── ubs.mjs               # UBS static analysis
+│   └── README.md             # Plugin documentation
 ├── docs/                     # Documentation
 │   ├── GPTCACHE_INTEGRATION.md
 │   ├── BEADS_GUARDRAILS_SETUP.md
 │   ├── BEADS_GUARDRAILS_IMPLEMENTATION.md
-│   ├── task-to-commit.md      # Workflow documentation
-│   └── ...
-├── lib/                      # Client libraries
+│   ├── task-to-commit.md     # Workflow documentation
+│   ├── runner-architecture.md
+│   ├── runner-usage.md
+│   └── agent-development.md
+├── lib/                      # Client libraries and relay runner
 │   ├── beads-client.js         # Beads CLI wrapper
 │   ├── beads-viewer-client.js  # BV CLI wrapper
 │   ├── gptcache-client.js     # GPTCache wrapper
 │   ├── gptcache-middleware.js # GPTCache middleware
-│   └── ubs-client.js          # UBS wrapper
+│   ├── ubs-client.js          # UBS wrapper
+│   ├── runner/                # Relay runner system
+│   └── workflows/             # Code-driven workflows
 ├── config/                   # Plugin configurations
 │   ├── beads_config.json       # Beads plugin config
 │   ├── gptcache_config.json    # GPTCache plugin config
@@ -1138,241 +926,7 @@ curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_sca
 
 ---
 
-## 🛠 Setup Tools Reference
-
-### opencode-init (Node.js)
-
-Interactive setup tool with rich UI and user control:
-
-**Features:**
-
-- Tool status checking with version display
-- Selective installation (choose what you need)
-- Progress bars with spinners
-- Color-coded output (success/warning/error)
-- Automatic PATH configuration
-- Dependency checking (Go for Beads CLI)
-
-**Usage:**
-
-```bash
-cd ~/.config/opencode/bin
-./opencode-init
-```
-
-### opencode-init.bash (Bash)
-
-Non-interactive automated setup for CI/CD:
-
-**Features:**
-
-- Checks prerequisites
-- Installs all required tools
-- Starts services automatically
-- Suitable for automation
-
-**Usage:**
-
-```bash
-cd ~/.config/opencode/bin
-./opencode-init.bash
-```
-
-### setup.mjs Plugin
-
-opencode plugin for setup integration:
-
-**Features:**
-
-- Automatic checking on session start
-- Auto-prompt when setup needed
-- Workspace status checking
-- Contextual guidance when workspace topics are discussed
-
-**Configuration:** `~/.config/opencode/setup_config.json`
-
-```json
-{
-  "enabled": true,
-  "autoPrompt": true
-}
-```
-
-**Note:** The plugin automatically provides setup guidance - no slash commands needed. Follow the displayed commands directly in your terminal.
-
-### session-start.sh (Interactive Mode)
-
-Enhanced hook with interactive prompt:
-
-**Usage:**
-
-```bash
-# Standard check
-~/.config/opencode/hooks/session-start.sh
-
-# Interactive mode (prompts to run setup if tools missing)
-~/.config/opencode/hooks/session-start.sh --interactive
-
-# Skip cass check (for troubleshooting)
-~/.config/opencode/hooks/session-start.sh --skip-cass
-```
-
-## 🤖 bv Integration: Complete Feature List
-
-From the bv documentation (beads_viewer), here are ALL features available:
-
-### Core Views
-
-- **List View** (`b` - default) - Issue list with details panel
-- **Kanban Board** - Columnar workflow (Open, In Progress, Blocked, Closed)
-- **Graph Visualizer** (`g`) - Dependency DAG with pan/zoom
-- **Tree View** (`E`) - Parent-child hierarchy visualization
-- **Insights Dashboard** (`i`) - Graph metrics and health analytics
-- **History View** (`h`) - Bead-to-commit correlations with timeline
-
-### Robot Commands (AI Agent Interface)
-
-| Command                   | Returns                                                                   | When to Use                        |
-| ------------------------- | ------------------------------------------------------------------------- | ---------------------------------- |
-| `--robot-triage`          | quick_ref, recommendations, quick_wins, blockers_to_clear, project_health | **Start every session**            |
-| `--robot-next`            | Top recommendation + claim command                                        | What to work on next               |
-| `--robot-insights`        | Full metrics (PageRank, betweenness, cycles, etc.)                        | Assess project health              |
-| `--robot-plan`            | Parallel execution tracks                                                 | How to parallelize work            |
-| `--robot-priority`        | Priority recommendations                                                  | Fix misaligned priorities          |
-| `--robot-history`         | Bead-to-commit correlations                                               | Track what was done when           |
-| `--robot-alerts`          | Stale issues, blocking cascades, mismatches                               | Proactive monitoring               |
-| `--robot-sprint-list`     | All sprints as JSON                                                       | Sprint management                  |
-| `--robot-burndown`        | Sprint burndown with at-risk detection                                    | Progress tracking                  |
-| `--robot-forecast`        | ETA predictions with dependency-aware scheduling                          | When will tasks complete           |
-| `--robot-label-health`    | Per-label health metrics                                                  | Domain health monitoring           |
-| `--robot-label-flow`      | Cross-label dependency matrix                                             | Identify bottlenecks between teams |
-| `--robot-label-attention` | Attention-ranked labels                                                   | Prioritize domain focus            |
-| `--robot-graph`           | Dependency graph export                                                   | JSON, DOT, Mermaid formats         |
-
-### Graph Analysis Features
-
-- **9 Graph Metrics**: PageRank, betweenness, HITS, eigenvector, critical path, degree, density, cycles, topo sort
-- **Time-Travel**: Compare project state across any git revision
-- **Impact Network**: Implicit relationships between beads based on shared code changes
-- **Causal Chain Analysis**: Reconstruct why a bead took as long as it did
-- **Correlation Feedback**: Train bv to learn from confirmed/rejected correlations
-
-### Search & Filtering
-
-- **Fuzzy Search** (`/`) - Instant search across ID, title, content, metadata
-- **Status Filters**: Open (`o`), Closed (`c`), Ready (`r`)
-- **Priority Filters**: P0-Critical through P4-Backlog
-- **Label Filters**: Dynamic per-project labels
-- **Semantic Search** (Optional): Vector-based search with cass Memory integration
-
-### Export & Reporting
-
-- **Markdown Export** (`--export-md`) - Management-ready reports with Mermaid diagrams
-- **Graph Export** (`--robot-graph`) - JSON, DOT, Mermaid formats
-- **Static Site** (`--export-pages`) - Self-contained HTML visualizations
-- **History Export** - Bead-to-commit correlation data
-
----
-
-## 🚀 Quick Reference
-
-### Essential Commands
-
-```bash
-# cass_memory
-cm context "task" --json                    # Get rules before working
-cm doctor --json                            # Check system health
-cm playbook list                             # List all rules
-
-# Beads CLI
-bd ready                                    # See unblocked issues
-bd create "task" --description "..."         # Create task
-bd show <id>                                # View task details
-bd update <id> --status in_progress          # Start working
-bd close <id> --reason "Done"                 # Complete task
-bd sync                                      # Sync to git
-bd doctor                                    # Troubleshoot
-
-# Beads Viewer (bv)
-bv --robot-triage                           # THE COMMAND - start every session
-bv --robot-next                               # What to work on next
-bv --robot-insights                          # Full project analysis
-bv --robot-plan                              # Parallel execution tracks
-
-# UBS (Ultimate Bug Scanner)
-ubs file.ts                                  # Scan specific file
-ubs $(git diff --name-only --cached)          # Scan staged files
-ubs . --fail-on-warning                      # Stage 3 quality gate
-```
-
-### Keyboard Shortcuts (bv)
-
-| Key         | Action             |
-| ----------- | ------------------ |
-| `j` / `k`   | Navigate down/up   |
-| `g` / `G`   | Jump to top/bottom |
-| `Enter`     | Open/Select        |
-| `/`         | Start search       |
-| `b`         | Kanban board       |
-| `i`         | Insights dashboard |
-| `g`         | Graph visualizer   |
-| `E`         | Tree view          |
-| `h`         | History view       |
-| `a`         | Actionable plan    |
-| `?`         | Help               |
-| `q` / `Esc` | Quit               |
-
----
-
-## 🎯 Getting Started
-
-### Option 1: Fresh Installation (Recommended)
-
-```bash
-# 1. Run opencode-init (one-time system setup)
-cd ~/.config/opencode/bin
-./opencode-init
-
-# This will install and configure:
-# - cass_memory (cm)
-# - MCP Agent Mail (REQUIRED)
-# - Beads CLI (bd)
-# - Beads Viewer (bv)
-# - osgrep (semantic search)
-# - Configure PATH for ~/.config/opencode/bin
-
-# 2. Source shell config or start new terminal
-source ~/.zshrc  # or source ~/.bashrc
-
-# 3. Initialize project
-cd /path/to/your/project
-~/.config/opencode/bin/workspace-init
-
-# This will:
-# - Initialize git repo (if missing)
-# - Initialize cass_memory (cm init --repo) - REQUIRED
-# - Initialize beads (bd init)
-```
-
-### Option 2: Use Existing Factory Installations
-
-```bash
-# If you already have Factory CLI installed, you can use existing services:
-
-# cass_memory: Already installed at ~/.cass-memory/
-# MCP Agent Mail: Already at ~/.mcp-agent-mail/
-# Beads CLI: Already in PATH
-# Beads Viewer: Already in PATH
-
-# Just initialize hooks and project
-cd /path/to/your/project
-~/.config/opencode/hooks/session-start.sh  # Checks services
-~/.config/opencode/bin/workspace-init  # Initialize project
-```
-
----
-
-## 📚 Further Reading
+## Further Reading
 
 ### External Resources
 
@@ -1390,9 +944,12 @@ cd /path/to/your/project
 - [Beads Guardrails Implementation](./docs/BEADS_GUARDRAILS_IMPLEMENTATION.md) - Plugin implementation details
 - [Plugin System](./plugin/README.md) - Plugin system documentation
 - [Task-to-Commit Workflow](./docs/task-to-commit.md) - Atomic task cycle documentation
+- [Runner Architecture](./docs/runner-architecture.md) - Relay runner design
+- [Runner Usage](./docs/runner-usage.md) - Relay runner user guide
+- [Agent Development](./docs/agent-development.md) - Creating agents
 
 ---
 
-## 📄 License
+## License
 
 MIT License - See LICENSE file for details.
