@@ -1,4 +1,5 @@
 ---
+id: git-history-analyzer
 name: git-history-analyzer
 description: Specialized research droid that performs historical change pattern detection, evolution tracking, and team collaboration analysis. Part of Senior Engineer Framework integration with focus on understanding code evolution, risk patterns, and proven approaches.
 mode: subagent

@@ -1,4 +1,5 @@
 ---
+id: domain-specialist
 name: domain-specialist
 description: Specialized research droid that provides deep expertise in specific domains, industry best practices, and specialized knowledge. Essential for Senior Engineer Framework integration with focus on domain-specific intelligence and compliance requirements.
 mode: subagent
