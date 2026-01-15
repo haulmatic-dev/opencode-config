@@ -125,6 +125,7 @@
     "./plugin/cass.mjs",
     "./plugin/beads.mjs",
     "./plugin/beads-tools.mjs",
-    "./plugin/setup.mjs"
+    "./plugin/setup.mjs",
+    "./plugin/tldr.mjs"
   ]
 }

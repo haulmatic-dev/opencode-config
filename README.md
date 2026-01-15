@@ -7,6 +7,7 @@ opencode brings together best-in-class AI development tools into a unified, hook
 ### Key Features
 
 - **cass_memory** (cm) - Evidence-based learning system for cross-agent intelligence
+- **TLDR** - 5-layer code analysis with 95% token savings, semantic search, impact analysis
 - **MCP Agent Mail** - Tool-agnostic agent coordination and file reservations
 - **Beads CLI** (bd) - Dependency-aware task tracking with git persistence
 - **Beads Viewer** (bv) - Graph-aware task triage with AI agent integration
@@ -31,6 +32,7 @@ opencode brings together best-in-class AI development tools into a unified, hook
   - [Task-to-Commit Workflow](#task-to-commit-workflow)
   - [Headless Swarm Architecture](#headless-swarm-architecture)
 - [Tools and Components](#tools-and-components)
+  - [TLDR](#tldr)
   - [cass_memory (cm)](#cass_memory-cm)
   - [MCP Agent Mail](#mcp-agent-mail)
   - [Beads CLI (bd)](#beads-cli-bd)
@@ -123,7 +125,7 @@ cd ~/.config/opencode/bin
 # - MCP Agent Mail (REQUIRED)
 # - Beads CLI (bd)
 # - Beads Viewer (bv)
-# - osgrep (semantic search)
+# - TLDR (5-layer code analysis + semantic search)
 # - Configure PATH for ~/.config/opencode/bin
 ```
 
@@ -660,6 +662,44 @@ curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/mai
 | `h`         | History view       |
 | `?`         | Help               |
 | `q` / `Esc` | Quit               |
+
+### TLDR
+
+**Purpose**: 5-layer code analysis with 95% token savings, semantic search, and impact analysis
+
+**Features**:
+
+- **Semantic Search**: Embedding-based code search using bge-large-en-v1.5
+- **Context Extraction**: AST, call graph, imports, and code structure analysis
+- **Impact Analysis**: Automated dependency tracking for change impact
+- **Program Slicing**: Debug-focused code extraction
+- **Data Flow Analysis**: Variable definitions and uses tracking
+- **Control Flow Graphs**: Branch and loop visualization
+- **Architecture Analysis**: Module dependency mapping
+- **Dead Code Detection**: Unreachable code identification
+
+**Key Commands**:
+
+```bash
+tldr_context src/auth.ts                    # Extract code structure
+tldr_semantic "authentication flow"         # Semantic code search
+tldr_impact src/auth.ts                     # Analyze change impact
+tldr_callgraph validateToken                 # Get call graph
+tldr_slice src/auth.ts:45                   # Program slice at line 45
+tldr_dfg handleRequest                      # Data flow analysis
+tldr_cfg src/auth.ts                        # Control flow graph
+tldr_arch .                                 # Architecture analysis
+tldr_dead .                                 # Dead code detection
+```
+
+**Token Savings**:
+
+| Metric         | Without TLDR | With TLDR | Improvement |
+| -------------- | ------------ | --------- | ----------- |
+| Context tokens | 21,000       | 175       | 99% savings |
+| Query latency  | 30s          | 100ms     | 300x faster |
+
+**Integration**: TLDR integrates with Beads for impact-aware task management.
 
 ### Ultimate Bug Scanner (UBS)
 

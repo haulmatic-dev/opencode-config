@@ -4,7 +4,7 @@
 >
 > **Status**: Planning Phase
 >
-> **Impact**: **Replaces osgrep** as primary semantic search with 5-layer code analysis
+> **Impact**: **Replaces and removes osgrep** with 5-layer code analysis
 
 ---
 
@@ -24,12 +24,12 @@
 
 **Approach**: Full replacement of osgrep with complementary integration to existing systems
 
-| System                       | Current Role           | After TLDR Integration                    | Relationship                                                       |
-| ---------------------------- | ---------------------- | ----------------------------------------- | ------------------------------------------------------------------ |
-| **GPTCache**                 | Cache LLM responses    | Still caches responses                    | ✅ Complementary - TLDR reduces input size, GPTCache caches result |
-| **cass_memory**              | Learn procedural rules | Still learns rules                        | ✅ Complementary - Different domains (code structure vs patterns)  |
-| **osgrep (semantic-search)** | Concept-based search   | **Replaced by TLDR** (emergency fallback) | ⚠️ TLDR supersedes osgrep with superior capabilities               |
-| **Beads**                    | Task tracking          | Task tracking + TLDR dependency analysis  | ✅ Enhanced - `tldr impact` for code dependencies                  |
+| System          | Current Role                 | After TLDR Integration                   | Relationship                                                       |
+| --------------- | ---------------------------- | ---------------------------------------- | ------------------------------------------------------------------ | -------------------------------------- |
+| **GPTCache**    | Cache LLM responses          | Still caches responses                   | ✅ Complementary - TLDR reduces input size, GPTCache caches result |
+| **cass_memory** | Learn procedural rules       | Still learns rules                       | ✅ Complementary - Different domains (code structure vs patterns)  |
+|                 | **osgrep (semantic-search)** | Concept-based search                     | **Removed** - TLDR replaces it completely                          | ✅ TLDR provides superior capabilities |
+| **Beads**       | Task tracking                | Task tracking + TLDR dependency analysis | ✅ Enhanced - `tldr impact` for code dependencies                  |
 
 ### Expected Benefits
 
@@ -73,7 +73,7 @@ User Request
   → GPTCache (caches result)
 ```
 
-_(osgrep removed as primary, kept only as emergency fallback)_
+_(osgrep completely removed)_
 
 ### TLDR's 5-Layer Architecture
 
@@ -157,24 +157,25 @@ _(osgrep removed as primary, kept only as emergency fallback)_
 
 ### Phase 4: Full osgrep Replacement (Week 4)
 
-**Goal**: Replace osgrep as primary semantic search with TLDR's superior capabilities
+**Goal**: Complete removal of osgrep - TLDR is now only semantic search engine
 
 **Tasks**:
 
-1. Compare TLDR semantic vs osgrep results
-2. Update `agent/semantic-search.md` to use TLDR as primary
-3. Implement fallback logic: TLDR → osgrep → grep
-4. Remove osgrep from installation scripts (mark deprecated)
-5. Update `AGENTS.md` and documentation
-6. Benchmark performance with real workflows
+1. Remove osgrep from installation scripts
+2. Remove osgrep from system diagnostics (plugin/setup.mjs)
+3. Update `agent/semantic-search.md` to use TLDR only
+4. Update `AGENTS.md` and documentation
+5. Remove osgrep models download scripts (bin/workspace-init)
+6. Update README.md and project documentation
+7. Benchmark TLDR performance with real workflows
 
 **Deliverables**:
 
-- Updated semantic-search agent (TLDR primary, osgrep fallback)
-- Updated installation scripts (osgrep deprecated)
+- osgrep completely removed from codebase
+- Updated semantic-search agent (TLDR only)
+- Updated installation scripts (TLDR checks only)
 - Updated AGENTS.md documentation
-- Performance benchmarks
-- Migration guide for users
+- Removed osgrep model downloads
 
 ### Phase 5: Advanced Features (Week 5-6)
 
@@ -194,9 +195,12 @@ _(osgrep removed as primary, kept only as emergency fallback)_
 - Debugging workflows documentation
 - Architecture analysis workflows
 
-### Phase 6: MCP Server Integration (Week 7)
+### Phase 6: MCP Server Integration (Week 7) - OPTIONAL / DEFERRED
 
-**Goal**: Expose TLDR as MCP server for Claude Code/Desktop
+> **Status**: This phase is for Claude Code/Desktop integration, NOT opencode.
+> opencode has TLDR integrated directly via `plugin/tldr.mjs` - no MCP needed.
+
+**Goal**: Expose TLDR as MCP server for Claude Code/Desktop (external AI assistants)
 
 **Tasks**:
 
@@ -211,6 +215,13 @@ _(osgrep removed as primary, kept only as emergency fallback)_
 - MCP server running
 - Claude integration working
 - MCP documentation
+
+**Note**: This phase is ONLY needed if you want to use TLDR with:
+
+- Claude Code (Anthropic's IDE)
+- Claude Desktop (Anthropic's desktop app)
+
+For opencode users: **Phase 6 can be safely ignored.**
 
 ---
 
@@ -563,34 +574,35 @@ If multiple semantic tools are available, agents will:
 
 Agents must attempt semantic search in this order:
 
-1. TLDR semantic search (PRIMARY - 99% of queries)
-2. osgrep (FALLBACK - only if TLDR daemon unavailable or index missing)
-3. grep (LAST RESORT - crude string matching only)
+1. TLDR semantic search (ONLY semantic engine)
+2. grep (LAST RESORT - crude string matching only)
 
 Agents must never run multiple semantic search tools for the same query.
 
 Decision tree:
 
 - Is TLDR available and indexed? → Use tldr_semantic
-- Is TLDR daemon down? → Try osgrep with warning
-- Is neither available? → Fall back to grep with note
+- Is TLDR daemon down? → Alert user, fall back to grep with warning
 ```
 
 ### Implementation: Plugin Logic
 
 ```javascript
 // In plugin/tldr.mjs
-async semanticSearchWithFallback(query, options) {
-  // Try TLDR first
+async semanticSearch(query, options) {
+  // Try TLDR only
   const tldrResult = await tldrClient.semanticSearch(query, options);
   if (tldrResult && tldrResult.length > 0) {
     return tldrResult; // Success
   }
 
-  // Fallback to osgrep only if TLDR completely unavailable
-  console.warn('[TLDR] Unavailable, falling back to osgrep');
-  const osgrepResult = await this.runOsgrep(query, options);
-  return osgrepResult;
+  // TLDR unavailable - alert user
+  console.error('[TLDR] Semantic search unavailable - daemon not running or index not built');
+  console.error('[TLDR] Falling back to grep (crude string matching only)');
+
+  // Fall back to grep as last resort
+  const grepResult = await this.runGrep(query, options);
+  return grepResult;
 }
 ```
 
@@ -599,101 +611,28 @@ async semanticSearchWithFallback(query, options) {
 **In ALL documentation, tools, and agents**:
 
 ```markdown
-TLDR is the PRIMARY semantic engine.
-osgrep is a FALLBACK when TLDR is unavailable.
+TLDR is the ONLY semantic engine.
+osgrep has been completely removed.
 ```
 
 **Forbidden language** (to avoid misinterpretation):
 
-- "osgrep is removed"
-- "osgrep is deleted"
-- "osgrep no longer exists"
+- "osgrep is retained as fallback"
+- "Use osgrep when TLDR unavailable"
+- "osgrep de-scoped but present"
 
 **Correct language**:
 
-- "TLDR supersedes osgrep as primary semantic engine"
-- "osgrep is retained as emergency fallback"
+- "TLDR is the only semantic engine"
+- "osgrep has been completely removed"
+- "Semantic search requires TLDR daemon"
 
 ````
 
-### Rationale
 
-```javascript
-// In plugin/tldr.mjs
-async semanticSearchWithFallback(query, options) {
-  // Try TLDR first
-  const tldrResult = await tldrClient.semanticSearch(query, options);
-  if (tldrResult && tldrResult.length > 0) {
-    return tldrResult; // Success
-  }
-
-  // Fallback to osgrep only if TLDR completely unavailable
-  console.warn('[TLDR] Unavailable, falling back to osgrep');
-  const osgrepResult = await this.runOsgrep(query, options);
-  return osgrepResult;
-}
-````
-
-### Rationale
-
-- Determinism over optionality
-- Prevents search loops
-- Simplifies agent decision logic
-- Canonical language prevents agent misinterpretation
-
----
-
-## 6. osgrep De-scoping (Not Deletion)
-
-### Clarification
-
-osgrep should **not** be described as "removed" or "deleted".
-
-### Recommended Language (Canonical)
-
-**Correct**: "TLDR supersedes osgrep as primary semantic engine"
-
-**Forbidden** (to avoid misinterpretation by agents):
-
-- "osgrep is removed"
-- "osgrep is deleted"
-- "osgrep no longer exists"
-
-### Implementation: Documentation Updates
-
-> **TLDR supersedes osgrep as primary semantic engine.**
-
-### osgrep Allowed Uses (Fallback Mode Only)
-
-- TLDR daemon unavailable
-- Cold-start scenarios (index not built yet)
-- Crude file-level scavenging (location, imports, filenames only)
-
-### osgrep Disallowed Uses
-
-- Understanding code behavior (use TLDR)
-- Impact analysis (use TLDR)
-- Debugging logic (use TLDR)
-- Refactoring context (use TLDR)
-
-### Implementation: Documentation Updates
-
-In `agent/semantic-search.md`:
-
-```markdown
-You are a semantic code search specialist using TLDR (primary) with osgrep fallback.
-
-## Your Role
-
-Use TLDR for comprehensive code understanding and semantic search. Use osgrep ONLY as fallback when TLDR daemon is completely unavailable.
-
-## Forbidden
-
-- Never use osgrep for understanding behavior
-- Never use osgrep for impact analysis
-- Never use osgrep for debugging logic
-- Never use osgrep when TLDR is available
-```
+- Alert user that semantic search is unavailable
+- Fall back to grep with clear warning
+- Never attempt other semantic search tools
 
 ---
 
@@ -737,7 +676,7 @@ When creating tasks from TLDR findings:
 - [ ] If YES: Document findings in parent task
 - [ ] If NO: Create new task for this impact
 - [ ] Do NOT proceed without explicit task approval
-```
+````
 
 ### Rationale
 
@@ -777,7 +716,7 @@ Agents using TLDR tools MUST:
 2. Stop work if TLDR reveals scope-expanding dependencies
 3. Create new Beads task for additional findings
 4. Use program slicing for debugging ONLY
-5. Follow semantic search order: TLDR → osgrep → grep
+5. Use TLDR as only semantic search engine
 6. Never mutate Beads based on TLDR findings alone
 
 Violations will be detected and blocked by enforcement system.
@@ -844,53 +783,40 @@ To:
 
 ---
 
-## 🔄 osgrep Replacement Decision
+## 🔄 Complete osgrep Removal Decision
 
-### Why Replace osgrep Despite Slower Speed?
+### Why Remove osgrep Entirely?
 
-**Question**: osgrep is 2x faster (50ms vs 100ms) - why replace it?
-
-**Answer**: Because TLDR's additional capabilities far outweigh 50ms latency difference.
+**Answer**: TLDR provides superior capabilities and simplifying to a single semantic engine improves architecture.
 
 **Comparison Matrix**:
 
-| Capability               | osgrep           | TLDR                            | Impact        |
-| ------------------------ | ---------------- | ------------------------------- | ------------- |
-| Semantic search          | ✅ Concept-based | ✅ Structure + behavior         | Equal         |
-| Code snippets (15 lines) | ✅               | ✅ (structured)                 | TLDR better   |
-| Call graph (basic)       | ✅               | ✅ (forward + backward + depth) | TLDR superior |
-| Program slicing          | ❌               | ✅                              | TLDR unique   |
-| Data flow analysis       | ❌               | ✅                              | TLDR unique   |
-| Control flow graphs      | ❌               | ✅                              | TLDR unique   |
-| Complexity metrics       | ❌               | ✅                              | TLDR unique   |
-| Impact analysis          | ❌               | ✅                              | TLDR unique   |
-| Dead code detection      | ❌               | ✅                              | TLDR unique   |
-| Architecture layers      | ❌               | ✅                              | TLDR unique   |
-| **Response time**        | **50ms**         | **100ms**                       | osgrep wins   |
-| **Index size**           | **100MB**        | **150MB**                       | osgrep wins   |
-| **Setup complexity**     | Low              | Medium                          | osgrep wins   |
+| Capability               | TLDR                            | Benefit        |
+| ------------------------ | ------------------------------- | -------------- |
+| Semantic search          | ✅ Structure + behavior         | High precision |
+| Code snippets (15 lines) | ✅ (structured)                 | Better context |
+| Call graph (basic)       | ✅ (forward + backward + depth) | Superior       |
+| Program slicing          | ✅                              | Unique feature |
+| Data flow analysis       | ✅                              | Unique feature |
+| Control flow graphs      | ✅                              | Unique feature |
+| Complexity metrics       | ✅                              | Unique feature |
+| Impact analysis          | ✅                              | Unique feature |
+| Dead code detection      | ✅                              | Unique feature |
+| Architecture layers      | ✅                              | Unique feature |
+| **Response time**        | **100ms**                       | Fast enough    |
+| **Index size**           | **150MB**                       | Acceptable     |
+| **Setup complexity**     | Medium                          | One-time cost  |
 
-**Key Insight**: TLDR provides **8 unique features** osgrep completely lacks. The 2x speed difference is negligible when compared to:
+**Key Insight**: TLDR provides **8 unique features** and the 100ms latency is negligible compared to:
 
 - 95% token savings (21K → 175 tokens)
 - Automated impact analysis (vs manual tracing)
 - Program slicing (vs reading entire functions)
 - 5-layer analysis (vs basic embeddings)
 
-### Real-World Scenario Comparison
+### Real-World Scenario
 
 **Task**: "Find where JWT validation happens and what calls it"
-
-**Using osgrep**:
-
-```
-1. osgrep "JWT validation" [50ms]
-   → Returns 10 results, 15-line snippets
-2. Manual grep for "validateToken" [2s]
-   → Find 7 files
-3. Read each file to understand call graph [5min]
-4. Total time: ~5min
-```
 
 **Using TLDR**:
 
@@ -906,44 +832,30 @@ To:
 
 ### Migration Cost-Benefit Analysis
 
-| Metric             | Cost (TLDR Migration) | Benefit (TLDR vs osgrep)   | Net Impact         |
-| ------------------ | --------------------- | -------------------------- | ------------------ |
-| Development time   | 1-2 weeks             | -                          | Investment         |
-| Training time      | 1 week                | -                          | Investment         |
-| Disk space         | +50MB/project         | -                          | Small cost         |
-| Query latency      | +50ms                 | -                          | Acceptable         |
-| **Token savings**  | -                     | 95% (47.5K tokens/session) | **$171/year**      |
-| **Time savings**   | -                     | 2500x for complex queries  | **~40 hours/year** |
-| **Better results** | -                     | 8 additional features      | **Invaluable**     |
-| **Debugging**      | -                     | Program slicing available  | **10x faster**     |
+| Metric             | Cost (TLDR Migration) | Benefit                    | Net Impact          |
+| ------------------ | --------------------- | -------------------------- | ------------------- |
+| Development time   | 1-2 weeks             | -                          | Investment          |
+| Training time      | 1 week                | -                          | Investment          |
+| Disk space         | +50MB/project         | -                          | Small cost          |
+| Query latency      | 100ms                 | -                          | Fast enough         |
+| **Token savings**  | -                     | 95% (47.5K tokens/session) | **$171/year**       |
+| **Time savings**   | -                     | 2500x for complex queries  | **~40 hours/year**  |
+| **Better results** | -                     | 8 additional features      | **Invaluable**      |
+| **Debugging**      | -                     | Program slicing available  | **10x faster**      |
+| **Simplification** | -                     | Single semantic engine     | **Maintainability** |
 
 **ROI**: **10:1** (benefits:costs)
 
 ### Replacement Strategy
 
-**Phase 1 (Week 1-2)**: Parallel Deployment
+**Direct Migration** (Week 1-4):
 
-- Install TLDR alongside osgrep
-- Update `agent/semantic-search.md` to prefer TLDR
-- Add fallback: `try tldr_semantic, catch → osgrep`
+- Install TLDR daemon
+- Implement TLDR-only semantic search
+- Remove all osgrep references
+- No parallel deployment
 
-**Phase 2 (Week 3-4)**: Monitor & Validate
-
-- Track usage: TLDR vs osgrep calls
-- Measure: relevance, latency, token savings
-- Gather feedback from agents
-
-**Phase 3 (Week 5-6)**: Decommission Decision
-
-- **If TLDR adoption > 90%**:
-  - Remove osgrep from init scripts
-  - Mark as deprecated in documentation
-  - Remove from AGENTS.md
-- **If TLDR adoption < 70%**:
-  - Investigate pain points
-  - Keep both, add better fallback logic
-
-### Files to Update for Full Replacement
+### Files to Update for Complete Removal
 
 | File                            | Change                             | Priority |
 | ------------------------------- | ---------------------------------- | -------- |
@@ -957,8 +869,7 @@ To:
 
 ### Success Criteria
 
-- [ ] TLDR handles > 95% of semantic search queries
-- [ ] osgrep fallback triggered < 5% of queries
+- [ ] TLDR handles all semantic search queries (100%)
 - [ ] Token savings measured > 90%
 - [ ] Agent feedback positive on result quality
 - [ ] No regression in search relevance
@@ -993,9 +904,9 @@ GPTCache caches optimized response
 - cass_memory: "Always validate JWT tokens before authorizing API calls"
 - TLDR: "Here's how JWT validation is implemented in your codebase"
 
-### osgrep: Full Replacement
+### osgrep: Complete Removal
 
-**Decision**: Replace osgrep as primary semantic search engine
+**Decision**: Remove osgrep entirely - TLDR is the only semantic search engine
 
 ---
 
@@ -1045,23 +956,23 @@ Integration tests for end-to-end workflows.
 
 ### 6. Documentation: `agent/semantic-search.md`
 
-Update semantic search agent to use TLDR.
+Update semantic search agent to use TLDR only.
 
-### 7. Update: `bin/opencode-init` (Week 5-6)
+### 7. Update: `bin/opencode-init` (Week 4)
 
-Remove osgrep from installation checks, mark as deprecated.
+Remove osgrep from installation checks.
 
-### 8. Update: `plugin/setup.mjs` (Week 5-6)
+### 8. Update: `plugin/setup.mjs` (Week 4)
 
 Replace osgrep check with TLDR check in system diagnostics.
 
-### 9. Update: `AGENTS.md` (Week 5-6)
+### 9. Update: `AGENTS.md` (Week 4)
 
 Change semantic-search description from "osgrep" to "TLDR".
 
-### 10. Deprecation Notice: `docs/integrations/osgrep-*.md` (Week 5-6)
+### 10. Remove: `docs/integrations/osgrep-*.md` (Week 4)
 
-Add deprecation notice to osgrep documentation.
+Remove osgrep integration documentation.
 
 ---
 
@@ -1077,7 +988,7 @@ Test daemon startup, context extraction, semantic search, and hooks.
 
 ### Performance Benchmarks
 
-Compare TLDR vs osgrep for semantic search quality and speed.
+Validate TLDR semantic search quality and speed meets targets.
 
 ---
 
@@ -1121,8 +1032,7 @@ The current guardrails are **documentation-only**. Autonomous agents will not re
 
 **Technical Metrics**:
 
-- [ ] TLDR handles > 95% of semantic search queries
-- [ ] osgrep fallback triggered < 5% of queries
+- [ ] TLDR handles all semantic search queries (100%)
 - [ ] Token savings measured > 90%
 - [ ] Agent feedback positive on result quality
 - [ ] No regression in search relevance
@@ -1151,15 +1061,15 @@ The current guardrails are **documentation-only**. Autonomous agents will not re
 
 **Can we replace osgrep with llm-tldr?**
 
-**Answer: YES** - Full replacement recommended with osgrep kept only as emergency fallback.
+**Answer: YES** - Full replacement with complete osgrep removal.
 
 **Key Reasons**:
 
 1. **TLDR provides 8+ unique features** osgrep lacks (program slicing, data flow, impact analysis, etc.)
 2. **95% token savings** vs osgrep's basic embeddings (similar token cost)
 3. **2500x faster for complex queries** (5min manual → 120ms TLDR)
-4. **2x latency (100ms vs 50ms) is negligible** compared to CLI spawn (30s)
-5. **10:1 ROI** (benefits:costs)
+4. **Simpler architecture** - single semantic search engine
+5. **TLDR daemon is a required dependency** - ensures availability
 
 **Guardrails Required**: YES
 
@@ -1167,17 +1077,19 @@ The current guardrails are **documentation-only**. Autonomous agents will not re
 - Must enforce scope ceiling, program slicing restrictions, deterministic search order
 - TLDR must be informational, not permissive
 
-**Timeline**: 7-week phased integration with full osgrep replacement by Week 6.
+**Timeline**: 7-week phased integration with complete osgrep removal by Week 4.
 
 **Implementation Order**:
 
 1. Week 1-2: Core plugin + basic guardrails
 2. Week 3: Context injection hooks
-3. Week 4: Full osgrep replacement + fallback logic
+3. Week 4: Complete osgrep removal
 4. Week 5-6: Advanced features + complete guardrail enforcement
-5. Week 7: MCP integration
+5. Week 7: **MCP integration (OPTIONAL - for Claude Code/Desktop only)**
 
 **Critical Success Factor**: Guardrails are not optional - they're **mandatory** for production safety.
+
+**Note**: Phase 6 (MCP) is only needed for external AI assistants (Claude Code/Desktop). For opencode, Phases 1-5 complete the integration.
 
 ---
 
@@ -1196,4 +1108,8 @@ The current guardrails are **documentation-only**. Autonomous agents will not re
 
 **Last Updated**: 2026-01-14
 
-**Version**: 3.0 (Hard Enforcement Added)
+**Version**: 4.0 (Complete osgrep Removal)
+
+```
+
+```

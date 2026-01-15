@@ -34,7 +34,6 @@ class SetupPlugin {
       biome: 'biome',
       prettier: 'prettier',
       ubs: 'ubs',
-      osgrep: 'osgrep',
     };
 
     const status = {};
@@ -45,6 +44,17 @@ class SetupPlugin {
       } catch {
         status[name] = false;
       }
+    }
+
+    // Check TLDR daemon
+    try {
+      const { stdout } = await execAsync(
+        'curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health 2>/dev/null',
+        { timeout: 2000 },
+      );
+      status.tldr = stdout.trim() === '200';
+    } catch {
+      status.tldr = false;
     }
 
     // Check if ~/.config/opencode/bin is in PATH
@@ -86,7 +96,7 @@ class SetupPlugin {
     parts.push(`  Prettier: ${status.prettier ? '✓ installed' : '○ missing'}`);
     parts.push(`  UBS: ${status.ubs ? '✓ installed' : '○ missing (optional)'}`);
     parts.push(
-      `  Osgrep: ${status.osgrep ? '✓ installed' : '○ missing (optional)'}`,
+      `  TLDR: ${status.tldr ? '✓ daemon running' : '○ daemon not running (required)'}`,
     );
 
     if (!status.opencode_bin_in_path) {

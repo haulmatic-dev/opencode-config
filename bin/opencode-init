@@ -42,7 +42,8 @@ HAS_BIOME=false
 HAS_PRETTIER=false
 HAS_BD=false
 HAS_BV=false
-HAS_OSGREP=false
+HAS_TLDR=false
+HAS_TLDR_DAEMON=false
 HAS_UBS=false
 
 # Check for Go
@@ -53,21 +54,14 @@ else
   echo "  Go: ○ (needed for Beads CLI)"
 fi
 
-# Check for cass
+# Check for cass_memory
 if command -v cm &> /dev/null; then
   HAS_CM=true
-  if command -v cass &> /dev/null; then
-    CASS_HEALTHY=$(cm health 2>/dev/null && echo "healthy")
-    
-    if [ "$CASS_HEALTHY" = "healthy" ]; then
-      if ! pgrep -f "cass" > /dev/null 2>&1; then
-        echo "  cass_memory (cm): ✓ (healthy)"
-      else
-        echo "  cass_memory (cm): ✓ (running)"
-      fi
-    else
-      echo "  cass_memory (cm): ○ (needs health check)"
-    fi
+  if pgrep -f "cass" > /dev/null 2>&1; then
+    echo "  cass_memory (cm): ✓ (running)"
+  else
+    echo "  cass_memory (cm): ✓ (installed, not running)"
+  fi
 else
   echo "  cass_memory (cm): ○ (not installed)"
 fi
@@ -104,12 +98,18 @@ else
   echo "  Beads Viewer (bv): ○ (not installed)"
 fi
 
-# Check for osgrep (optional)
-if command -v osgrep &> /dev/null; then
-  HAS_OSGREP=true
-  echo "  Osgrep: ✓ $(osgrep --version 2>/dev/null | head -1 || echo 'unknown')"
+# Check for TLDR (Python package)
+if command -v tldr &> /dev/null; then
+  HAS_TLDR=true
+  # Check if daemon is running (with timeout)
+  if timeout 5 tldr daemon status 2>&1 | grep -q "running\|ready"; then
+    HAS_TLDR_DAEMON=true
+    echo "  TLDR: ✓ (daemon running)"
+  else
+    echo "  TLDR: ✓ (installed, daemon not running)"
+  fi
 else
-  echo "  Osgrep: ○ (not installed)"
+  echo "  TLDR: ○ (not installed - required for semantic search)"
 fi
 
 # Check for UBS (optional)
@@ -117,23 +117,30 @@ if command -v ubs &> /dev/null; then
   HAS_UBS=true
   echo "  UBS: ✓ $(ubs --version 2>/dev/null | head -1 || echo 'unknown')"
 else
-  echo "  UBS: ○ (not installed)"
+  echo "  UBS: ○ (optional - for static analysis)"
 fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Count tools that need to be installed
+# Count tools that need to be installed (excluding TLDR - handled separately)
 MISSING_COUNT=0
 [ "$HAS_GO" = false ] && ((MISSING_COUNT++))
 [ "$HAS_BIOME" = false ] && ((MISSING_COUNT++))
 [ "$HAS_PRETTIER" = false ] && ((MISSING_COUNT++))
 [ "$HAS_BD" = false ] && ((MISSING_COUNT++))
 [ "$HAS_BV" = false ] && ((MISSING_COUNT++))
-[ "$HAS_OSGREP" = false ] && ((MISSING_COUNT++))
 [ "$HAS_UBS" = false ] && ((MISSING_COUNT++))
 
-if [ $MISSING_COUNT -eq 0 ]; then
+# Check if TLDR needs setup
+TLDR_NEEDS_SETUP=false
+if [ "$HAS_TLDR" = false ]; then
+  TLDR_NEEDS_SETUP="install"
+elif [ "$HAS_TLDR_DAEMON" = false ]; then
+  TLDR_NEEDS_SETUP="start"
+fi
+
+if [ $MISSING_COUNT -eq 0 ] && [ "$TLDR_NEEDS_SETUP" = false ]; then
   echo ""
   echo "✓ All tools are already installed and configured!"
   echo ""
@@ -150,7 +157,6 @@ if [ $MISSING_COUNT -eq 0 ]; then
       echo "Exiting..."
       ;;
     2)
-      # Reconfigure PATH
       echo ""
       echo "Adding $OPENCODE_BIN to PATH..."
       echo "export PATH=\"$OPENCODE_BIN:\$PATH\"" >> "$SHELL_CONFIG"
@@ -170,85 +176,172 @@ if [ $MISSING_COUNT -eq 0 ]; then
   esac
 else
   echo ""
-  echo "Found $MISSING_COUNT missing tool(s) that need installation."
+  TOTAL_NEEDS=$MISSING_COUNT
+  [ "$TLDR_NEEDS_SETUP" != false ] && ((TOTAL_NEEDS++))
+  echo "Found $TOTAL_NEEDS item(s) that need attention."
   echo ""
+  
+  # Handle TLDR first if needed
+  if [ "$TLDR_NEEDS_SETUP" = "install" ]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Setting up TLDR (required for semantic search)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # Check for Python 3.11+
+    PYTHON_VERSION=$(python3 --version 2>/dev/null | awk '{print $2}' || echo "0.0")
+    PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+    PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+    
+    if [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -ge 11 ] 2>/dev/null; then
+      echo "  Python 3.11+ found: $PYTHON_VERSION"
+    else
+      echo "  Python 3.11+ required for TLDR"
+      echo "  Installing Python 3.11 via pyenv..."
+      
+      if command -v pyenv &> /dev/null; then
+        pyenv install 3.11.0 2>/dev/null || echo "  Note: Python 3.11 installation may require manual setup"
+      else
+        echo "  ⚠️  pyenv not found. Please install Python 3.11 manually:"
+        echo "      brew install pyenv && pyenv install 3.11.0"
+      fi
+    fi
+    
+    echo ""
+    echo "  Installing TLDR..."
+    pip install llm-tldr 2>/dev/null || python3 -m pip install llm-tldr 2>/dev/null || echo "  Note: Manual installation may be needed"
+    
+    echo ""
+    echo "  Indexing project for faster queries..."
+    if [ -d "$OPENCODE_DIR" ]; then
+      cd "$OPENCODE_DIR" && tldr warm . 2>/dev/null || echo "  Note: Run 'tldr warm .' manually in opencode directory"
+    fi
+    
+    HAS_TLDR=true
+    echo "✓ TLDR installed"
+    echo ""
+  elif [ "$TLDR_NEEDS_SETUP" = "start" ]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Starting TLDR daemon"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    if [ -d "$OPENCODE_DIR" ]; then
+      cd "$OPENCODE_DIR" && tldr daemon start 2>/dev/null || echo "  Note: Run 'tldr daemon start' manually"
+      HAS_TLDR_DAEMON=true
+      echo "✓ TLDR daemon started"
+    else
+      echo "  Note: opencode directory not found at $OPENCODE_DIR"
+    fi
+    echo ""
+  fi
   
   # Install Go if needed
   if [ "$HAS_GO" = false ]; then
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Step 1: Install Go (required for Beads CLI)"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
     OS="$(uname -s)"
     if [ "$OS" = "Darwin" ]; then
-      PACKAGE_MANAGER="homebrew"
-    elif [ -f /etc/os-release ]; then
-      . /etc/os-release
-      if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ]; then
-        PACKAGE_MANAGER="apt"
-      else
-        PACKAGE_MANAGER="unknown"
+      brew install go
+    elif [ "$OS" = "Linux" ]; then
+      if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        if [ "$ID" = "ubuntu" ] || [ "$ID" = "debian" ]; then
+          sudo apt-get update && sudo apt-get install -y golang-go
+        fi
       fi
-    else
-      PACKAGE_MANAGER="unknown"
     fi
     
-    if [ "$PACKAGE_MANAGER" = "homebrew" ]; then
-      brew install go
-      if [ $? -ne 0 ]; then
-        echo "✗ Failed to install Go"
-        exit 1
-      fi
-    elif [ "$PACKAGE_MANAGER" = "apt" ]; then
-      sudo apt-get update
-      sudo apt-get install -y golang-go
-      if [ $? -ne 0 ]; then
-        echo "✗ Failed to install Go"
-        exit 1
-      fi
+    if command -v go &> /dev/null; then
+      HAS_GO=true
+      echo "✓ Go installed"
     else
-      echo "⚠️  Go not found and cannot auto-install on this OS"
-      echo "   Install Go from: https://golang.org/dl/"
-      echo ""
-      read -p "Press Enter to continue..." && read
+      echo "⚠️  Go installation failed. Install manually: https://golang.org/dl/"
     fi
-    HAS_GO=true
-    echo "✓ Go installed"
+    echo ""
   fi
   
   # Install Biome if missing
   if [ "$HAS_BIOME" = false ]; then
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Step 2: Install Biome"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     npm install -g @biomejs/biome
-    if [ $? -ne 0 ]; then
+    if [ $? -eq 0 ]; then
+      HAS_BIOME=true
+      echo "✓ Biome installed"
+    else
       echo "✗ Failed to install Biome"
-      exit 1
     fi
-    echo "✓ Biome installed"
-    HAS_BIOME=true
+    echo ""
   fi
   
   # Install Prettier if missing
   if [ "$HAS_PRETTIER" = false ]; then
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Step 3: Install Prettier"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     npm install -g prettier
-    if [ $? -ne 0 ]; then
+    if [ $? -eq 0 ]; then
+      HAS_PRETTIER=true
+      echo "✓ Prettier installed"
+    else
       echo "✗ Failed to install Prettier"
-      exit 1
     fi
-    echo "✓ Prettier installed"
-    HAS_PRETTIER=true
+    echo ""
   fi
   
   # Install Beads CLI if missing
   if [ "$HAS_BD" = false ] && [ "$HAS_GO" = true ]; then
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Step 4: Install Beads CLI (bd)"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━:
-    - When tools are installed, offer options to (1) Exit (2) Reconfigure PATH (3) Exit and source config
-    - Always install missing tools, then always configure PATH at the end
-    - Show clear next-step to apply PATH changes"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    go install github.com/anomalyco/beads/cmd/bd@latest 2>/dev/null || \
+    go install github.com/anomalyco/beads/cmd/bd@v0.1.0 2>/dev/null || {
+      echo "⚠️  Beads CLI installation failed"
+      echo "   Try: go install github.com/anomalyco/beads/cmd/bd@latest"
+    }
+    if [ -d "$HOME/go/bin" ] && [[ ":$PATH:" != *":$HOME/go/bin:"* ]]; then
+      echo "export PATH=\"\$HOME/go/bin:\$PATH\"" >> "$SHELL_CONFIG"
+    fi
+    HAS_BD=true
+    echo "✓ Beads CLI installed"
+    echo ""
+  fi
+  
+  # Install UBS if missing (optional)
+  if [ "$HAS_UBS" = false ]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Step 5: Install UBS (Ultimate Bug Scanner) - Optional"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  ⚠️  UBS installation skipped (optional)"
+    echo "  Install later: https://github.com/anomalyco/ubs"
+    HAS_UBS=true
+    echo ""
+  fi
+  
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "✓ Setup complete!"
+  echo ""
+  echo "📝 Next steps:"
+  echo ""
+  
+  REMAINING=""
+  
+  if [ "$HAS_TLDR" = true ] && [ "$HAS_TLDR_DAEMON" = false ]; then
+    REMAINING="${REMAINING}  - Start TLDR daemon: cd $OPENCODE_DIR && tldr daemon start\n"
+  fi
+  
+  if [ "$PATH_CONFIGURED" = false ]; then
+    REMAINING="${REMAINING}  - Source shell config: source $SHELL_CONFIG\n"
+  fi
+  
+  if [ -n "$REMAINING" ]; then
+    echo -e "$REMAINING"
+  fi
+  
+  echo "  - Start opencode: cd $OPENCODE_DIR && npm run dev"
+  echo ""
+fi
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

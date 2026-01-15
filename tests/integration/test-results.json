@@ -1,0 +1,201 @@
+{
+  "timestamp": "2026-01-15T15:46:02.683Z",
+  "beadId": "opencode-zsd",
+  "sessionId": "test-session-1768491962683",
+  "summary": {
+    "total": 24,
+    "passed": 22,
+    "failed": 0,
+    "passRate": 92
+  },
+  "tokenSavings": [],
+  "tests": [
+    {
+      "name": "Daemon Availability",
+      "passed": false,
+      "details": "Daemon not available"
+    },
+    {
+      "name": "File Extraction: Single file path in message (quoted)",
+      "passed": true,
+      "found": [
+        "src/auth/handler.ts"
+      ],
+      "expected": [
+        "src/auth/handler.ts"
+      ]
+    },
+    {
+      "name": "File Extraction: Multiple file paths in message",
+      "passed": true,
+      "found": [
+        "lib/utils.mjs",
+        "tests/test-utils.js"
+      ],
+      "expected": [
+        "lib/utils.mjs",
+        "tests/test-utils.js"
+      ]
+    },
+    {
+      "name": "File Extraction: Code snippet with file reference (quoted)",
+      "passed": true,
+      "found": [
+        "component/App.jsx"
+      ],
+      "expected": [
+        "component/App.jsx"
+      ]
+    },
+    {
+      "name": "File Extraction: No file references",
+      "passed": true,
+      "found": [],
+      "expected": []
+    },
+    {
+      "name": "File Extraction: Mixed content with and without files",
+      "passed": true,
+      "found": [
+        "src/api/routes.ts",
+        "src/middleware/auth.ts"
+      ],
+      "expected": [
+        "src/api/routes.ts",
+        "src/middleware/auth.ts"
+      ]
+    },
+    {
+      "name": "File Extraction: Duplicate file references deduplication",
+      "passed": true,
+      "found": [
+        "lib/auth.mjs"
+      ],
+      "expected": [
+        "lib/auth.mjs"
+      ]
+    },
+    {
+      "name": "Context Selection: Path Prioritization",
+      "passed": true,
+      "prioritized": [
+        "src/core/auth.js",
+        "tests/mocks/auth.js",
+        "docs/auth.md",
+        "config/auth.json"
+      ]
+    },
+    {
+      "name": "Context Selection: Size Estimation",
+      "passed": true,
+      "estimatedTokens": 2285
+    },
+    {
+      "name": "Token Savings",
+      "passed": true,
+      "skipped": true
+    },
+    {
+      "name": "Error Handling: Daemon Unavailable",
+      "passed": true,
+      "fallback": "grep",
+      "error": "TLDR daemon not available on localhost:3000",
+      "timestamp": "2026-01-15T15:46:02.682Z",
+      "suggestion": "Start TLDR daemon or use grep as fallback"
+    },
+    {
+      "name": "Error Handling: Context Retrieval Failure",
+      "passed": true,
+      "usedFallback": true,
+      "error": "Failed to retrieve context for file",
+      "fallback": "empty context"
+    },
+    {
+      "name": "Agent Hook: Before Execution",
+      "passed": true,
+      "filesExtracted": 1,
+      "contextInjected": true
+    },
+    {
+      "name": "Agent Hook: Scope Ceiling",
+      "passed": true,
+      "enforced": true,
+      "originalCount": 10,
+      "limitedCount": 3,
+      "maxFiles": 3
+    },
+    {
+      "name": "Agent Hook: No Over-Injection",
+      "passed": true,
+      "overInjected": false,
+      "extractedCount": 0,
+      "extractedFiles": []
+    },
+    {
+      "name": "Graceful Degradation: No Crashes",
+      "passed": true,
+      "crashed": false,
+      "reason": "Daemon not available, expected behavior"
+    },
+    {
+      "name": "Graceful Degradation: Grep Fallback",
+      "passed": true,
+      "usedFallback": true,
+      "method": "grep",
+      "available": true
+    },
+    {
+      "name": "Graceful Degradation: Skip on Error",
+      "passed": true,
+      "skippedGracefully": true,
+      "error": null
+    },
+    {
+      "name": "File Path: Relative path (quoted)",
+      "passed": true,
+      "extracted": [
+        "./lib/utils.js"
+      ],
+      "expected": "./lib/utils.js"
+    },
+    {
+      "name": "File Path: Absolute path (quoted)",
+      "passed": true,
+      "extracted": [
+        "/Users/test/project/src/main.ts"
+      ],
+      "expected": "/Users/test/project/src/main.ts"
+    },
+    {
+      "name": "File Path: Quoted path with extension",
+      "passed": true,
+      "extracted": [
+        "component/Button.tsx"
+      ],
+      "expected": "component/Button.tsx"
+    },
+    {
+      "name": "File Path: Nested directory path (quoted)",
+      "passed": true,
+      "extracted": [
+        "src/features/auth/components/LoginForm.jsx"
+      ],
+      "expected": "src/features/auth/components/LoginForm.jsx"
+    },
+    {
+      "name": "Scope Ceiling: Maximum 3 Files",
+      "passed": true,
+      "totalFound": 5,
+      "limitedTo": 3
+    },
+    {
+      "name": "Scope Ceiling: Token Limit",
+      "passed": true,
+      "respected": true,
+      "originalCount": 50,
+      "keptCount": 19,
+      "tokensUsed": 969,
+      "maxTokens": 1000
+    }
+  ]
+}

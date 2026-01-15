@@ -1,0 +1,10 @@
+{
+  "enabled": true,
+  "autoInject": true,
+  "contextDepth": 2,
+  "maxContextTokens": 1000,
+  "diagnosticsOnEdit": true,
+  "semanticSearchMaxResults": 10,
+  "description": "LLM TLDR configuration for opencode - 5-layer code analysis with 95% token savings",
+  "docs": "https://github.com/parcadei/llm-tldr"
+}
