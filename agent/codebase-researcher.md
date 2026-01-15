@@ -1,4 +1,5 @@
 ---
+id: codebase-researcher
 name: codebase-researcher
 description: Specialized research droid that performs deep codebase pattern analysis, architecture understanding, and technical debt identification. Designed for Senior Engineer Framework integration with focus on discovering patterns, conventions, and intelligence from existing code.
 mode: subagent

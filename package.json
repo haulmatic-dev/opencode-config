@@ -2,7 +2,8 @@
   "type": "module",
   "dependencies": {
     "@opencode-ai/plugin": "1.1.19",
-    "@the-convocation/twitter-scraper": "^0.21.1"
+    "@the-convocation/twitter-scraper": "^0.21.1",
+    "js-yaml": "^4.1.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.11",

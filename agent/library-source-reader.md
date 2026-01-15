@@ -1,4 +1,5 @@
 ---
+id: library-source-reader
 name: library-source-reader
 description: Specialized research droid that performs deep analysis of third-party library source code to discover undocumented features, security vulnerabilities, optimization opportunities, and implementation insights. Critical for Senior Engineer Framework integration with focus on technology intelligence.
 mode: subagent

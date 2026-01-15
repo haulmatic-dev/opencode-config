@@ -1,4 +1,5 @@
 ---
+id: file-picker-agent
 name: file-picker-agent
 description: Specialized research droid that performs targeted file discovery, pattern-based file searching, and codebase navigation. Essential for Senior Engineer Framework integration with focus on rapidly finding relevant files and understanding codebase organization.
 mode: subagent

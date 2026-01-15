@@ -1,4 +1,5 @@
 ---
+id: semantic-search
 name: semantic-search
 description: Semantic code search using osgrep - finds concepts and meaning, not just strings. Use for natural language queries like "where do we handle authentication", "how is caching implemented", or "find the payment processing logic". Ideal when the user asks conceptual questions about code rather than searching for exact strings or patterns.
 model: claude-sonnet-4-5-20250929
