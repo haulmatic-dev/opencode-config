@@ -1156,4 +1156,4 @@ function mergeContexts(contexts) {
   return merged;
 }
 
-export { tldr, TLDRClient, TLDRMiddleware, LRUCache };
+export { tldr };

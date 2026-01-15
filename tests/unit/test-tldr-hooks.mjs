@@ -10,7 +10,7 @@ describe('TLDR Hook Edge Cases', () => {
   let middlewareModule;
 
   beforeEach(async () => {
-    middlewareModule = await import('../../plugin/tldr.mjs');
+    middlewareModule = await import('../../lib/tldr-internal.mjs');
   });
 
   describe('extractFilePaths', () => {
@@ -230,7 +230,7 @@ describe('LRUCache', () => {
   let LRUCache;
 
   beforeEach(async () => {
-    const module = await import('../../plugin/tldr.mjs');
+    const module = await import('../../lib/tldr-internal.mjs');
     LRUCache = module.LRUCache;
   });
 
@@ -285,15 +285,15 @@ describe('LRUCache', () => {
 
 describe('Hook Integration', () => {
   it('should export required components', async () => {
-    const module = await import('../../plugin/tldr.mjs');
+    const module = await import('../../lib/tldr-internal.mjs');
 
-    assert.ok(typeof module.tldr === 'function');
     assert.ok(typeof module.TLDRMiddleware === 'function');
     assert.ok(typeof module.LRUCache === 'function');
+    assert.ok(typeof module.TLDRClient === 'function');
   });
 
   it('should have middleware with all required methods', async () => {
-    const { TLDRMiddleware } = await import('../../plugin/tldr.mjs');
+    const { TLDRMiddleware } = await import('../../lib/tldr-internal.mjs');
     const middleware = new TLDRMiddleware();
 
     assert.ok(typeof middleware.extractFilePaths === 'function');
