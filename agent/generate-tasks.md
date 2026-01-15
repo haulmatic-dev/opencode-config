@@ -1,4 +1,5 @@
 ---
+id: generate-tasks
 name: generate-tasks
 description: Transforms PRDs into parallelized task breakdowns optimized for team velocity. Organizes work into independent tracks (swimlanes) with explicit dependency mapping, integration points, and visual execution timelines. Enables multiple developers to work simultaneously with clear handoff points. Enhanced with Senior Engineer Framework integration for deep codebase intelligence.
 model: claude-sonnet-4-5-20250929

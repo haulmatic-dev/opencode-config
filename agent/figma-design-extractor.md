@@ -1,4 +1,5 @@
 ---
+id: figma-design-extractor
 name: figma-design-extractor
 description: Specialized research droid that performs deep analysis of Figma designs to extract exact design tokens, component specifications, and visual requirements. Calls Figma MCP tools (get_screenshot, get_design_context, get_variable_defs, get_metadata) to discover design system values and produces standardized design specifications for implementation droids. Enforces pixel-perfect implementation with NO DEFAULT STYLES.
 model: claude-sonnet-4-5-20250929

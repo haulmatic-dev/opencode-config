@@ -1,3 +1,9 @@
+---
+id: adversarial-reviewer
+aliases:
+  - security-specialist
+---
+
 # agent/adversarial-reviewer.md
 
 ## Persona

@@ -1,3 +1,9 @@
+---
+id: fix-specialist
+aliases:
+  - fixing-specialist
+---
+
 # agent/fix-specialist.md
 
 ## Persona

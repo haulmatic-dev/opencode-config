@@ -1,4 +1,5 @@
 ---
+id: context-researcher
 name: context-researcher
 description: Specialized research droid that performs project-wide context gathering, stakeholder analysis, and comprehensive project understanding. Essential for Senior Engineer Framework integration with focus on understanding project scope, requirements, and business context.
 mode: subagent
