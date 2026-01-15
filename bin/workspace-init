@@ -169,29 +169,6 @@ if [ "$HAS_BEADS_INIT" = false ]; then
   fi
 fi
 
-# Optional: Osgrep setup for semantic search
-if command -v osgrep &> /dev/null; then
-  echo
-  echo -e "${BLUE}Step 4: Osgrep Setup (Optional)${NC}"
-  echo "  Osgrep enables semantic code search for research droids"
-  echo "  Check if embedding models are downloaded:"
-  if [ -f "$HOME/.osgrep/models/model.json" ]; then
-    echo -e "  ${GREEN}✓${NC} Models already downloaded"
-  else
-    echo -e "  ${YELLOW}○${NC} Models not downloaded (~150MB)"
-    echo -n "  Download osgrep models now? [y/N]: "
-    read -r r
-    if [[ "$r" =~ ^[Yy]$ ]]; then
-      echo "  Downloading models..."
-      osgrep setup
-      echo -e "  ${GREEN}✓${NC} Models downloaded"
-      COMPLETED+=("osgrep models")
-    else
-      echo "  Skipping. Run 'osgrep setup' later if needed"
-    fi
-  fi
-fi
-
 # Summary
 echo
 if [ ${#COMPLETED[@]} -gt 0 ]; then

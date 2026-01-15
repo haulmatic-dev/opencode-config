@@ -46,7 +46,7 @@ Violations are expected to be blocked by enforcement.
 - **best-practices-researcher** — Industry & competitive analysis
 - **library-source-reader** — Third‑party library deep dives
 - **domain-specialist** — Domain & compliance expertise
-- **semantic-search** (osgrep) — Embedding‑based code search
+- **semantic-search** (TLDR) — 5-layer code analysis with semantic search
 - **file-picker-agent** — Targeted file discovery
 - **figma-design-extractor** — Figma design token extraction
 

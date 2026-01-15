@@ -1,8 +1,17 @@
 import { tool } from '@opencode-ai/plugin';
 import { BeadsClient, BeadsViewerClient } from '../lib/beads-client.mjs';
+import {
+  enhanceBeadCreateWithTLDR,
+  extractScopeFromDescription,
+  formatImpactForDisplay,
+  getBeadImpactFromNotes,
+  validateScopeAgainstImpact,
+} from '../lib/beads-tldr.mjs';
+import { createTLDRClient } from '../lib/tldr-client.mjs';
 
 const beadsClient = new BeadsClient();
 const bvClient = new BeadsViewerClient();
+const tldrClient = createTLDRClient();
 
 export const BeadsToolsPlugin = async () => {
   return {
@@ -21,22 +30,91 @@ export const BeadsToolsPlugin = async () => {
       }),
 
       beads_show: tool({
-        description: 'Show details of a specific bead',
+        description: `Show details of a specific bead. Automatically detects and displays TLDR impact analysis if present.
+
+⚠️ SCOPE GUARDRAIL: Compare modified files in task to impact analysis. Alert if scope appears to be expanding.`,
         args: {
           id: tool.schema.string(),
         },
         async execute({ id }) {
-          return await beadsClient.show(id);
+          const result = await beadsClient.show(id);
+
+          if (!result) {
+            return JSON.stringify(
+              { success: false, error: 'Bead not found' },
+              null,
+              2,
+            );
+          }
+
+          const impactContext = await getBeadImpactFromNotes(id);
+
+          if (impactContext) {
+            const scope = extractScopeFromDescription(result);
+            const validation = validateScopeAgainstImpact(scope, {
+              success: true,
+              impact: impactContext.impact,
+            });
+
+            const enhancedResult = {
+              ...JSON.parse(result),
+              tldrImpact: impactContext,
+              impactDisplay: formatImpactForDisplay(impactContext),
+              scopeValidation: validation,
+            };
+
+            return JSON.stringify(enhancedResult, null, 2);
+          }
+
+          return result;
         },
       }),
 
       beads_create: tool({
-        description: 'Create a new bead',
+        description: `Create a new bead. Optionally run TLDR impact analysis on files mentioned in description.
+
+⚠️ SCOPE GUARDRAIL: If autoImpact=true and files are detected in description, TLDR impact will be analyzed and stored in task context.
+If impact exceeds scope, STOP work and create new task.`,
         args: {
           options: tool.schema.string(),
         },
         async execute({ options }) {
-          return await beadsClient.create(JSON.parse(options));
+          let parsedOptions;
+          try {
+            parsedOptions = JSON.parse(options);
+          } catch {
+            return JSON.stringify(
+              { success: false, error: 'Invalid JSON options' },
+              null,
+              2,
+            );
+          }
+
+          const autoImpact = parsedOptions.autoImpact === true;
+
+          const { options: enhancedOptions, impactContext } =
+            await enhanceBeadCreateWithTLDR({
+              ...parsedOptions,
+              autoImpact,
+            });
+
+          const result = await beadsClient.create(enhancedOptions);
+
+          if (result && impactContext) {
+            return JSON.stringify(
+              {
+                success: true,
+                beadId: result,
+                impactAnalysis: impactContext,
+                scopeGuardrail:
+                  'TLDR output is informational, not permissive. If scope exceeds impact, create new task.',
+              },
+              null,
+              2,
+            );
+          }
+
+          return JSON.stringify({ success: true, beadId: result }, null, 2);
         },
       }),
 
@@ -423,6 +501,196 @@ export const BeadsToolsPlugin = async () => {
             null,
             2,
           );
+        },
+      }),
+
+      tldr_impact: tool({
+        description: `Analyze impact of code changes using TLDR. Use this when creating tasks to understand scope.
+
+⚠️ SCOPE GUARDRAIL: This tool reveals dependencies but does NOT authorize scope expansion.
+If impact analysis shows more affected code than your task scope:
+1. STOP work
+2. Create new Beads task with findings
+3. Wait for task approval before proceeding
+
+TLDR output is informational, not permissive.`,
+        args: {
+          filePath: tool.schema.string(),
+          depth: tool.schema.optional(tool.schema.number()),
+        },
+        async execute({ filePath, depth = 2 }) {
+          try {
+            const impact = await tldrClient.getImpact(filePath, { depth });
+            if (impact && !impact.error) {
+              return JSON.stringify({ success: true, impact }, null, 2);
+            }
+            return JSON.stringify(
+              {
+                success: false,
+                error: impact?.error || 'Failed to get impact',
+              },
+              null,
+              2,
+            );
+          } catch (error) {
+            return JSON.stringify(
+              { success: false, error: error.message },
+              null,
+              2,
+            );
+          }
+        },
+      }),
+
+      tldr_callgraph: tool({
+        description: `Get call graph for a function using TLDR. Shows who calls it and what it calls.
+
+⚠️ SCOPE GUARDRAIL: This tool reveals dependencies but does NOT authorize scope expansion.
+If call graph shows more affected code than your task scope:
+1. STOP work
+2. Create new Beads task with findings
+3. Wait for task approval before proceeding
+
+TLDR output is informational, not permissive.`,
+        args: {
+          functionName: tool.schema.string(),
+          depth: tool.schema.optional(tool.schema.number()),
+          direction: tool.schema.optional(
+            tool.schema.enum(['callers', 'callees', 'both']),
+          ),
+        },
+        async execute({ functionName, depth = 2, direction = 'both' }) {
+          try {
+            const graph = await tldrClient.getCallGraph(functionName, {
+              depth,
+              direction,
+            });
+            if (graph && !graph.error) {
+              return JSON.stringify(
+                { success: true, callGraph: graph },
+                null,
+                2,
+              );
+            }
+            return JSON.stringify(
+              {
+                success: false,
+                error: graph?.error || 'Failed to get call graph',
+              },
+              null,
+              2,
+            );
+          } catch (error) {
+            return JSON.stringify(
+              { success: false, error: error.message },
+              null,
+              2,
+            );
+          }
+        },
+      }),
+
+      tldr_context: tool({
+        description: `Extract structured code context (AST, functions, imports) using TLDR.
+
+⚠️ SCOPE GUARDRAIL: This tool reveals dependencies but does NOT authorize scope expansion.
+If context shows more affected code than your task scope:
+1. STOP work
+2. Create new Beads task with findings
+3. Wait for task approval before proceeding
+
+TLDR output is informational, not permissive.`,
+        args: {
+          filePath: tool.schema.string(),
+          depth: tool.schema.optional(tool.schema.number()),
+          maxTokens: tool.schema.optional(tool.schema.number()),
+        },
+        async execute({ filePath, depth = 2, maxTokens = 1000 }) {
+          try {
+            const context = await tldrClient.getContext(filePath, {
+              depth,
+              maxTokens,
+            });
+            if (context && !context.error) {
+              return JSON.stringify({ success: true, context }, null, 2);
+            }
+            return JSON.stringify(
+              {
+                success: false,
+                error: context?.error || 'Failed to get context',
+              },
+              null,
+              2,
+            );
+          } catch (error) {
+            return JSON.stringify(
+              { success: false, error: error.message },
+              null,
+              2,
+            );
+          }
+        },
+      }),
+
+      tldr_change_impact: tool({
+        description: `Analyze which tests to run based on changed files using TLDR.
+Use this to determine selective testing scope.
+
+Input: Comma-separated list of changed files
+Output: Recommended tests to run
+
+⚠️ SCOPE GUARDRAIL: This tool reveals test dependencies but does NOT authorize scope expansion.
+If impact shows more affected tests than expected:
+1. STOP work
+2. Create new Beads task with findings
+3. Wait for task approval before proceeding
+
+TLDR output is informational, not permissive.`,
+        args: {
+          changedFiles: tool.schema.string(),
+        },
+        async execute({ changedFiles }) {
+          try {
+            const files = changedFiles.split(',').map((f) => f.trim());
+            const impacts = await Promise.all(
+              files.map((f) => tldrClient.getImpact(f, { depth: 3 })),
+            );
+
+            const allTests = new Set();
+            const allModules = new Set();
+
+            impacts.forEach((impact) => {
+              if (impact?.impact) {
+                if (impact.impact.tests) {
+                  impact.impact.tests.forEach((t) => {
+                    allTests.add(t);
+                  });
+                }
+                if (impact.impact.modules) {
+                  impact.impact.modules.forEach((m) => {
+                    allModules.add(m);
+                  });
+                }
+              }
+            });
+
+            return JSON.stringify(
+              {
+                success: true,
+                recommendedTests: Array.from(allTests),
+                affectedModules: Array.from(allModules),
+                summary: `${files.length} files analyzed, ${allTests.size} tests potentially affected`,
+              },
+              null,
+              2,
+            );
+          } catch (error) {
+            return JSON.stringify(
+              { success: false, error: error.message },
+              null,
+              2,
+            );
+          }
         },
       }),
     },

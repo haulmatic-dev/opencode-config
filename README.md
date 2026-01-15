@@ -7,6 +7,7 @@ opencode brings together best-in-class AI development tools into a unified, hook
 ### Key Features
 
 - **cass_memory** (cm) - Evidence-based learning system for cross-agent intelligence
+- **TLDR** - 5-layer code analysis with 95% token savings, semantic search, impact analysis
 - **MCP Agent Mail** - Tool-agnostic agent coordination and file reservations
 - **Beads CLI** (bd) - Dependency-aware task tracking with git persistence
 - **Beads Viewer** (bv) - Graph-aware task triage with AI agent integration
@@ -31,6 +32,7 @@ opencode brings together best-in-class AI development tools into a unified, hook
   - [Task-to-Commit Workflow](#task-to-commit-workflow)
   - [Headless Swarm Architecture](#headless-swarm-architecture)
 - [Tools and Components](#tools-and-components)
+  - [TLDR](#tldr)
   - [cass_memory (cm)](#cass_memory-cm)
   - [MCP Agent Mail](#mcp-agent-mail)
   - [Beads CLI (bd)](#beads-cli-bd)
@@ -106,7 +108,7 @@ cd ~/.config/opencode/bin
 # - Prettier - Code formatter (MD, JSON, YAML, CSS, HTML)
 # - Beads CLI (bd) - Task tracking
 # - Beads Viewer (bv) - Terminal UI for browsing tasks
-# - Osgrep - Semantic code search (optional)
+# - TLDR - 5-layer code analysis with semantic search (required)
 # - Ultimate Bug Scanner (UBS) - Multi-language static analysis (optional)
 ```
 
@@ -123,7 +125,7 @@ cd ~/.config/opencode/bin
 # - MCP Agent Mail (REQUIRED)
 # - Beads CLI (bd)
 # - Beads Viewer (bv)
-# - osgrep (semantic search)
+# - TLDR (5-layer code analysis + semantic search)
 # - Configure PATH for ~/.config/opencode/bin
 ```
 
@@ -661,6 +663,115 @@ curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/mai
 | `?`         | Help               |
 | `q` / `Esc` | Quit               |
 
+### TLDR
+
+**Purpose**: 5-layer code analysis with 95% token savings, semantic search, and impact analysis. Replaces osgrep entirely.
+
+**TLDR Integration**: TLDR is deeply integrated into opencode through:
+
+- `plugin/tldr.mjs` - Plugin providing 9 TLDR tools to all agents
+- `agent.execute.before` hook - Automatic context injection before agent execution
+- `agent.execute.after` hook - Shift-left diagnostics on code edits
+- Beads integration - Impact-aware task management
+- Scope ceiling guardrails - Prevents agent scope expansion
+
+**Features**:
+
+- **Semantic Search**: Embedding-based code search using bge-large-en-v1.5
+- **Context Extraction**: AST, call graph, imports, and code structure analysis
+- **Impact Analysis**: Automated dependency tracking for change impact
+- **Program Slicing**: Debug-focused code extraction
+- **Data Flow Analysis**: Variable definitions and uses tracking
+- **Control Flow Graphs**: Branch and loop visualization
+- **Architecture Analysis**: Module dependency mapping
+- **Dead Code Detection**: Unreachable code identification
+
+**Available Tools** (via `plugin/tldr.mjs`):
+
+| Tool             | Description                                                |
+| ---------------- | ---------------------------------------------------------- |
+| `tldr_context`   | Extract structured code context (AST, call graph, imports) |
+| `tldr_semantic`  | Semantic code search using embeddings                      |
+| `tldr_impact`    | Find all callers and dependencies                          |
+| `tldr_callgraph` | Build forward/backward call graphs                         |
+| `tldr_slice`     | Program slicing for debugging (DEBUGGING ONLY)             |
+| `tldr_cfg`       | Control flow graph generation                              |
+| `tldr_dfg`       | Data flow analysis                                         |
+| `tldr_arch`      | Architecture layer detection                               |
+| `tldr_dead`      | Dead code detection                                        |
+
+**Key Commands**:
+
+```bash
+# CLI usage
+tldr context src/auth.ts                    # Extract code structure
+tldr semantic "authentication flow"         # Semantic code search
+tldr impact src/auth.ts                     # Analyze change impact
+tldr callgraph validateToken                # Get call graph
+tldr slice src/auth.ts:45                   # Program slice at line 45
+tldr dfg handleRequest                      # Data flow analysis
+tldr cfg src/auth.ts                        # Control flow graph
+tldr arch .                                 # Architecture analysis
+tldr dead .                                 # Dead code detection
+
+# Daemon management
+tldr warm .                                 # Index project (one-time)
+tldr daemon start                           # Start daemon
+tldr daemon status                          # Check daemon status
+```
+
+**Token Savings**:
+
+| Metric         | Without TLDR | With TLDR | Improvement |
+| -------------- | ------------ | --------- | ----------- |
+| Context tokens | 21,000       | 175       | 99% savings |
+| Query latency  | 30s          | 100ms     | 300x faster |
+
+**Installation**:
+
+```bash
+# TLDR is automatically installed by opencode-init
+# Manual installation:
+pip install llm-tldr
+
+# Requires Python 3.11+
+pyenv install 3.11.0
+pyenv local 3.11.0
+pip install llm-tldr
+```
+
+**Configuration** (`config/tldr.json`):
+
+```json
+{
+  "enabled": true,
+  "autoInject": true,
+  "contextDepth": 2,
+  "maxContextTokens": 1000,
+  "diagnosticsOnEdit": true,
+  "semanticSearchMaxResults": 10
+}
+```
+
+**Guardrails**:
+
+All TLDR tools include scope ceiling enforcement:
+
+- Maximum 10 files per context injection
+- Maximum 5000 tokens per context
+- Program slicing restricted to DEBUGGING ONLY
+- Impact analysis does NOT authorize scope expansion
+
+**Integration with Beads**:
+
+When creating tasks, TLDR impact analysis can be auto-run:
+
+```bash
+bd create "Fix auth bug" --auto-impact
+```
+
+This analyzes affected files and stores impact in task context.
+
 ### Ultimate Bug Scanner (UBS)
 
 **Purpose**: Multi-language static analysis catching 1000+ bug patterns
@@ -875,6 +986,34 @@ bd doctor
 bd init
 ```
 
+### TLDR Issues?
+
+```bash
+# Check TLDR installation
+tldr --version
+
+# Check daemon status
+tldr daemon status
+
+# Index project (required before use)
+cd ~/.config/opencode
+tldr warm .
+
+# Start daemon
+tldr daemon start
+
+# Re-index if needed
+tldr warm .
+
+# Manual installation
+pip install llm-tldr
+
+# Requires Python 3.11+
+pyenv install 3.11.0
+pyenv local 3.11.0
+pip install llm-tldr
+```
+
 ---
 
 ## Project Structure
@@ -885,33 +1024,25 @@ bd init
 ├── README.md                 # This file
 ├── mcp_agent_mail_client.py # HTTP client for MCP Agent Mail
 ├── bin/                      # opencode scripts
-│   ├── opencode-init          # System-wide setup
+│   ├── opencode-init          # System-wide setup (auto-installs TLDR)
 │   └── workspace-init         # Project initialization
 ├── .beads/                   # Beads data (per project)
+├── .tldr/                    # TLDR index and cache (auto-generated)
 ├── plugin/                   # Plugin system
+│   ├── tldr.mjs              # TLDR plugin (9 tools + hooks)
 │   ├── beads-guardrails.mjs  # Task tracking enforcement
 │   ├── gptcache.mjs          # LLM response caching
 │   ├── ubs.mjs               # UBS static analysis
 │   └── README.md             # Plugin documentation
-├── docs/                     # Documentation
-│   ├── GPTCACHE_INTEGRATION.md
-│   ├── BEADS_GUARDRAILS_SETUP.md
-│   ├── BEADS_GUARDRAILS_IMPLEMENTATION.md
-│   ├── task-to-commit.md     # Workflow documentation
-│   ├── runner-architecture.md
-│   ├── runner-usage.md
-│   └── agent-development.md
-├── lib/                      # Client libraries and relay runner
-│   ├── beads-client.js         # Beads CLI wrapper
-│   ├── beads-viewer-client.js  # BV CLI wrapper
-│   ├── gptcache-client.js     # GPTCache wrapper
-│   ├── gptcache-middleware.js # GPTCache middleware
-│   ├── ubs-client.js          # UBS wrapper
-│   ├── runner/                # Relay runner system
-│   └── workflows/             # Code-driven workflows
+├── lib/                      # Client libraries
+│   ├── tldr-client.mjs       # TLDR daemon communication
+│   ├── tldr-context-selector.mjs  # Smart context selection
+│   ├── beads-tldr.mjs        # Beads-TLDR integration
+│   └── ...                   # Other clients
 ├── config/                   # Plugin configurations
-│   ├── beads_config.json       # Beads plugin config
-│   ├── gptcache_config.json    # GPTCache plugin config
+│   ├── tldr.json             # TLDR configuration
+│   ├── beads_config.json     # Beads plugin config
+│   ├── gptcache_config.json  # GPTCache plugin config
 │   └── ubs_config.json       # UBS plugin config
 └── hooks/                    # Service check hooks
     ├── session-start.sh
@@ -935,6 +1066,7 @@ bd init
 - [MCP Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail) - Agent coordination
 - [Beads Documentation](https://github.com/steveyegge/beads) - Task tracking
 - [Beads Viewer (beads_viewer)](https://github.com/Dicklesworthstone/beads_viewer) - Task browser
+- [TLDR (llm-tldr)](https://github.com/parcadei/llm-tldr) - 5-layer code analysis
 - [opencode Plugin Documentation](https://opencode.ai/docs/plugins/) - Plugin development guide
 
 ### Internal Documentation
@@ -947,6 +1079,9 @@ bd init
 - [Runner Architecture](./docs/runner-architecture.md) - Relay runner design
 - [Runner Usage](./docs/runner-usage.md) - Relay runner user guide
 - [Agent Development](./docs/agent-development.md) - Creating agents
+- [TLDR Integration](./docs/tools/LLM-TLDR-INTEGRATION.md) - Complete TLDR integration guide
+- [TLDR Context Injection](./docs/TLDR-CONTEXT-INJECTION.md) - Context injection documentation
+- [TLDR Beads Workflow](./docs/BEADS-TLDR-WORKFLOW.md) - Beads-TLDR integration
 
 ---
 
