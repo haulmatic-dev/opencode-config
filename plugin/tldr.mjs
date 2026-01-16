@@ -85,7 +85,7 @@ class TLDRClient {
         `cd /Users/buddhi/.config/opencode && ${this.tldrPath} daemon status 2>&1 || echo '{"status":"unavailable"}'`,
         { timeout: this.timeout },
       );
-      return stdout.includes('running')
+      return stdout.includes('Status:')
         ? { status: 'running' }
         : { status: 'unavailable', details: stdout };
     } catch (error) {
@@ -93,7 +93,21 @@ class TLDRClient {
     }
   }
 
+  async ensureDaemon() {
+    const status = await this.healthCheck();
+    if (status.status !== 'running') {
+      await execAsync(
+        `cd /Users/buddhi/.config/opencode && ${this.tldrPath} daemon start`,
+        {
+          timeout: 10000,
+        },
+      );
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+
   async getContext(filePath, options = {}) {
+    await this.ensureDaemon();
     const depth = options.depth || 2;
     const maxTokens = options.maxTokens || 1000;
 
@@ -110,6 +124,7 @@ class TLDRClient {
   }
 
   async semanticSearch(query, options = {}) {
+    await this.ensureDaemon();
     const maxResults = options.maxResults || 10;
 
     try {
@@ -125,6 +140,7 @@ class TLDRClient {
   }
 
   async getCallGraph(functionName, options = {}) {
+    await this.ensureDaemon();
     const depth = options.depth || 2;
 
     try {
@@ -140,6 +156,7 @@ class TLDRClient {
   }
 
   async getImpact(filePath, options = {}) {
+    await this.ensureDaemon();
     const depth = options.depth || 2;
 
     try {
@@ -155,6 +172,7 @@ class TLDRClient {
   }
 
   async getSlice(filePath, functionName, line, options = {}) {
+    await this.ensureDaemon();
     try {
       const { stdout } = await execAsync(
         `cd /Users/buddhi/.config/opencode && ${this.tldrPath} slice "${filePath}" "${functionName}" ${line} 2>&1`,
@@ -168,6 +186,7 @@ class TLDRClient {
   }
 
   async getCFG(filePath, functionName, options = {}) {
+    await this.ensureDaemon();
     try {
       const { stdout } = await execAsync(
         `cd /Users/buddhi/.config/opencode && ${this.tldrPath} cfg "${filePath}" "${functionName}" 2>&1`,
@@ -181,6 +200,7 @@ class TLDRClient {
   }
 
   async getDFG(filePath, functionName, options = {}) {
+    await this.ensureDaemon();
     try {
       const { stdout } = await execAsync(
         `cd /Users/buddhi/.config/opencode && ${this.tldrPath} dfg "${filePath}" "${functionName}" 2>&1`,
@@ -194,6 +214,7 @@ class TLDRClient {
   }
 
   async getArchitecture(path, options = {}) {
+    await this.ensureDaemon();
     try {
       const { stdout } = await execAsync(
         `cd /Users/buddhi/.config/opencode && ${this.tldrPath} arch "${path}" 2>&1`,
@@ -207,6 +228,7 @@ class TLDRClient {
   }
 
   async findDeadCode(path, options = {}) {
+    await this.ensureDaemon();
     try {
       const { stdout } = await execAsync(
         `cd /Users/buddhi/.config/opencode && ${this.tldrPath} dead "${path}" 2>&1`,
