@@ -1,6 +1,7 @@
 import { exec } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { promisify } from 'node:util';
+import { tool } from '@opencode-ai/plugin/tool';
 
 const execAsync = promisify(exec);
 
@@ -8,7 +9,7 @@ const BIN_DIR = new URL('../bin', import.meta.url).pathname;
 const WORKSPACE_INIT = `${BIN_DIR}/workspace-init`;
 const SYSTEM_INIT = `${BIN_DIR}/opencode-init`;
 
-class InitCommandsPlugin {
+class InitCommandsManager {
   constructor(options = {}) {
     this.enabled = options.enabled !== false;
   }
@@ -98,139 +99,100 @@ class InitCommandsPlugin {
 
 let plugin = null;
 
-export const initCommands = async ({
-  project: _project,
-  client: _client,
-  $,
-  directory: _directory,
-  worktree: _worktree,
-}) => {
+export const InitCommandsPlugin = async () => {
   if (!plugin) {
-    plugin = new InitCommandsPlugin();
+    plugin = new InitCommandsManager();
   }
 
   return {
-    '/workspace-init': {
-      description:
-        'Initialize this project workspace with opencode (git, cass_memory, Beads, TLDR, Biome, Prettier, git hooks)',
-      parameters: {
-        force: {
-          type: 'boolean',
-          description:
-            'Run in non-interactive mode with default answers (useful for CI/CD)',
-          optional: true,
+    tool: {
+      workspace_init: tool({
+        description:
+          'Initialize this project workspace with opencode (git, cass_memory, Beads, TLDR, Biome, Prettier, git hooks). Run this in a project directory to set up the development environment.',
+        args: {
+          force: tool.schema.optional(
+            tool.schema.boolean({
+              description:
+                'Run in non-interactive mode with default answers (useful for CI/CD)',
+            }),
+          ),
         },
-      },
-      handler: async ({ force = false }) => {
-        const result = await plugin.runWorkspaceInit(force);
-        if (result.success) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `✅ Workspace initialization completed successfully!\n\n${result.output}`,
-              },
-            ],
-          };
-        } else {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `❌ Workspace initialization failed:\n${result.error}\n\n${result.stderr || result.output}`,
-              },
-            ],
-          };
-        }
-      },
-    },
-
-    '/opencode-init': {
-      description:
-        'Install and configure opencode system-wide tools (cass_memory, Beads, TLDR, Biome, Prettier, UBS)',
-      parameters: {
-        quiet: {
-          type: 'boolean',
-          description:
-            'Run in quiet mode without interactive prompts (useful for automation)',
-          optional: true,
+        async execute({ force = false }) {
+          const result = await plugin.runWorkspaceInit(force);
+          if (result.success) {
+            return `✅ Workspace initialization completed successfully!\n\n${result.output}`;
+          } else {
+            return `❌ Workspace initialization failed:\n${result.error}\n\n${result.stderr || result.output}`;
+          }
         },
-      },
-      handler: async ({ quiet = false }) => {
-        const result = await plugin.runSystemInit(quiet);
-        if (result.success) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `✅ System initialization completed successfully!\n\n${result.output}`,
-              },
-            ],
-          };
-        } else {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `❌ System initialization failed:\n${result.error}\n\n${result.stderr || result.output}`,
-              },
-            ],
-          };
-        }
-      },
-    },
+      }),
 
-    '/workspace-status': {
-      description:
-        'Check the current workspace initialization status (git, cass_memory, Beads, TLDR)',
-      parameters: {},
-      handler: async () => {
-        const status = await plugin.checkWorkspaceStatus();
-        const systemStatus = await plugin.checkSystemStatus();
+      opencode_init: tool({
+        description:
+          'Install and configure opencode system-wide tools (cass_memory, Beads, TLDR, Biome, Prettier, UBS). This sets up your development environment.',
+        args: {
+          quiet: tool.schema.optional(
+            tool.schema.boolean({
+              description:
+                'Run in quiet mode without interactive prompts (useful for automation)',
+            }),
+          ),
+        },
+        async execute({ quiet = false }) {
+          const result = await plugin.runSystemInit(quiet);
+          if (result.success) {
+            return `✅ System initialization completed successfully!\n\n${result.output}`;
+          } else {
+            return `❌ System initialization failed:\n${result.error}\n\n${result.stderr || result.output}`;
+          }
+        },
+      }),
 
-        let message = '## Workspace Status\n\n';
-        message += `Git: ${status.git ? '✅' : '❌'} initialized\n`;
-        message += `cass_memory: ${status.cass ? '✅' : '❌'} initialized\n`;
-        message += `Beads: ${status.beads ? '✅' : '❌'} initialized\n`;
-        message += `TLDR: ${status.tldr ? '✅' : '⚪'} indexed\n`;
-        message += '\n## System Tools\n\n';
+      workspace_status: tool({
+        description:
+          'Check the current workspace initialization status (git, cass_memory, Beads, TLDR) and system tools availability.',
+        args: {},
+        async execute() {
+          const status = await plugin.checkWorkspaceStatus();
+          const systemStatus = await plugin.checkSystemStatus();
 
-        const missingTools = [];
-        for (const [tool, installed] of Object.entries(systemStatus)) {
-          if (tool !== 'opencode_init') {
-            message += `${installed ? '✅' : '❌'} ${tool}: ${installed ? 'installed' : 'missing'}\n`;
-            if (!installed) {
-              missingTools.push(tool);
+          let message = '## Workspace Status\n\n';
+          message += `Git: ${status.git ? '✅' : '❌'} initialized\n`;
+          message += `cass_memory: ${status.cass ? '✅' : '❌'} initialized\n`;
+          message += `Beads: ${status.beads ? '✅' : '❌'} initialized\n`;
+          message += `TLDR: ${status.tldr ? '✅' : '⚪'} indexed\n`;
+          message += '\n## System Tools\n\n';
+
+          const missingTools = [];
+          for (const [tool, installed] of Object.entries(systemStatus)) {
+            if (tool !== 'opencode_init') {
+              message += `${installed ? '✅' : '❌'} ${tool}: ${installed ? 'installed' : 'missing'}\n`;
+              if (!installed) {
+                missingTools.push(tool);
+              }
             }
           }
-        }
 
-        message += '\n';
+          message += '\n';
 
-        if (missingTools.length > 0) {
-          message += `⚠️  Missing tools: ${missingTools.join(', ')}\n`;
-          message += `Run: /opencode-init\n\n`;
-        }
+          if (missingTools.length > 0) {
+            message += `⚠️  Missing tools: ${missingTools.join(', ')}\n`;
+            message += `Run: opencode_init\n\n`;
+          }
 
-        if (!status.initialized) {
-          message += `⚠️  Workspace not fully initialized\n`;
-          message += `Run: /workspace-init\n\n`;
-        }
+          if (!status.initialized) {
+            message += `⚠️  Workspace not fully initialized\n`;
+            message += `Run: workspace_init\n\n`;
+          }
 
-        if (!systemStatus.opencode_init) {
-          message += `⚠️  opencode-init not in PATH\n`;
-          message += `Add to PATH or run: source ~/.zshrc\n\n`;
-        }
+          if (!systemStatus.opencode_init) {
+            message += `⚠️  opencode-init not in PATH\n`;
+            message += `Add to PATH or run: source ~/.zshrc\n\n`;
+          }
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: message,
-            },
-          ],
-        };
-      },
+          return message;
+        },
+      }),
     },
   };
 };
