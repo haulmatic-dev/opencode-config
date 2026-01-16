@@ -56,7 +56,7 @@ Use the `question` tool to present options:
 await question({
   questions: [
     {
-      header: 'OpenCode Setup',
+      header: 'Setup',
       question: 'Current status shown above. What would you like to do?',
       options: [
         { label: 'Install Missing Tools', description: 'Install tools that are not installed' },
