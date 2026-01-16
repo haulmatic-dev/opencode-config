@@ -74,6 +74,9 @@ class InitCommandsManager {
       { cmd: 'prettier', name: 'prettier' },
       { cmd: 'tldr', name: 'tldr' },
       { cmd: 'ubs', name: 'ubs' },
+      { cmd: 'pm2', name: 'pm2' },
+      { cmd: 'osgrep', name: 'osgrep' },
+      { cmd: 'gptcache-server', name: 'gptcache' },
     ];
 
     const status = {};
@@ -94,6 +97,71 @@ class InitCommandsManager {
     }
 
     return status;
+  }
+
+  async checkServicesStatus() {
+    const services = {
+      tldr_daemon: { url: 'http://localhost:3000/health', name: 'TLDR daemon' },
+      gptcache: { url: 'http://localhost:8000/cache_status', name: 'GPTCache' },
+      cass_memory: { process: 'cass', name: 'cass_memory' },
+    };
+
+    const status = {};
+    for (const [key, service] of Object.entries(services)) {
+      if (service.url) {
+        try {
+          const { stdout } = await execAsync(
+            `curl -s -o /dev/null -w "%{http_code}" ${service.url} 2>/dev/null || echo "000"`,
+            { timeout: 2000 },
+          );
+          status[key] = stdout.trim() === '200';
+        } catch {
+          status[key] = false;
+        }
+      } else if (service.process) {
+        try {
+          await execAsync(`pgrep -f "${service.process}"`, { stdio: 'pipe' });
+          status[key] = true;
+        } catch {
+          status[key] = false;
+        }
+      }
+    }
+
+    return status;
+  }
+
+  async startServices() {
+    const results = {};
+
+    try {
+      await execAsync('command -v tldr && tldr daemon start', {
+        timeout: 10000,
+      });
+      results.tldr_daemon = true;
+    } catch {
+      results.tldr_daemon = false;
+    }
+
+    try {
+      await execAsync('command -v gptcache-server && gptcache-server', {
+        timeout: 5000,
+      });
+      results.gptcache = true;
+    } catch {
+      results.gptcache = false;
+    }
+
+    try {
+      await execAsync('command -v cass && cass index --full', {
+        timeout: 10000,
+      });
+      results.cass_memory = true;
+    } catch {
+      results.cass_memory = false;
+    }
+
+    return results;
   }
 }
 
@@ -155,6 +223,7 @@ export const InitCommandsPlugin = async () => {
         async execute() {
           const status = await plugin.checkWorkspaceStatus();
           const systemStatus = await plugin.checkSystemStatus();
+          const servicesStatus = await plugin.checkServicesStatus();
 
           let message = '## Workspace Status\n\n';
           message += `Git: ${status.git ? '✅' : '❌'} initialized\n`;
@@ -173,6 +242,11 @@ export const InitCommandsPlugin = async () => {
             }
           }
 
+          message += '\n## Services\n\n';
+          message += `${servicesStatus.tldr_daemon ? '✅' : '❌'} TLDR daemon: ${servicesStatus.tldr_daemon ? 'running' : 'stopped'}\n`;
+          message += `${servicesStatus.gptcache ? '✅' : '❌'} GPTCache: ${servicesStatus.gptcache ? 'running' : 'stopped'}\n`;
+          message += `${servicesStatus.cass_memory ? '✅' : '❌'} cass_memory: ${servicesStatus.cass_memory ? 'running' : 'stopped'}\n`;
+
           message += '\n';
 
           if (missingTools.length > 0) {
@@ -189,6 +263,55 @@ export const InitCommandsPlugin = async () => {
             message += `⚠️  opencode-init not in PATH\n`;
             message += `Add to PATH or run: source ~/.zshrc\n\n`;
           }
+
+          return message;
+        },
+      }),
+
+      services_status: tool({
+        description:
+          'Check the running status of opencode services (TLDR daemon, GPTCache, cass_memory).',
+        args: {},
+        async execute() {
+          const status = await plugin.checkServicesStatus();
+
+          let message = '## Services Status\n\n';
+          message += `TLDR daemon: ${status.tldr_daemon ? '✅ Running' : '❌ Stopped'}\n`;
+          message += `GPTCache: ${status.gptcache ? '✅ Running' : '❌ Stopped'}\n`;
+          message += `cass_memory: ${status.cass_memory ? '✅ Running' : '❌ Stopped'}\n`;
+
+          const stoppedServices = Object.entries(status)
+            .filter(([_, running]) => !running)
+            .map(([name]) => name);
+
+          if (stoppedServices.length > 0) {
+            message += `\n⚠️  Stopped services: ${stoppedServices.join(', ')}\n`;
+            message += `Run: start_services\n`;
+          }
+
+          return message;
+        },
+      }),
+
+      start_services: tool({
+        description:
+          'Start opencode services (TLDR daemon, GPTCache, cass_memory). Checks if already running first.',
+        args: {},
+        async execute() {
+          const beforeStatus = await plugin.checkServicesStatus();
+          const results = await plugin.startServices();
+          const afterStatus = await plugin.checkServicesStatus();
+
+          let message = '## Starting Services\n\n';
+          for (const [service, started] of Object.entries(results)) {
+            const serviceName = service.replace('_', ' ');
+            message += `${started ? '✅' : '❌'} ${serviceName}: ${started ? 'started' : 'failed'}\n`;
+          }
+
+          message += '\n## Current Status\n\n';
+          message += `TLDR daemon: ${afterStatus.tldr_daemon ? '✅ Running' : '❌ Stopped'}\n`;
+          message += `GPTCache: ${afterStatus.gptcache ? '✅ Running' : '❌ Stopped'}\n`;
+          message += `cass_memory: ${afterStatus.cass_memory ? '✅ Running' : '❌ Stopped'}\n`;
 
           return message;
         },
