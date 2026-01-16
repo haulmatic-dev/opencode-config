@@ -1,91 +1,88 @@
 ---
-description: Initialize opencode - Check tools, install missing, start services, initialize workspace
-agent: build
----
-
 description: Initialize opencode - Check tools, PM2, services, install missing, start services, initialize workspace
 agent: build
-
 ---
 
 You are an opencode initialization assistant. Use the `question` tool to present options to the user for interactive selection.
 
-## Step 1: Check System Tools
+## Step 1: Check System Tools (Parallel + Silent)
 
-Run these commands to get the system tools status:
-
-```
-command -v cm && echo "cm: INSTALLED" || echo "cm: MISSING"
-command -v bd && echo "bd: INSTALLED" || echo "bd: MISSING"
-command -v bv && echo "bv: INSTALLED" || echo "bv: MISSING"
-command -v tldr && echo "tldr: INSTALLED" || echo "tldr: MISSING"
-command -v biome && echo "biome: INSTALLED" || echo "biome: MISSING"
-command -v prettier && echo "prettier: INSTALLED" || echo "prettier: MISSING"
-command -v ubs && echo "ubs: INSTALLED" || echo "ubs: MISSING"
-command -v pm2 && echo "pm2: INSTALLED" || echo "pm2: MISSING"
-command -v opencode-init && echo "opencode-init: IN_PATH" || echo "opencode-init: NOT_IN_PATH"
-```
-
-## Step 2: Check PM2 Status
-
-Run these commands to check PM2:
+Run all system tool checks in parallel, redirecting output to temp files:
 
 ```
-# Check if PM2 is installed
-command -v pm2 && echo "pm2: INSTALLED" || echo "pm2: MISSING"
+# Create temp files for parallel results
+SYSTEM_TOOLS=$(mktemp)
+PM2_STATUS=$(mktemp)
+SERVICES_STATUS=$(mktemp)
+WORKSPACE_STATUS=$(mktemp)
 
-# Check PM2 version
-command -v pm2 && pm2 --version
+# Run all checks in parallel (hide output)
+{
+  # System tools check
+  {
+    echo "cm:$(command -v cm && echo INSTALLED || echo MISSING)"
+    echo "bd:$(command -v bd && echo INSTALLED || echo MISSING)"
+    echo "bv:$(command -v bv && echo INSTALLED || echo MISSING)"
+    echo "tldr:$(command -v tldr && echo INSTALLED || echo MISSING)"
+    echo "biome:$(command -v biome && echo INSTALLED || echo MISSING)"
+    echo "prettier:$(command -v prettier && echo INSTALLED || echo MISSING)"
+    echo "ubs:$(command -v ubs && echo INSTALLED || echo MISSING)"
+    echo "pm2:$(command -v pm2 && echo INSTALLED || echo MISSING)"
+    echo "opencode-init:$(command -v opencode-init && echo IN_PATH || echo NOT_IN_PATH)"
+  } > "$SYSTEM_TOOLS" &
 
-# Check PM2 processes
-command -v pm2 && pm2 list 2>/dev/null || echo "pm2_list: ERROR"
+  # PM2 status check
+  if command -v pm2 &> /dev/null; then
+    {
+      echo "pm2_version:$(pm2 --version 2>/dev/null || echo ERROR)"
+      echo "pm2_startup:$(pm2 startup 2>/dev/null | head -1 || echo NOT_CONFIGURED)"
+      echo "pm2_save:$(pm2 save 2>/dev/null && echo CONFIGURED || echo NOT_CONFIGURED)"
+      echo "pm2_count:$(pm2 list 2>/dev/null | grep -c "●" || echo 0)"
+    } > "$PM2_STATUS" &
+  else
+    echo "pm2_version:MISSING" > "$PM2_STATUS" &
+    echo "pm2_startup:NOT_CONFIGURED" >> "$PM2_STATUS" &
+    echo "pm2_save:NOT_CONFIGURED" >> "$PM2_STATUS" &
+    echo "pm2_count:0" >> "$PM2_STATUS" &
+  fi
 
-# Check PM2 startup script
-command -v pm2 && pm2 startup 2>/dev/null | head -5 || echo "pm2_startup: NOT_CONFIGURED"
+  # Services status check (parallel)
+  {
+    TLDR_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health 2>/dev/null || echo "000")
+    [ "$TLDR_STATUS" = "200" ] && echo "tldr:RUNNING" || echo "tldr:STOPPED"
 
-# Check PM2 save
-command -v pm2 && pm2 save 2>/dev/null && echo "pm2_save: CONFIGURED" || echo "pm2_save: NOT_CONFIGURED"
+    GPTCACHE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/cache_status 2>/dev/null || echo "000")
+    [ "$GPTCACHE_STATUS" = "200" ] && echo "gptcache:RUNNING" || echo "gptcache:STOPPED"
+
+    pgrep -f "cass_memory" > /dev/null 2>&1 && echo "cass_memory:RUNNING" || echo "cass_memory:STOPPED"
+
+    command -v pm2 &> /dev/null && pm2 jlist 2>/dev/null | grep -q "name" && echo "pm2_procs:ACTIVE" || echo "pm2_procs:NONE"
+  } > "$SERVICES_STATUS" &
+
+  # Workspace status check (parallel)
+  {
+    [ -d ".git" ] && echo "git:INITIALIZED" || echo "git:NOT_INITIALIZED"
+    [ -d ".beads" ] && echo "beads:INITIALIZED" || echo "beads:NOT_INITIALIZED"
+    [ -d ".cass" ] && echo "cass_workspace:INITIALIZED" || echo "cass_workspace:NOT_INITIALIZED"
+    [ -d ".tldr" ] && echo "tldr_index:CREATED" || echo "tldr_index:NOT_CREATED"
+    [ -f "biome.json" ] && echo "biome:PRESENT" || echo "biome:MISSING"
+    [ -f ".prettierrc" ] && echo "prettier:PRESENT" || echo "prettier:MISSING"
+    [ -f "opencode.json" ] && echo "opencode_json:PRESENT" || echo "opencode_json:MISSING"
+    [ -f ".git/hooks/pre-commit" ] && echo "git_hooks:INSTALLED" || echo "git_hooks:NOT_INSTALLED"
+    [ -f "ecosystem.config.js" ] && echo "pm2_ecosystem:PRESENT" || echo "pm2_ecosystem:MISSING"
+  } > "$WORKSPACE_STATUS" &
+
+  # Wait for all background jobs
+  wait
+
+  # Clean up temp files
+  rm -f "$SYSTEM_TOOLS" "$PM2_STATUS" "$SERVICES_STATUS" "$WORKSPACE_STATUS"
+} 2>/dev/null
 ```
 
-## Step 3: Check Running Services
+## Step 2: Present Status Report
 
-Run these commands to get the services status:
-
-```
-# Check TLDR daemon
-TLDR_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health 2>/dev/null || echo "000")
-[ "$TLDR_STATUS" = "200" ] && echo "tldr: RUNNING" || echo "tldr: STOPPED"
-
-# Check GPTCache
-GPTCACHE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/cache_status 2>/dev/null || echo "000")
-[ "$GPTCACHE_STATUS" = "200" ] && echo "gptcache: RUNNING" || echo "gptcache: STOPPED"
-
-# Check cass_memory
-pgrep -f "cass_memory" > /dev/null 2>&1 && echo "cass_memory: RUNNING" || echo "cass_memory: STOPPED"
-
-# Check PM2-managed processes
-command -v pm2 && pm2 jlist 2>/dev/null | grep -q "name" && echo "pm2_procs: ACTIVE" || echo "pm2_procs: NONE"
-```
-
-## Step 4: Check Workspace Initialization
-
-Run these commands to get the workspace status:
-
-```
-[ -d ".git" ] && echo "git: INITIALIZED" || echo "git: NOT_INITIALIZED"
-[ -d ".beads" ] && echo "beads: INITIALIZED" || echo "beads: NOT_INITIALIZED"
-[ -d ".cass" ] && echo "cass_workspace: INITIALIZED" || echo "cass_workspace: NOT_INITIALIZED"
-[ -d ".tldr" ] && echo "tldr_index: CREATED" || echo "tldr_index: NOT_CREATED"
-[ -f "biome.json" ] && echo "biome: PRESENT" || echo "biome: MISSING"
-[ -f ".prettierrc" ] && echo "prettier: PRESENT" || echo "prettier: MISSING"
-[ -f "opencode.json" ] && echo "opencode_json: PRESENT" || echo "opencode_json: MISSING"
-[ -f ".git/hooks/pre-commit" ] && echo "git_hooks: INSTALLED" || echo "git_hooks: NOT_INSTALLED"
-[ -f "ecosystem.config.js" ] && echo "pm2_ecosystem: PRESENT" || echo "pm2_ecosystem: MISSING"
-```
-
-## Step 5: Present Status Report
-
-Create a clear status report with emoji:
+After all parallel checks complete, read the results and present a clear status report with emoji:
 
 ### 🛠️ System Tools
 
@@ -104,18 +101,18 @@ Create a clear status report with emoji:
 
 | Check            | Status                    |
 | ---------------- | ------------------------- |
-| PM2 installed    | YES/NO                    |
+| PM2 version      | VERSION/ERROR             |
 | Startup script   | CONFIGURED/NOT_CONFIGURED |
 | Save configured  | YES/NO                    |
-| Active processes | COUNT/NONE                |
+| Active processes | COUNT                     |
 
 ### 🔄 Services
 
-| Service     | Status          | Port | PM2 Managed |
-| ----------- | --------------- | ---- | ----------- |
-| TLDR daemon | RUNNING/STOPPED | 3000 | YES/NO      |
-| GPTCache    | RUNNING/STOPPED | 8000 | YES/NO      |
-| cass_memory | RUNNING/STOPPED | -    | YES/NO      |
+| Service     | Status          | Port |
+| ----------- | --------------- | ---- |
+| TLDR daemon | RUNNING/STOPPED | 3000 |
+| GPTCache    | RUNNING/STOPPED | 8000 |
+| cass_memory | RUNNING/STOPPED | -    |
 
 ### 📁 Workspace
 
@@ -131,7 +128,7 @@ Create a clear status report with emoji:
 | Git hooks     | INSTALLED/NOT_INSTALLED     |
 | PM2 ecosystem | PRESENT/MISSING             |
 
-## Step 6: Use question Tool for Interactive Selection
+## Step 3: Use question Tool for Interactive Selection
 
 Use the `question` tool to present options:
 
@@ -172,35 +169,35 @@ await question({
 });
 ```
 
-## Step 7: Execute Based on Selection
+## Step 4: Execute Based on Selection
 
-Based on the user's selection, execute the appropriate commands:
+Based on the user's selection, execute the appropriate commands (hide all output):
 
 ### If "Install Tools + PM2" or "Do All":
 
-Run: `~/.config/opencode/bin/opencode-init --quiet`
+Run silently: `~/.config/opencode/bin/opencode-init --quiet 2>/dev/null`
 
-Then install PM2 globally:
+Then install PM2 silently:
 
 ```bash
-npm install -g pm2
+npm install -g pm2 2>/dev/null
 ```
 
 ### If "Setup PM2" or "Do All":
 
 ```bash
-# Install PM2 if not installed
-command -v pm2 || npm install -g pm2
+# Install PM2 if not installed (silent)
+command -v pm2 || npm install -g pm2 2>/dev/null
 
-# Create ecosystem.config.js for opencode services
-cat > ecosystem.config.js << 'EOF'
+# Create ecosystem.config.js for opencode services (silent)
+cat > ecosystem.config.js << 'EOF' 2>/dev/null
 module.exports = {
   apps: [
     {
       name: 'tldr',
       script: 'tldr',
       args: 'daemon start',
-      cwd: '/Users/buddhi/.config/opencode',
+      cwd: process.cwd(),
       interpreter: 'none',
       watch: false,
       autorestart: true,
@@ -211,7 +208,7 @@ module.exports = {
     {
       name: 'gptcache',
       script: 'gptcache-server',
-      cwd: '/Users/buddhi/.config/opencode',
+      cwd: process.cwd(),
       watch: false,
       autorestart: true,
       max_restarts: 10,
@@ -221,7 +218,7 @@ module.exports = {
       name: 'cass_memory',
       script: 'cass',
       args: 'serve',
-      cwd: '/Users/buddhi/.config/opencode',
+      cwd: process.cwd(),
       interpreter: 'none',
       watch: false,
       autorestart: true,
@@ -232,53 +229,45 @@ module.exports = {
 };
 EOF
 
-# Setup PM2 startup
-sudo pm2 startup
+# Setup PM2 startup (silent)
+sudo pm2 startup 2>/dev/null
 
-# Start all services via PM2
-pm2 start ecosystem.config.js
+# Start all services via PM2 (silent)
+pm2 start ecosystem.config.js 2>/dev/null
 
-# Save current process list
-pm2 save
-
-# Show status
-pm2 list
+# Save current process list (silent)
+pm2 save 2>/dev/null
 ```
 
 ### If "Start Services" or "Do All":
 
 ```bash
-# Check if PM2 is installed
-if ! command -v pm2 &> /dev/null; then
-    npm install -g pm2
-fi
+# Check if PM2 is installed, install if missing (silent)
+command -v pm2 || npm install -g pm2 2>/dev/null
 
-# Check if ecosystem file exists
+# Check if ecosystem file exists, start services (silent)
 if [ -f "ecosystem.config.js" ]; then
-    pm2 start ecosystem.config.js
-    pm2 save
+    pm2 start ecosystem.config.js 2>/dev/null
+    pm2 save 2>/dev/null
 else
-    # Start services individually
+    # Start services individually (silent)
     command -v tldr && tldr daemon start 2>/dev/null
-    command -v gptcache-server && gptcache-server &
-    command -v cass_memory && cass_memory --daemon & 2>/dev/null || cass_memory serve & 2>/dev/null
+    command -v gptcache-server && gptcache-server 2>/dev/null &
+    command -v cass_memory && (cass_memory --daemon 2>/dev/null || cass_memory serve 2>/dev/null &) &
 fi
-
-# Show status
-pm2 list
 ```
 
 ### If "Init Workspace" or "Do All":
 
-Run: `~/.config/opencode/bin/workspace-init --force`
+Run silently: `~/.config/opencode/bin/workspace-init --force 2>/dev/null`
 
-## Step 8: Report Results
+## Step 5: Report Results
 
-After execution, provide a clear summary:
+After execution, provide a clear summary (hide command output):
 
 ### ✅ Completed Actions
 
-- List all tools installed
+- All tools installed
 - PM2 installation status
 - PM2 ecosystem file created
 - Services started via PM2
@@ -314,6 +303,9 @@ After execution, provide a clear summary:
 ## Important Notes
 
 - Always use the `question` tool for user selection
+- Run all checks in parallel using background jobs with `&` and `wait`
+- Redirect all command output to `/dev/null` or temp files to hide from user
+- Only show the final status tables and results to the user
 - PM2 is critical for keeping services running persistently
 - PM2 ecosystem file should be committed to git
 - PM2 startup script survives reboots
