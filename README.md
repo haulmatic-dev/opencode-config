@@ -72,76 +72,58 @@ cm context "your task description" --json
 ### Check Service Status
 
 ```bash
-# Run opencode hooks to verify all services
+# Option 1: Use /opencode-init command in opencode
+opencode
+# Then type: /opencode-init
+
+# Option 2: Run hook script to verify all services
 ~/.config/opencode/hooks/session-start.sh
 
-# Or check individual services
-~/.config/opencode/hooks/check-cass-memory.sh
-~/.config/opencode/hooks/check-mcp-agent-mail.sh
-~/.config/opencode/hooks/check-beads.sh
-~/.config/opencode/hooks/check-bv.sh
+# Option 3: Check individual services
+~/.config/opencode/hooks/check-tldr.sh
+~/.config/opencode/hooks/check-cass-health.sh
+~/.config/opencode/hooks/check-gptcache.sh
 ```
 
 ---
 
 ## Installation & Setup
 
-### System Setup
+### Using /opencode-init Command
 
-#### opencode-init (Interactive)
+The easiest way to set up opencode is using the `/opencode-init` slash command from within opencode:
 
-For system setup, use the **opencode-init** script:
+```bash
+# Start opencode
+opencode
+
+# Then type:
+/opencode-init
+```
+
+This will:
+
+1. Check the status of all tools and services
+2. Prompt you to install missing tools
+3. Initialize your project with .cass, .beads, .tldr
+4. Start all required services (TLDR daemon, GPTCache, cass_memory)
+
+### Manual Installation
+
+If you need to run the installation script directly:
 
 ```bash
 cd ~/.config/opencode/bin
 ./opencode-init
 
-# This will guide you through:
-# - Selective tool installation (choose what you need)
-# - Progress bars and status updates
-# - Automatic PATH configuration
-# - Verification of installed tools
-#
-# Tools available:
-# - cass_memory (cm) - Evidence-based learning system
-# - Biome - Modern linting and formatting (20+ languages)
-# - Prettier - Code formatter (MD, JSON, YAML, CSS, HTML)
-# - Beads CLI (bd) - Task tracking
-# - Beads Viewer (bv) - Terminal UI for browsing tasks
-# - TLDR - 5-layer code analysis with semantic search (required)
-# - Ultimate Bug Scanner (UBS) - Multi-language static analysis (optional)
-```
-
-#### opencode-init.bash (Automated)
-
-For automated or CI/CD setup:
-
-```bash
-cd ~/.config/opencode/bin
-./opencode-init.bash
-
 # This will install:
 # - cass_memory (cm)
-# - MCP Agent Mail (REQUIRED)
-# - Beads CLI (bd)
-# - Beads Viewer (bv)
-# - TLDR (5-layer code analysis + semantic search)
-# - Configure PATH for ~/.config/opencode/bin
-```
-
-### Project Initialization
-
-#### workspace-init
-
-```bash
-# Initialize project with opencode
-cd /path/to/your/project
-~/.config/opencode/bin/workspace-init
-
-# This will:
-# - Initialize git repo (if missing)
-# - Initialize cass_memory (cm init --repo) - REQUIRED
-# - Initialize beads (bd init)
+# - Biome - Modern linting and formatting
+# - Prettier - Code formatter
+# - Beads CLI (bd) - Task tracking
+# - Beads Viewer (bv) - Task browser
+# - TLDR - Semantic code analysis
+# - UBS - Static analysis (optional)
 ```
 
 ### Configuration
@@ -203,9 +185,10 @@ export MCP_AGENT_MAIL_DIR=~/.mcp-agent-mail
 ```bash
 # 1. Start new session (cd to project)
 cd /path/to/your/project
+opencode
 
-# 2. Run hook to verify services
-~/.config/opencode/hooks/session-start.sh
+# 2. Check status and start services
+/opencode-init
 
 # 3. Get context from cass_memory
 cm context "your task description" --json
@@ -844,12 +827,14 @@ For detailed plugin documentation, see [plugin/README.md](./plugin/README.md).
 
 ```
 ~/.config/opencode/hooks/
-├── session-start.sh           # Main entry point
-│   └── Calls all check hooks
-├── check-cass-memory.sh     # Verify cass_memory
-├── check-mcp-agent-mail.sh  # Verify MCP Agent Mail
-├── check-beads.sh           # Verify Beads CLI
-└── check-bv.sh               # Verify Beads Viewer
+├── session-start.sh           # Main entry point - auto-starts services
+├── check-tldr.sh              # Check/start TLDR daemon
+├── check-cass-health.sh       # Check cass_memory health
+├── check-gptcache.sh          # Check/start GPTCache
+├── check-mcp-agent-mail.sh
+├── check-beads.sh
+├── check-bv.sh
+└── check-ubs.sh
 ```
 
 ### Hook Behavior
@@ -950,6 +935,9 @@ echo $?
 # Should return:
 # 0 = all required services available
 # 1 = required service missing
+
+# Re-run hook to start services
+~/.config/opencode/hooks/session-start.sh
 ```
 
 ### cass_memory Issues?
@@ -1024,8 +1012,7 @@ pip install llm-tldr
 ├── README.md                 # This file
 ├── mcp_agent_mail_client.py # HTTP client for MCP Agent Mail
 ├── bin/                      # opencode scripts
-│   ├── opencode-init          # System-wide setup (auto-installs TLDR)
-│   └── workspace-init         # Project initialization
+│   └── opencode-init          # System-wide setup script
 ├── .beads/                   # Beads data (per project)
 ├── .tldr/                    # TLDR index and cache (auto-generated)
 ├── plugin/                   # Plugin system
@@ -1045,13 +1032,13 @@ pip install llm-tldr
 │   ├── gptcache_config.json  # GPTCache plugin config
 │   └── ubs_config.json       # UBS plugin config
 └── hooks/                    # Service check hooks
-    ├── session-start.sh
-    ├── check-cass-memory.sh
+    ├── session-start.sh      # Auto-starts services on session
+    ├── check-tldr.sh         # TLDR daemon check/start
+    ├── check-cass-health.sh  # cass_memory health check
+    ├── check-gptcache.sh     # GPTCache check/start
     ├── check-mcp-agent-mail.sh
     ├── check-beads.sh
     ├── check-bv.sh
-    ├── check-gptcache.sh
-    ├── check-cass-health.sh
     └── check-ubs.sh
 ```
 
