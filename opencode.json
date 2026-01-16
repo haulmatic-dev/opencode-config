@@ -10,26 +10,22 @@
     "test": {
       "description": "A test command to verify custom commands work",
       "template": "This is a test command. If you see this, custom commands are working! Say hello and confirm you can execute custom commands.",
-      "agent": "general",
-      "model": "glm-4.7"
+      "agent": "general"
     },
     "workspace-init": {
       "description": "Initialize project workspace with opencode tools",
       "template": "Run the workspace initialization script to set up this project with opencode. Execute: ~/.config/opencode/bin/workspace-init --force\n\nAfter running, summarize what was set up and report any errors.",
-      "agent": "build",
-      "model": "glm-4.7"
+      "agent": "build"
     },
     "opencode-init": {
       "description": "Install opencode system-wide tools",
       "template": "Run the system initialization script to install opencode tools. Execute: ~/.config/opencode/bin/opencode-init --quiet\n\nAfter running, summarize what was installed and report any errors.",
-      "agent": "build",
-      "model": "glm-4.7"
+      "agent": "build"
     },
     "workspace-status": {
       "description": "Check workspace and system status",
       "template": "Check the current workspace status by running these commands:\n1. ~/.config/opencode/hooks/session-start.sh\n2. bd status\n3. cm doctor --json\n\nSummarize the status in a clear format showing what's initialized and what's missing.",
-      "agent": "general",
-      "model": "glm-4.7"
+      "agent": "general"
     }
   },
   "provider": {

@@ -1,7 +1,6 @@
 ---
 description: Install opencode system-wide tools
 agent: build
-model: glm-4.7
 ---
 
 Run the system initialization script to install opencode tools:

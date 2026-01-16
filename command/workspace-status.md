@@ -1,7 +1,6 @@
 ---
 description: Check workspace and system status
 agent: general
-model: glm-4.7
 ---
 
 Check the current workspace status by running:

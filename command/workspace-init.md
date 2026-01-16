@@ -1,7 +1,6 @@
 ---
 description: Initialize project workspace with opencode tools
 agent: build
-model: glm-4.7
 ---
 
 Run the workspace initialization script to set up this project with opencode:
