@@ -7,25 +7,10 @@
     "write": "allow"
   },
   "command": {
-    "test": {
-      "description": "A test command to verify custom commands work",
-      "template": "This is a test command. If you see this, custom commands are working! Say hello and confirm you can execute custom commands.",
-      "agent": "general"
-    },
-    "workspace-init": {
-      "description": "Initialize project workspace with opencode tools",
-      "template": "Run the workspace initialization script to set up this project with opencode. Execute: ~/.config/opencode/bin/workspace-init --force\n\nAfter running, summarize what was set up and report any errors.",
-      "agent": "build"
-    },
     "opencode-init": {
-      "description": "Install opencode system-wide tools",
-      "template": "Run the system initialization script to install opencode tools. Execute: ~/.config/opencode/bin/opencode-init --quiet\n\nAfter running, summarize what was installed and report any errors.",
+      "description": "Initialize opencode - Check tools, install missing, initialize workspace",
+      "template": "You are an opencode initialization assistant. Your job is to check the current state and help the user set up opencode.\n\n## Step 1: Check System Tools\n\nRun these commands to check if tools are installed:\n\n```\n# System tools\ncommand -v cm && echo \"cm: ✅ installed\" || echo \"cm: ❌ missing\"\ncommand -v bd && echo \"bd: ✅ installed\" || echo \"bd: ❌ missing\"\ncommand -v bv && echo \"bv: ✅ installed\" || echo \"bv: ❌ missing\"\ncommand -v tldr && echo \"tldr: ✅ installed\" || echo \"tldr: ❌ missing\"\ncommand -v biome && echo \"biome: ✅ installed\" || echo \"biome: ❌ missing\"\ncommand -v prettier && echo \"prettier: ✅ installed\" || echo \"prettier: ❌ missing\"\ncommand -v ubs && echo \"ubs: ✅ installed\" || echo \"ubs: ❌ missing\"\ncommand -v opencode-init && echo \"opencode-init: ✅ in PATH\" || echo \"opencode-init: ❌ not in PATH\"\n```\n\nAlso check TLDR daemon:\n```\ncurl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/health 2>/dev/null && echo \" - TLDR daemon running\" || echo \" - TLDR daemon not running\"\n```\n\n## Step 2: Check Workspace Initialization\n\nRun these commands to check workspace status:\n\n```\n# Workspace tools\n[ -d \".git\" ] && echo \"git: ✅ initialized\" || echo \"git: ❌ not initialized\"\n[ -d \".beads\" ] && echo \"beads: ✅ initialized\" || echo \"beads: ❌ not initialized\"\n[ -d \".cass\" ] && echo \"cass_memory: ✅ initialized\" || echo \"cass_memory: ❌ not initialized\"\n[ -d \".tldr\" ] && echo \"tldr: ✅ indexed\" || echo \"tldr: ❌ not indexed\"\n[ -f \"biome.json\" ] && echo \"biome.json: ✅ present\" || echo \"biome.json: ❌ missing\"\n[ -f \".prettierrc\" ] && echo \".prettierrc: ✅ present\" || echo \".prettierrc: ❌ missing\"\n[ -f \"opencode.json\" ] && echo \"opencode.json: ✅ present\" || echo \"opencode.json: ❌ missing\"\n[ -f \".git/hooks/pre-commit\" ] && echo \"git-hooks: ✅ installed\" || echo \"git-hooks: ❌ missing\"\n```\n\n## Step 3: Present Status Report\n\nCreate a nice markdown table showing:\n\n### System Tools Status\n| Tool | Status | Action Needed |\n|------|--------|---------------|\n| cm (cass_memory) | ✅/❌ | - |\n| bd (Beads CLI) | ✅/❌ | - |\n| bv (Beads Viewer) | ✅/❌ | - |\n| TLDR | ✅/❌ | - |\n| Biome | ✅/❌ | - |\n| Prettier | ✅/❌ | - |\n| UBS | ✅/❌ | - |\n\n### Workspace Status\n| Component | Status | Action Needed |\n|-----------|--------|---------------|\n| Git | ✅/❌ | - |\n| Beads | ✅/❌ | - |\n| cass_memory | ✅/❌ | - |\n| TLDR index | ✅/❌ | - |\n| biome.json | ✅/❌ | - |\n| .prettierrc | ✅/❌ | - |\n| opencode.json | ✅/❌ | - |\n| Git hooks | ✅/❌ | - |\n\n## Step 4: Offer Options\n\nAsk the user what they want to do:\n\n1. **Install all missing system tools** - Run `~/.config/opencode/bin/opencode-init --quiet`\n2. **Initialize workspace** - Run `~/.config/opencode/bin/workspace-init --force`\n3. **Do both** - Run both commands above\n4. **Skip** - Don't do anything\n\nWait for user input and then execute the appropriate command(s).\n\n## Step 5: Execute and Report\n\nAfter running the chosen commands, summarize what was done:\n\n- For system installation: List all tools that were installed\n- For workspace init: List all components that were initialized\n- Report any errors clearly\n- Suggest next steps (e.g., \"Run `bd ready` to see available tasks\")\n\n## Important\n\n- Always be clear about what's missing and what will be installed\n- Confirm with user before making changes\n- Report errors in a user-friendly way\n- Use emoji (✅ ❌ ⚠️) for visual status indicators",
       "agent": "build"
-    },
-    "workspace-status": {
-      "description": "Check workspace and system status",
-      "template": "Check the current workspace status by running these commands:\n1. ~/.config/opencode/hooks/session-start.sh\n2. bd status\n3. cm doctor --json\n\nSummarize the status in a clear format showing what's initialized and what's missing.",
-      "agent": "general"
     }
   },
   "provider": {
