@@ -100,34 +100,54 @@ class InitCommandsManager {
   }
 
   async checkServicesStatus() {
-    const services = {
-      tldr_daemon: {
-        check: 'tldr daemon status',
-        runningPattern: /Status:\\s*ready/i,
-        name: 'TLDR daemon',
-      },
-      gptcache: {
-        check: 'lsof -i :8000 | grep LISTEN',
-        name: 'GPTCache',
-      },
-      cass_memory: {
-        check: 'pgrep -f "cass"',
-        name: 'cass_memory',
-      },
-    };
-
     const status = {};
-    for (const [key, service] of Object.entries(services)) {
-      try {
-        const { stdout } = await execAsync(service.check, { stdio: 'pipe' });
-        if (service.runningPattern) {
-          status[key] = service.runningPattern.test(stdout);
-        } else {
-          status[key] = stdout.trim().length > 0;
-        }
-      } catch {
-        status[key] = false;
+
+    // TLDR Daemon Check - Use authoritative command with pattern matching
+    try {
+      const { stdout: tldrOutput } = await execAsync(
+        'timeout 5 tldr daemon status 2>&1 || echo "Command failed"',
+        { stdio: 'pipe' },
+      );
+      if (/Status:\s*ready/i.test(tldrOutput)) {
+        status.tldr_daemon = true;
+      } else if (/not running|daemon not running/i.test(tldrOutput)) {
+        status.tldr_daemon = false;
+      } else {
+        status.tldr_daemon = false;
       }
+    } catch {
+      status.tldr_daemon = false;
+    }
+
+    // GPTCache Check - Verify port listening AND HTTP response
+    try {
+      const { stdout: lsofOutput } = await execAsync(
+        'lsof -i :8000 2>/dev/null | grep LISTEN || echo ""',
+        { stdio: 'pipe' },
+      );
+      if (lsofOutput.trim().length > 0) {
+        try {
+          const { stdout: httpOutput } = await execAsync(
+            'curl -s --connect-timeout 2 http://localhost:8000/ 2>/dev/null || echo ""',
+            { stdio: 'pipe' },
+          );
+          status.gptcache = /gptcache|hello/i.test(httpOutput);
+        } catch {
+          status.gptcache = false;
+        }
+      } else {
+        status.gptcache = false;
+      }
+    } catch {
+      status.gptcache = false;
+    }
+
+    // cass_memory Check - Simple process check
+    try {
+      await execAsync('pgrep -f "cass" > /dev/null 2>&1', { stdio: 'pipe' });
+      status.cass_memory = true;
+    } catch {
+      status.cass_memory = false;
     }
 
     return status;
