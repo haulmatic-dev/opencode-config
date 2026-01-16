@@ -6,6 +6,9 @@
 
 set -e
 
+# Determine opencode bin directory (absolute path)
+OPENCODE_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -19,10 +22,15 @@ echo -e "${BLUE}╚════════════════════�
 
 # Parse arguments
 SKIP_SYSTEM_CHECK=false
+FORCE=false
 for arg in "$@"; do
   case $arg in
     --skip-system-check)
       SKIP_SYSTEM_CHECK=true
+      shift
+      ;;
+    --force|-f)
+      FORCE=true
       shift
       ;;
     --help|-h)
@@ -34,8 +42,17 @@ for arg in "$@"; do
       echo "  • Initialize git repository (if missing)"
       echo "  • Initialize cass_memory (cm init --repo) - REQUIRED"
       echo "  • Initialize beads task tracking (bd init)"
+      echo "  • Index project with TLDR for code analysis"
+      echo "  • Copy Biome linting configuration"
+      echo "  • Copy Prettier formatting configuration"
+      echo "  • Copy opencode configuration"
+      echo "  • Install pre-commit git hook (UBS static analysis)"
+      echo "  • Install Husky & lint-staged (if package.json exists)"
+      echo "  • Configure git merge driver for beads"
+      echo "  • Install beads git hooks"
+      echo "  • Install npm dependencies (if package.json exists)"
       echo ""
-      echo "Usage: workspace-init [--skip-system-check]"
+      echo "Usage: workspace-init [--skip-system-check] [--force]"
       exit 0
       ;;
   esac
@@ -85,32 +102,51 @@ if [ "$HAS_GIT" = true ] && [ "$HAS_CASS_INIT" = true ] && [ "$HAS_BEADS_INIT" =
   exit 0
 fi
 
-# Non-interactive check
-if [ ! -t 0 ]; then
+# Non-interactive check (skip if --force flag is set)
+if [ ! -t 0 ] && [ "$FORCE" = false ]; then
   echo
-  echo -e "${YELLOW}ℹ${NC}  Non-interactive terminal"
+  echo -e "${YELLOW}ℹ${NC}  Non-interactive terminal detected"
+  echo "  Use --force flag to run with defaults, or run in interactive terminal"
   exit 0
 fi
 
-# Ask for confirmation
-echo
-echo -en "${YELLOW}❓${NC}  Set up workspace? [y/N]: "
-read -r response
+# Ask for confirmation (skip if --force flag is set)
+if [ "$FORCE" = true ]; then
+  echo
+  echo -e "${BLUE}🚀${NC} Running in force mode with defaults"
+else
+  echo
+  echo -en "${YELLOW}❓${NC}  Set up workspace? [y/N]: "
+  read -r response
 
-if [[ ! "$response" =~ ^[Yy]$ ]]; then
-  echo -e "${YELLOW}Skipped${NC}"
-  exit 0
+  if [[ ! "$response" =~ ^[Yy]$ ]]; then
+    echo -e "${YELLOW}Skipped${NC}"
+    exit 0
+  fi
 fi
 
 COMPLETED=()
+
+# Helper function for prompts (returns 0 for yes, 1 for no)
+prompt_yes() {
+  local prompt="$1"
+  if [ "$FORCE" = true ]; then
+    return 0
+  fi
+  echo -n "$prompt"
+  read -r r
+  if [[ -z "$r" ]] || [[ "$r" =~ ^[Yy]$ ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
 
 # Git initialization
 if [ "$HAS_GIT" = false ]; then
   echo
   echo -e "${BLUE}Step 1: Git Repository${NC}"
-  echo -n "  Initialize git? [Y/n]: "
-  read -r r
-  if [[ -z "$r" ]] || [[ "$r" =~ ^[Yy]$ ]]; then
+  if prompt_yes "  Initialize git? [Y/n]: "; then
     if command -v git &> /dev/null; then
       git init -q
       echo -e "  ${GREEN}✓${NC} Initialized"
@@ -132,9 +168,7 @@ if [ "$HAS_CASS_INIT" = false ]; then
   fi
 
   echo "  This will initialize cass_memory for this project"
-  echo -n "  Initialize cass_memory? [Y/n]: "
-  read -r r
-  if [[ -z "$r" ]] || [[ "$r" =~ ^[Yy]$ ]]; then
+  if prompt_yes "  Initialize cass_memory? [Y/n]: "; then
     if command -v cm &> /dev/null; then
       cm init --repo
       echo -e "  ${GREEN}✓${NC} Initialized"
@@ -157,9 +191,7 @@ if [ "$HAS_BEADS_INIT" = false ]; then
     echo -e "  ${RED}✗${NC} No git repository (run Step 1 first)"
     exit 1
   else
-    echo -n "  Initialize beads? [Y/n]: "
-    read -r r
-    if [[ -z "$r" ]] || [[ "$r" =~ ^[Yy]$ ]]; then
+    if prompt_yes "  Initialize beads? [Y/n]: "; then
       bd init
       # Remove AGENTS.md files created by bd init (not needed - inherited from ~/.config/opencode/AGENTS.md)
       rm -f AGENTS.md @AGENTS.md 2>/dev/null || true
@@ -167,6 +199,171 @@ if [ "$HAS_BEADS_INIT" = false ]; then
       COMPLETED+=("beads")
     fi
   fi
+fi
+
+# TLDR initialization (REQUIRED for code analysis)
+echo
+echo -e "${BLUE}Step 4: TLDR Code Indexing (REQUIRED)${NC}"
+if command -v tldr &> /dev/null; then
+  echo "  TLDR provides semantic search, impact analysis, and code context"
+  if [ -d ".tldr" ]; then
+    echo -e "  ${GREEN}✓${NC} TLDR already indexed"
+  else
+    if prompt_yes "  Index project with TLDR? [Y/n]: "; then
+      if tldr warm . 2>/dev/null; then
+        echo -e "  ${GREEN}✓${NC} TLDR indexed"
+        COMPLETED+=("tldr")
+      else
+        echo -e "  ${YELLOW}⚠${NC} TLDR indexing failed (tldr warm .)"
+      fi
+    fi
+  fi
+else
+  echo -e "  ${YELLOW}○${NC} TLDR not found (run 'opencode-init' first)"
+fi
+
+# Copy Biome configuration
+echo
+echo -e "${BLUE}Step 5: Biome Linting Configuration${NC}"
+if [ -f "$OPENCODE_BIN_DIR/../biome.json" ]; then
+  if [ -f "biome.json" ]; then
+    echo -e "  ${GREEN}✓${NC} biome.json already exists"
+  else
+    if prompt_yes "  Copy biome.json? [Y/n]: "; then
+      cp "$OPENCODE_BIN_DIR/../biome.json" .
+      echo -e "  ${GREEN}✓${NC} biome.json copied"
+      COMPLETED+=("biome")
+    fi
+  fi
+else
+  echo -e "  ${YELLOW}○${NC} biome.json not found in ~/.config/opencode/"
+fi
+
+# Copy Prettier configuration
+echo
+echo -e "${BLUE}Step 6: Prettier Formatting Configuration${NC}"
+if [ -f "$OPENCODE_BIN_DIR/../.prettierrc" ]; then
+  if [ -f ".prettierrc" ]; then
+    echo -e "  ${GREEN}✓${NC} .prettierrc already exists"
+  else
+    if prompt_yes "  Copy .prettierrc? [Y/n]: "; then
+      cp "$OPENCODE_BIN_DIR/../.prettierrc" .
+      echo -e "  ${GREEN}✓${NC} .prettierrc copied"
+      COMPLETED+=("prettier")
+    fi
+  fi
+else
+  echo -e "  ${YELLOW}○${NC} .prettierrc not found in ~/.config/opencode/"
+fi
+
+# Copy opencode configuration
+echo
+echo -e "${BLUE}Step 7: opencode Configuration${NC}"
+if [ -f "$OPENCODE_BIN_DIR/../opencode.json" ]; then
+  if [ -f "opencode.json" ]; then
+    echo -e "  ${GREEN}✓${NC} opencode.json already exists"
+  else
+    if prompt_yes "  Copy opencode.json? [Y/n]: "; then
+      cp "$OPENCODE_BIN_DIR/../opencode.json" .
+      echo -e "  ${GREEN}✓${NC} opencode.json copied"
+      COMPLETED+=("opencode")
+    fi
+  fi
+else
+  echo -e "  ${YELLOW}○${NC} opencode.json not found in ~/.config/opencode/"
+fi
+
+# Install git hooks (pre-commit)
+echo
+echo -e "${BLUE}Step 8: Git Hooks (Pre-commit)${NC}"
+if [ -f "$OPENCODE_BIN_DIR/../.githooks/pre-commit" ]; then
+  if [ -f ".git/hooks/pre-commit" ]; then
+    echo -e "  ${GREEN}✓${NC} pre-commit hook already installed"
+  else
+    if prompt_yes "  Install pre-commit hook (UBS static analysis)? [Y/n]: "; then
+      mkdir -p .git/hooks
+      cp "$OPENCODE_BIN_DIR/../.githooks/pre-commit" .git/hooks/pre-commit
+      chmod +x .git/hooks/pre-commit
+      echo -e "  ${GREEN}✓${NC} pre-commit hook installed"
+      COMPLETED+=("git-hooks")
+    fi
+  fi
+else
+  echo -e "  ${YELLOW}○${NC} pre-commit hook not found in ~/.config/opencode/.githooks/"
+fi
+
+# Install Husky and lint-staged
+echo
+echo -e "${BLUE}Step 9: Husky & Lint-staged (Git Hook Framework)${NC}"
+if [ -f "package.json" ]; then
+  if [ -d ".husky" ]; then
+    echo -e "  ${GREEN}✓${NC} Husky already configured"
+  else
+    echo "  Husky enables pre-commit lint/format checks"
+    if prompt_yes "  Install Husky? [Y/n]: "; then
+      if npx husky install 2>/dev/null; then
+        echo -e "  ${GREEN}✓${NC} Husky installed"
+        COMPLETED+=("husky")
+      else
+        echo -e "  ${YELLOW}⚠${NC} Husky install failed (npm install may be needed first)"
+      fi
+    fi
+  fi
+else
+  echo -e "  ${YELLOW}○${NC} No package.json found (skipping Husky)"
+fi
+
+# Configure git merge driver for Beads
+echo
+echo -e "${BLUE}Step 10: Git Merge Driver for Beads${NC}"
+if [ -d ".git" ]; then
+  CURRENT_DRIVER=$(git config --get merge.beads.driver 2>/dev/null || echo "")
+  if [ -n "$CURRENT_DRIVER" ]; then
+    echo -e "  ${GREEN}✓${NC} Merge driver already configured"
+  else
+    if prompt_yes "  Configure git merge driver for beads? [Y/n]: "; then
+      git config merge.beads.driver "bd merge %A %O %A %B"
+      echo -e "  ${GREEN}✓${NC} Merge driver configured"
+      COMPLETED+=("merge-driver")
+    fi
+  fi
+fi
+
+# Install Beads git hooks
+echo
+echo -e "${BLUE}Step 11: Beads Git Hooks${NC}"
+if command -v bd &> /dev/null && [ -d ".beads" ]; then
+  if prompt_yes "  Install beads git hooks? [Y/n]: "; then
+    if bd hooks install 2>/dev/null; then
+      echo -e "  ${GREEN}✓${NC} Beads hooks installed"
+      COMPLETED+=("beads-hooks")
+    else
+      echo -e "  ${YELLOW}⚠${NC} Beads hooks install failed"
+    fi
+  fi
+else
+  echo -e "  ${YELLOW}○${NC} Beads not initialized (run Step 3 first)"
+fi
+
+# npm install (if package.json exists)
+echo
+echo -e "${BLUE}Step 12: Install Node Dependencies${NC}"
+if [ -f "package.json" ]; then
+  if [ -d "node_modules" ]; then
+    echo -e "  ${GREEN}✓${NC} Dependencies already installed"
+  else
+    echo "  Run npm install to install project dependencies?"
+    if prompt_yes "  Install? [Y/n]: "; then
+      if npm install 2>/dev/null; then
+        echo -e "  ${GREEN}✓${NC} Dependencies installed"
+        COMPLETED+=("npm-install")
+      else
+        echo -e "  ${YELLOW}⚠${NC} npm install failed"
+      fi
+    fi
+  fi
+else
+  echo -e "  ${YELLOW}○${NC} No package.json found (skipping)"
 fi
 
 # Summary
@@ -185,6 +382,8 @@ if [ -d ".beads" ]; then
   echo -e "${BLUE}Next:${NC}"
   echo "  bd create \"task\"  # Create a task"
   echo "  cm context \"task description\"  # Get context from cass_memory"
+  echo "  npm run lint  # Run Biome linting"
+  echo "  npm run format  # Format code with Prettier"
 fi
 
 echo

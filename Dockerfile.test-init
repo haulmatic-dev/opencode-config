@@ -1,0 +1,89 @@
+# Dockerfile for testing opencode-init and workspace-init
+# Usage: docker build -f Dockerfile.test-init -t opencode-test-init .
+#        docker run --rm opencode-test-init
+
+FROM ubuntu:22.04
+
+# Install basic dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    wget \
+    gnupg \
+    lsb-release \
+    ca-certificates \
+    build-essential \
+    libglib2.0-0 \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    nodejs \
+    npm \
+    python3 \
+    python3-pip \
+    vim \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Go
+RUN wget -q https://go.dev/dl/go1.21.5.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.21.5.linux-amd64.tar.gz && \
+    rm go1.21.5.linux-amd64.tar.gz
+ENV PATH=/usr/local/go/bin:$PATH
+
+# Create user for testing
+RUN useradd -m -s /bin/bash testuser && \
+    echo "testuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Set working directory
+WORKDIR /home/testuser
+
+# Copy opencode scripts and configs
+COPY --chown=testuser:testuser bin/ /home/testuser/.config/opencode/bin/
+COPY --chown=testuser:testuser biome.json .prettierrc opencode.json /home/testuser/.config/opencode/
+COPY --chown=testuser:testuser .githooks/ /home/testuser/.config/opencode/.githooks/
+COPY --chown=testuser:testuser AGENTS.md /home/testuser/.config/opencode/
+
+# Create test project directory
+RUN mkdir -p /home/testuser/test-project && \
+    cd /home/testuser/test-project && \
+    git init
+
+# Switch to test user
+USER testuser
+WORKDIR /home/testuser/test-project
+
+# Set environment
+ENV PATH=/home/testuser/.config/opencode/bin:/usr/local/go/bin:$PATH
+ENV OPENCODE_HOME=/home/testuser/.config/opencode
+
+# Test script
+RUN echo '#!/bin/bash' > /tmp/test-init.sh && \
+    echo 'set -e' >> /tmp/test-init.sh && \
+    echo '' >> /tmp/test-init.sh && \
+    echo 'echo "=== Testing workspace-init ==="' >> /tmp/test-init.sh && \
+    echo '/home/testuser/.config/opencode/bin/workspace-init --force' >> /tmp/test-init.sh && \
+    echo '' >> /tmp/test-init.sh && \
+    echo 'echo "=== Verifying setup ==="' >> /tmp/test-init.sh && \
+    echo 'ls -la /home/testuser/test-project/' >> /tmp/test-init.sh && \
+    echo 'ls -la /home/testuser/test-project/.git/hooks/' >> /tmp/test-init.sh && \
+    echo 'ls -la /home/testuser/test-project/.cass/' >> /tmp/test-init.sh && \
+    echo 'ls -la /home/testuser/test-project/.beads/' >> /tmp/test-init.sh && \
+    echo 'test -f /home/testuser/test-project/biome.json && echo "✓ biome.json copied"' >> /tmp/test-init.sh && \
+    echo 'test -f /home/testuser/test-project/.prettierrc && echo "✓ .prettierrc copied"' >> /tmp/test-init.sh && \
+    echo 'test -f /home/testuser/test-project/opencode.json && echo "✓ opencode.json copied"' >> /tmp/test-init.sh && \
+    echo 'test -f /home/testuser/test-project/.git/hooks/pre-commit && echo "✓ pre-commit hook installed"' >> /tmp/test-init.sh && \
+    echo '' >> /tmp/test-init.sh && \
+    echo 'echo "=== Test completed successfully ==="' >> /tmp/test-init.sh && \
+    chmod +x /tmp/test-init.sh
+
+CMD ["/bin/bash", "/tmp/test-init.sh"]
