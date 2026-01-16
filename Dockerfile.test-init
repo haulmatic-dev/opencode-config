@@ -1,48 +1,35 @@
-# Dockerfile for testing opencode-init and workspace-init
-# Usage: docker build -f Dockerfile.test-init -t opencode-test-init .
-#        docker run --rm opencode-test-init
+# Simplified Dockerfile for testing workspace-init script
+# This version mocks the system tools for faster testing
 
 FROM ubuntu:22.04
 
-# Install basic dependencies
+# Install minimal dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     git \
-    wget \
-    gnupg \
-    lsb-release \
-    ca-certificates \
-    build-essential \
-    libglib2.0-0 \
-    libnss3 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    nodejs \
-    npm \
-    python3 \
-    python3-pip \
-    vim \
-    sudo \
+    bash \
+    coreutils \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Go
-RUN wget -q https://go.dev/dl/go1.21.5.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.21.5.linux-amd64.tar.gz && \
-    rm go1.21.5.linux-amd64.tar.gz
-ENV PATH=/usr/local/go/bin:$PATH
+# Create mock bin directory with stub commands that create directories
+RUN mkdir -p /usr/local/bin && \
+    echo '#!/bin/bash' > /usr/local/bin/cm && \
+    echo 'mkdir -p .cass' >> /usr/local/bin/cm && \
+    echo 'touch .cass/playbook.yaml .cass/blocked.log' >> /usr/local/bin/cm && \
+    echo 'echo "cass_memory initialized"' >> /usr/local/bin/cm && \
+    echo '#!/bin/bash' > /usr/local/bin/bd && \
+    echo 'mkdir -p .beads' >> /usr/local/bin/bd && \
+    echo 'touch .beads/beads.db .beads/config.yaml' >> /usr/local/bin/bd && \
+    echo 'echo "bd initialized"' >> /usr/local/bin/bd && \
+    echo 'exit 0' >> /usr/local/bin/bd && \
+    echo '#!/bin/bash' > /usr/local/bin/tldr && \
+    echo 'mkdir -p .tldr' >> /usr/local/bin/tldr && \
+    echo 'echo "TLDR indexed"' >> /usr/local/bin/tldr && \
+    echo 'exit 0' >> /usr/local/bin/tldr && \
+    chmod +x /usr/local/bin/cm /usr/local/bin/bd /usr/local/bin/tldr
 
 # Create user for testing
-RUN useradd -m -s /bin/bash testuser && \
-    echo "testuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN useradd -m -s /bin/bash testuser
 
 # Set working directory
 WORKDIR /home/testuser
@@ -56,15 +43,15 @@ COPY --chown=testuser:testuser AGENTS.md /home/testuser/.config/opencode/
 # Create test project directory
 RUN mkdir -p /home/testuser/test-project && \
     cd /home/testuser/test-project && \
-    git init
+    git init && \
+    chown -R testuser:testuser /home/testuser
 
 # Switch to test user
 USER testuser
 WORKDIR /home/testuser/test-project
 
 # Set environment
-ENV PATH=/home/testuser/.config/opencode/bin:/usr/local/go/bin:$PATH
-ENV OPENCODE_HOME=/home/testuser/.config/opencode
+ENV PATH=/home/testuser/.config/opencode/bin:/usr/local/bin:$PATH
 
 # Test script
 RUN echo '#!/bin/bash' > /tmp/test-init.sh && \
@@ -74,14 +61,24 @@ RUN echo '#!/bin/bash' > /tmp/test-init.sh && \
     echo '/home/testuser/.config/opencode/bin/workspace-init --force' >> /tmp/test-init.sh && \
     echo '' >> /tmp/test-init.sh && \
     echo 'echo "=== Verifying setup ==="' >> /tmp/test-init.sh && \
+    echo 'echo "Project files:"' >> /tmp/test-init.sh && \
     echo 'ls -la /home/testuser/test-project/' >> /tmp/test-init.sh && \
+    echo 'echo ""' >> /tmp/test-init.sh && \
+    echo 'echo "Git hooks:"' >> /tmp/test-init.sh && \
     echo 'ls -la /home/testuser/test-project/.git/hooks/' >> /tmp/test-init.sh && \
+    echo 'echo ""' >> /tmp/test-init.sh && \
+    echo 'echo "cass_memory:"' >> /tmp/test-init.sh && \
     echo 'ls -la /home/testuser/test-project/.cass/' >> /tmp/test-init.sh && \
+    echo 'echo ""' >> /tmp/test-init.sh && \
+    echo 'echo "Beads:"' >> /tmp/test-init.sh && \
     echo 'ls -la /home/testuser/test-project/.beads/' >> /tmp/test-init.sh && \
+    echo 'echo ""' >> /tmp/test-init.sh && \
     echo 'test -f /home/testuser/test-project/biome.json && echo "✓ biome.json copied"' >> /tmp/test-init.sh && \
     echo 'test -f /home/testuser/test-project/.prettierrc && echo "✓ .prettierrc copied"' >> /tmp/test-init.sh && \
     echo 'test -f /home/testuser/test-project/opencode.json && echo "✓ opencode.json copied"' >> /tmp/test-init.sh && \
     echo 'test -f /home/testuser/test-project/.git/hooks/pre-commit && echo "✓ pre-commit hook installed"' >> /tmp/test-init.sh && \
+    echo 'test -d /home/testuser/test-project/.cass && echo "✓ .cass directory created"' >> /tmp/test-init.sh && \
+    echo 'test -d /home/testuser/test-project/.beads && echo "✓ .beads directory created"' >> /tmp/test-init.sh && \
     echo '' >> /tmp/test-init.sh && \
     echo 'echo "=== Test completed successfully ==="' >> /tmp/test-init.sh && \
     chmod +x /tmp/test-init.sh

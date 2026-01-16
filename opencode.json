@@ -87,22 +87,6 @@
         }
       }
     },
-    "kimi-thinking-vertex": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Vertex Proxy",
-      "options": {
-        "baseURL": "http://localhost:8080/chat/completions"
-      },
-      "models": {
-        "moonshotai/kimi-k2-thinking-maas": {
-          "name": "Kimi K2 Thinking (Vertex)",
-          "limit": {
-            "context": 256000,
-            "output": 32768
-          }
-        }
-      }
-    },
     "kimi-thinking-fireworks": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "Fireworks AI",
@@ -126,6 +110,7 @@
     "./plugin/beads.mjs",
     "./plugin/beads-tools.mjs",
     "./plugin/setup.mjs",
+    "./plugin/init-commands.mjs",
     "./plugin/tldr.mjs"
   ]
 }
