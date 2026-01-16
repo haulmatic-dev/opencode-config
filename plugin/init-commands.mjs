@@ -101,30 +101,32 @@ class InitCommandsManager {
 
   async checkServicesStatus() {
     const services = {
-      tldr_daemon: { url: 'http://localhost:3000/health', name: 'TLDR daemon' },
-      gptcache: { url: 'http://localhost:8000/cache_status', name: 'GPTCache' },
-      cass_memory: { process: 'cass', name: 'cass_memory' },
+      tldr_daemon: {
+        check: 'tldr daemon status',
+        runningPattern: /Status:\\s*ready/i,
+        name: 'TLDR daemon',
+      },
+      gptcache: {
+        check: 'lsof -i :8000 | grep LISTEN',
+        name: 'GPTCache',
+      },
+      cass_memory: {
+        check: 'pgrep -f "cass"',
+        name: 'cass_memory',
+      },
     };
 
     const status = {};
     for (const [key, service] of Object.entries(services)) {
-      if (service.url) {
-        try {
-          const { stdout } = await execAsync(
-            `curl -s -o /dev/null -w "%{http_code}" ${service.url} 2>/dev/null || echo "000"`,
-            { timeout: 2000 },
-          );
-          status[key] = stdout.trim() === '200';
-        } catch {
-          status[key] = false;
+      try {
+        const { stdout } = await execAsync(service.check, { stdio: 'pipe' });
+        if (service.runningPattern) {
+          status[key] = service.runningPattern.test(stdout);
+        } else {
+          status[key] = stdout.trim().length > 0;
         }
-      } else if (service.process) {
-        try {
-          await execAsync(`pgrep -f "${service.process}"`, { stdio: 'pipe' });
-          status[key] = true;
-        } catch {
-          status[key] = false;
-        }
+      } catch {
+        status[key] = false;
       }
     }
 

@@ -65,13 +65,12 @@ await question({
         { label: 'Run All', description: 'Install, initialize, and start everything' },
         { label: 'Skip', description: 'Cancel and do nothing' },
       ],
-      multiple: true,
     },
   ],
 });
 ```
 
-Note: Use `multiple: true` to allow selecting multiple options.
+Note: User selects one option and presses Enter to execute.
 
 ## Step 4: Execute Based on Selection
 
@@ -133,7 +132,7 @@ echo "✅ All done!"
 ## Important
 
 - Use `question` tool with scrolling options - no typing required
-- Use `multiple: true` to allow multiple selections
+- User selects one option and presses Enter to execute
 - Hide all command output with `2>/dev/null`
 - Show the status table and final result message
 - Use emoji: ✅ for success
