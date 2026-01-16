@@ -6,6 +6,13 @@
     "bash": "allow",
     "write": "allow"
   },
+  "command": {
+    "opencode-init": {
+      "description": "Initialize opencode - Check status, install tools, start services",
+      "template": "You are an opencode initialization assistant.\n\n## Step 1: Get Status\n\nRun the status check:\n\n```bash\n~/.config/opencode/bin/opencode-init.bash --status-only\n```\n\n## Step 2: Display Status Table\n\nParse the JSON and display a formatted table with columns:\n\n```\nTOOLS\n────────────────────────────────────────────────────────────────────────\nTool/Service       Installed    Initialized\n────────────────────────────────────────────────────────────────────────\ncass_memory        yes          yes\nBiome              yes          -\nPrettier           yes          -\nbd (Beads CLI)    yes          yes\nbv (Beads Viewer) yes          -\nosgrep            yes          -\nUBS                yes          -\nPM2                yes          -\n\nSERVICES\n────────────────────────────────────────────────────────────────────────\nService            Installed    Running\n────────────────────────────────────────────────────────────────────────\nTLDR daemon        yes          no\nGPTCache           yes          no\ncass_memory        yes          yes\n```\n\n## Step 3: Prompt User\n\nUse the `question` tool:\n\n```javascript\nawait question({\n  questions: [{\n    header: 'OpenCode Setup',\n    question: 'Current status shown. Select actions:',\n    options: [\n      { label: 'Install Missing Tools', description: 'Install tools not installed' },\n      { label: 'Initialize Project', description: 'Init .cass, .beads, .tldr' },\n      { label: 'Start Services', description: 'Start TLDR, GPTCache, cass' },\n      { label: 'Run All', description: 'Install, init, start everything' },\n      { label: 'Skip', description: 'Do nothing' },\n    ],\n    multiple: true,\n  }],\n});\n```\n\n## Step 4: Execute\n\nBased on selections:\n\n### Install Missing Tools\n```bash\nnpm install -g @biomejs/biome prettier pm2 @steveyegge/osgrep 2>/dev/null\nbrew install go 2>/dev/null\ngo install github.com/steveyegge/beads/cmd/bd@latest 2>/dev/null\ncurl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh | bash 2>/dev/null\ncurl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh | bash 2>/dev/null\necho \"✅ Tools installed\"\n```\n\n### Initialize Project\n```bash\ncm init --repo 2>/dev/null\nbd init 2>/dev/null\ntldr warm . 2>/dev/null\necho \"✅ Project initialized\"\n```\n\n### Start Services\n```bash\ntldr daemon start 2>/dev/null &\ngptcache-server 2>/dev/null &\ncass index --full 2>/dev/null &\necho \"✅ Services started\"\n```\n\n### Run All\n```bash\n# Install\nnpm install -g @biomejs/biome prettier pm2 @steveyegge/osgrep 2>/dev/null\nbrew install go 2>/dev/null\ngo install github.com/steveyegge/beads/cmd/bd@latest 2>/dev/null\ncurl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh | bash 2>/dev/null\ncurl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh | bash 2>/dev/null\n\n# Initialize\ncm init --repo 2>/dev/null\nbd init 2>/dev/null\ntldr warm . 2>/dev/null\n\n# Start services\ntldr daemon start 2>/dev/null &\ngptcache-server 2>/dev/null &\ncass index --full 2>/dev/null &\n\necho \"✅ All done!\"\n```\n\n## Important\n\n- Use `question` tool with `multiple: true`\n- Hide output with `2>/dev/null`\n- Show status table and result",
+      "agent": "build"
+    }
+  },
   "provider": {
     "glm-47": {
       "npm": "@ai-sdk/openai-compatible",
@@ -87,22 +94,6 @@
         }
       }
     },
-    "kimi-thinking-vertex": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Vertex Proxy",
-      "options": {
-        "baseURL": "http://localhost:8080/chat/completions"
-      },
-      "models": {
-        "moonshotai/kimi-k2-thinking-maas": {
-          "name": "Kimi K2 Thinking (Vertex)",
-          "limit": {
-            "context": 256000,
-            "output": 32768
-          }
-        }
-      }
-    },
     "kimi-thinking-fireworks": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "Fireworks AI",
@@ -126,6 +117,7 @@
     "./plugin/beads.mjs",
     "./plugin/beads-tools.mjs",
     "./plugin/setup.mjs",
+    "./plugin/init-commands.mjs",
     "./plugin/tldr.mjs"
   ]
 }

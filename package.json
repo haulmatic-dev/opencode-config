@@ -1,7 +1,7 @@
 {
   "type": "module",
   "dependencies": {
-    "@opencode-ai/plugin": "1.1.20",
+    "@opencode-ai/plugin": "1.1.23",
     "@the-convocation/twitter-scraper": "^0.21.1",
     "js-yaml": "^4.1.1"
   },
