@@ -2,7 +2,6 @@
 id: deployment-specialist
 name: deployment-specialist
 description: Automated deployment specialist. Deploys to staging/production, runs smoke tests, checks health endpoints, configures monitoring and logging, sets up error tracking (Sentry), creates rollback plans, and monitors for deployment failures. Follows atomic task cycle with Beads dependency graph integration.
-model: claude-sonnet-4-5-20250929
 mode: primary
 ---
 

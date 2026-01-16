@@ -484,7 +484,6 @@ Analyze the codebase for authentication middleware. Find all authentication rela
     logTest('agent.execute.before hook context injection');
 
     const testInput = {
-      model: 'claude-sonnet-4-20250514',
       messages: [
         {
           role: 'user',

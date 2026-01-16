@@ -40,7 +40,6 @@ async function testFixedIntegration() {
   const beforeInput = {
     sessionID: 'test-session',
     agent: 'test-agent',
-    model: 'gpt-4',
     messages: [{ role: 'user', content: 'Test' }],
   };
 
@@ -123,7 +122,6 @@ async function testFixedIntegration() {
   const afterSuccessInput = {
     sessionID: 'test-session',
     agent: 'test-agent',
-    model: 'gpt-4',
     messages: [{ role: 'user', content: 'Test' }],
   };
 
@@ -152,7 +150,6 @@ async function testFixedIntegration() {
   const afterErrorInput = {
     sessionID: 'test-session',
     agent: 'test-agent',
-    model: 'gpt-4',
     messages: [{ role: 'user', content: 'Test' }],
   };
 

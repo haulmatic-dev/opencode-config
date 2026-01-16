@@ -19,7 +19,6 @@ async function testAgentCapabilities() {
   const input = {
     sessionID: 'test',
     agent: 'orchestrator',
-    model: 'gpt-4',
     messages: [{ role: 'user', content: 'What should I work on?' }],
   };
   const output = {};

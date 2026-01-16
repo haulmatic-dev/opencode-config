@@ -34,7 +34,6 @@ async function testBeadsIntegration() {
   const beforeInput = {
     sessionID: 'test-session',
     agent: 'test-agent',
-    model: 'gpt-4',
     messages: [
       { role: 'user', content: 'I need to work on authentication issues' },
     ],
@@ -97,7 +96,6 @@ async function testBeadsIntegration() {
   const afterSuccessInput = {
     sessionID: 'test-session',
     agent: 'test-agent',
-    model: 'gpt-4',
     messages: beforeInput.messages,
   };
 
@@ -117,7 +115,6 @@ async function testBeadsIntegration() {
   const afterErrorInput = {
     sessionID: 'test-session',
     agent: 'test-agent',
-    model: 'gpt-4',
     messages: beforeInput.messages,
   };
 

@@ -2,7 +2,6 @@
 id: code-reviewer
 name: code-reviewer
 description: Automated code review specialist. Parses PR review comments, classifies by type (bug, style, architecture, performance, security, documentation, accessibility), creates tasks for each comment category, enforces automated review checks, and assesses performance/security/accessibility implications. Follows atomic task cycle with Beads dependency graph integration.
-model: claude-sonnet-4-5-20250929
 mode: primary
 ---
 
