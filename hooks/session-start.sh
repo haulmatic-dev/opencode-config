@@ -23,7 +23,7 @@ for arg in "$@"; do
 done
 
 HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REQUIRED_HOOKS=("check-cass-memory.sh" "check-mcp-agent-mail.sh" "check-beads.sh" "check-bv.sh" "check-gptcache.sh" "check-ubs.sh" "check-api-keys.sh")
+REQUIRED_HOOKS=("check-cass-memory.sh" "check-cass-health.sh" "check-tldr.sh" "check-mcp-agent-mail.sh" "check-beads.sh" "check-bv.sh" "check-gptcache.sh" "check-ubs.sh" "check-api-keys.sh")
 FAILED_HOOKS=()
 
 echo "🔍 OpenCode: Checking required services..."

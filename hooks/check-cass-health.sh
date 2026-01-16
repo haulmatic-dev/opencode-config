@@ -14,11 +14,13 @@ if ! command -v cass &> /dev/null; then
   exit 1
 fi
 
-# Check cass health
-CASS_HEALTHY=$(cass health 2>/dev/null && echo "healthy")
+# Check cass health (suppress colors)
+CASS_OUTPUT=$(cass health 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+CASS_EXIT=$?
 
-if [ "$CASS_HEALTHY" != "healthy" ]; then
+if [ $CASS_EXIT -ne 0 ] || echo "$CASS_OUTPUT" | grep -qi "error\|unhealthy\|failed"; then
   echo -e "${YELLOW}⚠️${NC} cass is not healthy"
+  echo "$CASS_OUTPUT"
   echo -e "${YELLOW}Run: ${NC}cass doctor --fix or 'cass index --full'"
   exit 1
 fi
