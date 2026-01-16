@@ -1,75 +1,54 @@
 ---
-description: Initialize opencode - Check status, install tools, setup PM2, start services
+description: Initialize opencode - Check status, install tools, start services
 agent: build
 ---
 
 You are an opencode initialization assistant.
 
-## Quick Status Check
+## Step 1: Get Status
 
-Run these checks to get the current state (hide all output):
+Run the status check to get tool and service information:
 
 ```bash
-# System tools - capture to variables
-CM_STATUS=$([ -f /Users/buddhi/.local/bin/cm ] && echo INSTALLED || echo MISSING)
-BD_STATUS=$([ -f /opt/homebrew/bin/bd ] || command -v bd &>/dev/null && echo INSTALLED || echo MISSING)
-TLDR_STATUS=$([ -f /Users/buddhi/.pyenv/shims/tldr ] || command -v tldr &>/dev/null && echo INSTALLED || echo MISSING)
-PM2_STATUS=$([ -f /Users/buddhi/.nodenv/shims/pm2 ] || command -v pm2 &>/dev/null && echo INSTALLED || echo MISSING)
-
-# PM2 details
-PM2_VER=$([ -f /Users/buddhi/.nodenv/shims/pm2 ] && pm2 --version 2>/dev/null || echo "-")
-PM2_PROCS=$([ -f /Users/buddhi/.nodenv/shims/pm2 ] && pm2 list 2>/dev/null | grep -c "●" || echo 0)
-
-# Services
-TLDR_RUN=$([ $(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health 2>/dev/null) = "200" ] && echo RUNNING || echo STOPPED)
-GPTCACHE_RUN=$([ $(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/cache_status 2>/dev/null) = "200" ] && echo RUNNING || echo STOPPED)
-CASS_RUN=$([ $(pgrep -f "cass_memory" &>/dev/null) ] && echo RUNNING || echo STOPPED)
-
-# Workspace
-GIT_INIT=$([ -d ".git" ] && echo YES || echo NO)
-BEADS_INIT=$([ -d ".beads" ] && echo YES || echo NO)
-CASS_WS=$([ -d ".cass" ] && echo YES || echo NO)
-PM2_ECOSYSTEM=$([ -f "ecosystem.config.js" ] && echo YES || echo NO)
+~/.config/opencode/bin/opencode-init.bash --status-only
 ```
 
-## Present Clean Status
+This returns JSON with tools and services status.
 
-After getting all values, display a clean status table:
+## Step 2: Display Status Table
 
-### 🛠️ System Tools
+Parse the JSON and display a formatted table:
 
-| Tool             | Status       |
-| ---------------- | ------------ |
-| cm (cass_memory) | $CM_STATUS   |
-| bd (Beads CLI)   | $BD_STATUS   |
-| TLDR             | $TLDR_STATUS |
-| PM2              | $PM2_STATUS  |
+```
+╔════════════════════════════════════════════════════════════════════════════╗
+║                        OPENCODE SYSTEM STATUS                              ║
+╠════════════════════════════════════════════════════════════════════════════╣
+║ TOOLS                                                                      ║
+║ ────────────────────────────────────────────────────────────────────────── ║
+║ Tool/Service      Installed    Initialized                                 ║
+║ ────────────────────────────────────────────────────────────────────────── ║
+║ cass_memory       yes          yes                                         ║
+║ Biome             yes          -                                           ║
+║ Prettier          yes          -                                           ║
+║ bd (Beads CLI)    yes          yes                                         ║
+║ bv (Beads Viewer) yes          -                                           ║
+║ osgrep            yes          -                                           ║
+║ UBS               yes          -                                           ║
+║ PM2               yes          -                                           ║
+╠════════════════════════════════════════════════════════════════════════════╣
+║ SERVICES                                                                    ║
+║ ────────────────────────────────────────────────────────────────────────── ║
+║ Service           Installed    Running                                      ║
+║ ────────────────────────────────────────────────────────────────────────── ║
+║ TLDR daemon       yes          no                                          ║
+║ GPTCache          yes          no                                          ║
+║ cass_memory       yes          yes                                         ║
+╚════════════════════════════════════════════════════════════════════════════╝
 
-### 🔄 PM2 Status
+Legend: yes = installed/running/initialized, no = not installed/running/initialized, - = not applicable
+```
 
-| Item      | Value      |
-| --------- | ---------- |
-| Version   | $PM2_VER   |
-| Processes | $PM2_PROCS |
-
-### 🔄 Services
-
-| Service     | Status        |
-| ----------- | ------------- |
-| TLDR daemon | $TLDR_RUN     |
-| GPTCache    | $GPTCACHE_RUN |
-| cass_memory | $CASS_RUN     |
-
-### 📁 Workspace
-
-| Component     | Ready          |
-| ------------- | -------------- |
-| Git           | $GIT_INIT      |
-| Beads         | $BEADS_INIT    |
-| cass_memory   | $CASS_WS       |
-| PM2 ecosystem | $PM2_ECOSYSTEM |
-
-## Interactive Menu
+## Step 3: Prompt User with Question Tool
 
 Use the `question` tool to present options:
 
@@ -80,88 +59,81 @@ await question({
       header: 'OpenCode Setup',
       question: 'Current status shown above. What would you like to do?',
       options: [
-        { label: 'Install Tools', description: 'Install missing system tools' },
-        { label: 'Setup PM2', description: 'Configure PM2 with ecosystem file' },
-        { label: 'Start Services', description: 'Start TLDR, GPTCache, cass_memory' },
-        { label: 'Init Workspace', description: 'Initialize this project' },
-        { label: 'Do All', description: 'Everything above' },
-        { label: 'Skip', description: 'Cancel' },
+        { label: 'Install Missing Tools', description: 'Install tools that are not installed' },
+        { label: 'Initialize Project', description: 'Initialize .cass and .beads directories' },
+        { label: 'Start Services', description: 'Start TLDR daemon, GPTCache, cass_memory' },
+        { label: 'Run All', description: 'Install, initialize, and start everything' },
+        { label: 'Skip', description: 'Cancel and do nothing' },
       ],
+      multiple: true,
     },
   ],
 });
 ```
 
-## Execute & Report
+Note: Use `multiple: true` to allow selecting multiple options.
 
-Based on selection, execute silently (2>/dev/null) and report only the result:
+## Step 4: Execute Based on Selection
 
-### If Install Tools
+### Install Missing Tools
 
 ```bash
-~/.config/opencode/bin/opencode-init --quiet 2>/dev/null
-npm install -g pm2 2>/dev/null
-echo "✅ System tools installed"
+# Install each missing tool
+command -v npm &>/dev/null && npm install -g @biomejs/biome prettier pm2 @steveyegge/osgrep
+command -v brew &>/dev/null && brew install go
+command -v go &>/dev/null && go install github.com/steveyegge/beads/cmd/bd@latest
+curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh | bash
+echo "✅ Missing tools installed"
 ```
 
-### If Setup PM2
+### Initialize Project
 
 ```bash
-# Create ecosystem file
-cat > ecosystem.config.js << 'EOF' 2>/dev/null
-module.exports = {
-  apps: [
-    { name: 'tldr', script: 'tldr', args: 'daemon start', interpreter: 'none' },
-    { name: 'gptcache', script: 'gptcache-server' },
-    { name: 'cass_memory', script: 'cass', args: 'serve', interpreter: 'none' }
-  ]
-};
-EOF
-
-pm2 start ecosystem.config.js 2>/dev/null
-pm2 save 2>/dev/null
-echo "✅ PM2 configured with 3 services"
+# Initialize for this project
+cm init --repo 2>/dev/null
+bd init 2>/dev/null
+tldr warm . 2>/dev/null
+echo "✅ Project initialized"
 ```
 
-### If Start Services
+### Start Services
 
 ```bash
-pm2 start ecosystem.config.js 2>/dev/null || {
-  command -v tldr && tldr daemon start 2>/dev/null
-  command -v gptcache-server && gptcache-server 2>/dev/null &
-  command -v cass_memory && cass_memory --daemon 2>/dev/null &
-}
+# Start each service
+command -v tldr &>/dev/null && tldr daemon start 2>/dev/null &
+command -v gptcache-server &>/dev/null && gptcache-server 2>/dev/null &
+command -v cass &>/dev/null && cass index --full 2>/dev/null &
 echo "✅ Services started"
 ```
 
-### If Init Workspace
+### Run All
 
 ```bash
-~/.config/opencode/bin/workspace-init --force 2>/dev/null
-echo "✅ Workspace initialized"
-```
+# Install missing tools
+command -v npm &>/dev/null && npm install -g @biomejs/biome prettier pm2 @steveyegge/osgrep
+command -v brew &>/dev/null && brew install go
+command -v go &>/dev/null && go install github.com/steveyegge/beads/cmd/bd@latest
+curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/ultimate_bug_scanner/master/install.sh | bash
 
-### If Do All
+# Initialize project
+cm init --repo 2>/dev/null
+bd init 2>/dev/null
+tldr warm . 2>/dev/null
 
-```bash
-~/.config/opencode/bin/opencode-init --quiet 2>/dev/null
-npm install -g pm2 2>/dev/null
-cat > ecosystem.config.js << 'EOF' 2>/dev/null
-module.exports = { apps: [
-  { name: 'tldr', script: 'tldr', args: 'daemon start', interpreter: 'none' },
-  { name: 'gptcache', script: 'gptcache-server' },
-  { name: 'cass_memory', script: 'cass', args: 'serve', interpreter: 'none' }
-]};
-EOF
-pm2 start ecosystem.config.js 2>/dev/null
-pm2 save 2>/dev/null
-~/.config/opencode/bin/workspace-init --force 2>/dev/null
-echo "✅ Everything set up!"
+# Start services
+command -v tldr &>/dev/null && tldr daemon start 2>/dev/null &
+command -v gptcache-server &>/dev/null && gptcache-server 2>/dev/null &
+command -v cass &>/dev/null && cass index --full 2>/dev/null &
+
+echo "✅ All done!"
 ```
 
 ## Important
 
-- Use `question` tool for selection - no typing
-- Run all commands with `2>/dev/null` to hide output
-- Only show the status tables and final result message
-- Use emoji: ✅ for success, ❌ for errors
+- Use `question` tool with scrolling options - no typing required
+- Use `multiple: true` to allow multiple selections
+- Hide all command output with `2>/dev/null`
+- Show the status table and final result message
+- Use emoji: ✅ for success
