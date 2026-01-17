@@ -424,7 +424,6 @@ async function testBeadsMiddleware() {
     const input = {
       sessionID: 'test',
       agent: 'test',
-      model: 'gpt-4',
       messages: [{ role: 'user', content: 'Test' }],
     };
     const output = {};
@@ -558,7 +557,6 @@ async function testPluginHooks() {
     const beforeInput = {
       sessionID: 'test-session-before',
       agent: 'test-agent',
-      model: 'gpt-4',
       messages: [{ role: 'user', content: 'What tasks should I work on?' }],
     };
     const beforeOutput = {};
@@ -609,7 +607,6 @@ async function testPluginHooks() {
     const afterSuccessInput = {
       sessionID: 'test-session-after-success',
       agent: 'test-agent',
-      model: 'gpt-4',
       messages: [{ role: 'user', content: 'Test' }],
     };
     const afterSuccessOutput = {
@@ -644,7 +641,6 @@ async function testPluginHooks() {
     const afterErrorInput = {
       sessionID: 'test-session-after-error',
       agent: 'test-agent',
-      model: 'gpt-4',
       messages: [{ role: 'user', content: 'Test' }],
     };
     const afterErrorOutput = {

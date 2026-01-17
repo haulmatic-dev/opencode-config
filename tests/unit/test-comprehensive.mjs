@@ -183,7 +183,6 @@ async function comprehensiveTest() {
     const beforeInput = {
       sessionID: 'test',
       agent: 'test',
-      model: 'gpt-4',
       messages: [{ role: 'user', content: 'Test' }],
     };
     const beforeOutput = {};
@@ -211,7 +210,6 @@ async function comprehensiveTest() {
     const afterInput = {
       sessionID: 'test',
       agent: 'test',
-      model: 'gpt-4',
       messages: [{ role: 'user', content: 'Test' }],
     };
     const afterOutput = {

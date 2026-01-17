@@ -557,7 +557,6 @@ from mcp_agent_mail_client import (
 # Register agent
 result = await register_agent(
     agent_name="my-agent",
-    model="claude-sonnet-4-5",
     task_description="What this agent does"
 )
 

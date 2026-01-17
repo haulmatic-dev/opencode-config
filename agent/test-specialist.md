@@ -4,7 +4,6 @@ aliases:
   - testing-specialist
 name: test-specialist
 description: Automated test generation and execution specialist. Generates comprehensive test specifications, writes unit/integration/E2E tests, ensures coverage ≥ 80%, executes test suites, and handles test failures by creating dependent fix tasks. Follows atomic task cycle with Beads dependency graph integration.
-model: claude-sonnet-4-5-20250929
 mode: primary
 ---
 

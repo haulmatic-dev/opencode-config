@@ -27,7 +27,6 @@ async function testPluginExecution() {
     const beforeInput = {
       sessionID: 'test-session',
       agent: 'test-agent',
-      model: 'gpt-4',
       messages: [
         { role: 'user', content: 'How do I add GPTCache to this project?' },
       ],
@@ -69,7 +68,6 @@ async function testPluginExecution() {
     const afterInput = {
       sessionID: 'test-session',
       agent: 'test-agent',
-      model: 'gpt-4',
       messages: beforeInput.messages,
     };
 
