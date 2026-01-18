@@ -120,6 +120,7 @@
     "./plugin/beads-tools.mjs",
     "./plugin/setup.mjs",
     "./plugin/init-commands.mjs",
-    "./plugin/tldr.mjs"
+    "./plugin/tldr.mjs",
+    "opencode-gemini-auth@latest"
   ]
 }

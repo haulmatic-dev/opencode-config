@@ -1,0 +1,25 @@
+{
+  "gates": {
+    "timeout": 300000,
+    "failOnMissingTools": true,
+    "continueOnError": false
+  },
+  "thresholds": {
+    "mutation": 80,
+    "coverage": 80,
+    "maxDuration": 600000
+  },
+  "testPatterns": [
+    "**/*.test.js",
+    "**/*.spec.js",
+    "**/tests/**/*.js",
+    "**/__tests__/**/*.js"
+  ],
+  "ignorePatterns": [
+    "node_modules/**",
+    ".git/**",
+    "dist/**",
+    "build/**",
+    "coverage/**"
+  ]
+}

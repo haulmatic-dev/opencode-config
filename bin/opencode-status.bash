@@ -86,6 +86,13 @@ else
     TLDR_INSTALLED="no"
 fi
 
+# MCP Agent Mail (client library)
+MCP_MAIL_INSTALLED="no"
+if python3 -c "import sys; sys.path.insert(0, '/Users/buddhi/.config/opencode/lib/mcp-agent-mail'); import mcp_agent_mail_client" 2>/dev/null; then
+    MCP_MAIL_INSTALLED="yes"
+    ((TOOLS_INSTALLED++))
+fi
+
 TLDR_INIT="no"
 if [ -d ~/.config/opencode/.tldr ]; then
     TLDR_INIT="yes"
@@ -99,7 +106,8 @@ echo "    \"prettier\": {\"installed\": \"$PRETTIER_INSTALLED\", \"initialized\"
 echo "    \"osgrep\": {\"installed\": \"$OSGREP_INSTALLED\", \"initialized\": \"-\"},"
 echo "    \"ubs\": {\"installed\": \"$UBS_INSTALLED\", \"initialized\": \"-\"},"
 echo "    \"pm2\": {\"installed\": \"$PM2_INSTALLED\", \"initialized\": \"-\"},"
-echo "    \"tldr\": {\"installed\": \"$TLDR_INSTALLED\", \"initialized\": \"$TLDR_INIT\"}"
+echo "    \"tldr\": {\"installed\": \"$TLDR_INSTALLED\", \"initialized\": \"$TLDR_INIT\"},"
+echo "    \"mcp_agent_mail\": {\"installed\": \"$MCP_MAIL_INSTALLED\", \"initialized\": \"-\"}"
 echo "  },"
 
 # ===== SERVICES =====
@@ -140,16 +148,28 @@ if cass health 2>&1 | grep -qi "Healthy"; then
     ((SERVICES_RUNNING++))
 fi
 
+# MCP Agent Mail server (port 8765)
+MCP_MAIL_SERVICE_STATUS="stopped"
+MCP_MAIL_SERVICE_INSTALLED="no"
+if [ -d ~/.mcp-agent-mail ]; then
+    MCP_MAIL_SERVICE_INSTALLED="yes"
+    if lsof -i :8765 2>/dev/null | grep -q "LISTEN" && pgrep -f "mcp_agent_mail" >/dev/null 2>&1; then
+        MCP_MAIL_SERVICE_STATUS="running"
+        ((SERVICES_RUNNING++))
+    fi
+fi
+
 echo "    \"tldr_daemon\": {\"installed\": \"$TLDR_DAEMON_INSTALLED\", \"status\": \"$TLDR_DAEMON_STATUS\"},"
 echo "    \"gptcache\": {\"installed\": \"$GPTCACHE_INSTALLED\", \"status\": \"$GPTCACHE_STATUS\"},"
-echo "    \"cass_memory\": {\"installed\": \"yes\", \"status\": \"$CASS_SERVICE_STATUS\"}"
+echo "    \"cass_memory\": {\"installed\": \"yes\", \"status\": \"$CASS_SERVICE_STATUS\"},"
+echo "    \"mcp_agent_mail\": {\"installed\": \"$MCP_MAIL_SERVICE_INSTALLED\", \"status\": \"$MCP_MAIL_SERVICE_STATUS\"}"
 echo "  },"
 
 # ===== SUMMARY =====
 echo '  "summary": {'
-echo "    \"tools_total\": 9,"
+echo "    \"tools_total\": 10,"
 echo "    \"tools_installed\": $TOOLS_INSTALLED,"
-echo "    \"services_total\": 3,"
+echo "    \"services_total\": 4,"
 echo "    \"services_running\": $SERVICES_RUNNING"
 echo "  }"
 echo "}"

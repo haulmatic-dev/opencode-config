@@ -1,0 +1,16 @@
+Quality Gates
+[Guardrails] Initialized for task opencode-5wc
+[Beads] Error showing task: Command failed: bd show opencode-5wc
+Error: resolving ID opencode-5wc: operation failed: failed to resolve ID: no issue found matching "opencode-5wc"
+
+[Workflow] Starting workflow: planning
+[Branch] Checking out task branch: beads/task-opencode-5wc
+[Branch] Branch does not exist, creating from main: beads/task-opencode-5wc
+[Branch] Error during branch checkout: Command failed: git checkout -b beads/task-opencode-5wc main 2>&1
+
+[Workflow] ✗ Failed to checkout task branch
+[Workflow] Reason: Command failed: git checkout -b beads/task-opencode-5wc main 2>&1
+
+[Beads] Error updating task: Command failed: bd update opencode-5wc --status blocked --notes Failed to checkout task branch: Command failed: git checkout -b beads/task-opencode-5wc main 2>&1
+
+
