@@ -7,11 +7,7 @@
  * instead of PID-based race conditions.
  */
 
-import {
-  createParallelTaskCoordinator,
-  MESSAGE_TYPES,
-  WORKER_STATUS,
-} from '../lib/parallel-task-coordinator/index.js';
+import { createParallelTaskCoordinator } from '../lib/parallel-task-coordinator/index.js';
 
 const pid = process.pid;
 const workerId = `headless-worker-${pid}`;
@@ -106,52 +102,15 @@ async function executeTask(taskId) {
     const taskOutput = execSync(`bd show ${taskId}`, { encoding: 'utf8' });
 
     log('info', `Task details retrieved for: ${taskId}`);
+    log('debug', `Task output: ${taskOutput.substring(0, 200)}...`);
 
     // Simulate task execution
     await sleep(2000);
-
-    // Try file reservations via MCP Agent Mail
-    let reservationsMade = false;
-    try {
-      const { reserveFilePaths, getProjectKey } = await import(
-        '../lib/mcp-agent-mail/mcp_agent_mail_client.js'
-      );
-      await reserveFilePaths({
-        projectKey: getProjectKey(),
-        agentName: workerId,
-        paths: ['src/**/*', 'tests/**/*'],
-        ttlSeconds: 3600,
-      });
-      log('info', 'File paths reserved via MCP');
-      reservationsMade = true;
-    } catch (error) {
-      log('warn', 'MCP file reservations not available', {
-        error: error.message,
-      });
-    }
 
     // Complete the task
     await coordinator.completeTask(workerId, taskId, { result: 'success' });
 
     log('info', `Task ${taskId} completed successfully`);
-
-    // Release file reservations
-    if (reservationsMade) {
-      try {
-        const { releaseFileReservations, getProjectKey } = await import(
-          '../lib/mcp-agent-mail/mcp_agent_mail_client.js'
-        );
-        await releaseFileReservations({
-          projectKey: getProjectKey(),
-          agentName: workerId,
-        });
-        log('info', 'File paths released');
-      } catch (error) {
-        log('warn', 'Failed to release file reservations', {
-          error: error.message,
-        });
-      }
-    }
 
     return true;
   } catch (error) {
