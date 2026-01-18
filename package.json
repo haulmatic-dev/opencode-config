@@ -4,6 +4,7 @@
     "@opencode-ai/plugin": "1.1.25",
     "@the-convocation/twitter-scraper": "^0.21.1",
     "better-sqlite3": "^11.10.0",
+    "chokidar": "^3.6.0",
     "js-yaml": "^4.1.1",
     "uuid": "^13.0.0"
   },
@@ -37,6 +38,8 @@
     "test": "node tests/run-all.mjs",
     "test:e2e": "vitest run test/e2e/",
     "test:integration": "node tests/integration/run-all-tests.mjs",
+    "test:integration:parallel": "node tests/integration/run-all-tests.mjs --parallel",
+    "test:integration:coverage": "node tests/integration/run-all-tests.mjs --coverage",
     "test:runner": "vitest run test/runner/",
     "test:runner:watch": "vitest watch test/runner/",
     "test:workflow": "node tests/integration/test-workflow-execution.mjs",

@@ -65,7 +65,7 @@ async function testCoreFunctionality() {
   // Test 2: Configuration loads
   try {
     const { loadConfig } = await import('./lib/runner/config.js');
-    const config = loadConfig();
+    const config = await loadConfig();
     assert(config.gates?.timeout > 0, 'Config has timeout');
     assert(config.thresholds?.mutation > 0, 'Config has mutation threshold');
     assert(Array.isArray(config.testPatterns), 'Config has testPatterns');

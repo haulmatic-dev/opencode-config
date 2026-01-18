@@ -18,6 +18,7 @@ Agents **MUST NOT**:
 - Implement improvements outside the current task scope
 - Create, modify, or merge work without task linkage
 - Commit directly to shared branches (`main`, `master`, `develop`)
+- Execute sequentially without explicit Beads dependency
 
 If work is not associated with a Beads task:
 
@@ -26,6 +27,15 @@ If work is not associated with a Beads task:
 3. Then proceed
 
 Violations are expected to be blocked by enforcement.
+
+---
+
+## Parallel Execution Default
+
+- All tasks execute in parallel by default
+- Sequential requires explicit Beads dependency
+- File reservations required for parallel work
+- Orchestrator checks for dependencies before sequential
 
 ---
 

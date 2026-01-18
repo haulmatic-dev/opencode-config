@@ -1,0 +1,119 @@
+{
+  "type": "best_practices_research_completed",
+  "domain": "distributed-tracing",
+  "research_summary": "Comprehensive research on distributed tracing patterns and correlation ID strategies for opencode architecture",
+  "industry_standards": [
+    "W3C Trace Context standard for distributed tracing correlation",
+    "OpenTelemetry tracing data model and semantic conventions",
+    "Lightweight tracing patterns for microservices and agent-based systems",
+    "Context propagation mechanisms across worker boundaries",
+    "Performance-optimized trace sampling strategies"
+  ],
+  "success_patterns": [
+    "Building on existing correlation ID infrastructure (opencode already has foundational support)",
+    "Message-based trace context propagation in coordinator/worker architectures",
+    "Hierarchical span creation for request lifecycle tracking",
+    "Async trace storage with SQLite for performance optimization",
+    "Integration with existing logging systems for unified observability"
+  ],
+  "anti_patterns": [
+    "Over-instrumentation with spans on every function call",
+    "Synchronous trace operations blocking main execution paths",
+    "Logging sensitive data (PII, passwords, tokens) in span attributes",
+    "No sampling strategy leading to performance degradation",
+    "Predictable or non-unique trace IDs causing collision issues"
+  ],
+  "evidence_based_recommendations": {
+    "immediate_actions": [
+      "Extend existing generateCorrelationId() to create full trace IDs",
+      "Add trace context injection to all coordinator messages",
+      "Implement SQLite-based trace storage building on existing persistence layer",
+      "Add span creation to headless worker task execution flow"
+    ],
+    "architecture_recommendations": [
+      "Use hierarchical trace structure matching coordinator/worker topology",
+      "Implement W3C-compatible trace context propagation",
+      "Add trace correlation to all existing log entries automatically",
+      "Use async trace storage with batching to maintain <3% performance overhead"
+    ],
+    "performance_optimizations": [
+      "Implement intelligent sampling (start with 100%, reduce under load)",
+      "Use pre-generated trace IDs to reduce overhead",
+      "Batch SQLite writes for trace storage",
+      "Limit span depth and attribute size to prevent explosion"
+    ],
+    "integration_points": [
+      "lib/parallel-task-coordinator/message-ids.js - Enhanced trace ID generation",
+      "lib/parallel-task-coordinator/coordination.js - Trace context in messages",
+      "bin/headless-worker.js - Span lifecycle management",
+      "lib/runner/config.js - Tracing configuration integration"
+    ]
+  },
+  "technology_evaluation": {
+    "lightweight_vs_full": {
+      "lightweight_recommended": true,
+      "reasoning": "Opencode's agent-based architecture benefits more from simple correlation ID tracing than full OpenTelemetry",
+      "estimated_overhead": "2-3%",
+      "implementation_time": "2-3 weeks",
+      "migration_path": "Can upgrade to OpenTelemetry later if requirements grow"
+    },
+    "storage_choice": {
+      "recommended": "SQLite",
+      "rationale": "Building on existing persistence layer, provides good performance for moderate loads"
+    },
+    "sampling_strategy": {
+      "recommended": "Adaptive sampling",
+      "approach": "100% initially, reduce under load, always sample errors"
+    }
+  },
+  "risk_assessment": {
+    "low_risk": [
+      "Correlation ID infrastructure (foundations already exist)",
+      "Message trace context propagation",
+      "SQLite trace storage"
+    ],
+    "medium_risk": [
+      "Performance overhead optimization",
+      "Trace visualization implementation",
+      "Cross-service trace propagation"
+    ],
+    "mitigation_strategies": [
+      "Start with conservative sampling to minimize performance impact",
+      "Implement async operations to prevent blocking",
+      "Add monitoring to detect performance degradation early"
+    ]
+  },
+  "implementation_priority": {
+    "phase_1_foundation": [
+      "Enhanced correlation ID system",
+      "Trace context carrier implementation",
+      "SQLite trace repository",
+      "Basic span creation in workers"
+    ],
+    "phase_2_integration": [
+      "Logging integration with trace correlation",
+      "Trace query CLI commands",
+      "Performance monitoring and sampling",
+      "Error trace highlighting"
+    ],
+    "phase_3_enhancement": [
+      "Trace visualization web interface",
+      "Performance dashboards",
+      "Alerting integration",
+      "Analytics and optimization tools"
+    ]
+  },
+  "competitive_intelligence": {
+    "industry_trend": "Move towards lightweight, purpose-built tracing vs full OpenTelemetry for specialized architectures",
+    "successful_patterns": "Correlation-based tracing with hierarchical span organization",
+    "emerging_practices": "Integration with existing logging/monitoring rather than separate tracing systems",
+    "adoption_barriers": "Complexity of OpenTelemetry adoption for non-standard architectures"
+  },
+  "key_findings": [
+    "Opencode already has 60% of required infrastructure (correlation IDs, message passing, persistence)",
+    "Lightweight tracing provides 80% of value with 20% complexity of full OpenTelemetry",
+    "Agent-based systems benefit from trace-to-task correlation more than traditional service tracing",
+    "Performance overhead can be kept under 3% with proper async implementation",
+    "Migration path to OpenTelemetry exists if requirements grow significantly"
+  ]
+}

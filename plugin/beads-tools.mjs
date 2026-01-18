@@ -294,10 +294,162 @@ If impact exceeds scope, STOP work and create new task.`,
 
       // BeadsViewer tools
       bv_triage: tool({
-        description: 'Get AI-powered task triage recommendations',
+        description:
+          'Get AI-powered task triage recommendations with parallel execution analysis',
         args: {},
         async execute() {
-          return JSON.stringify(await bvClient.triage(), null, 2);
+          const [triageResult, planResult, orphanResult] = await Promise.all([
+            bvClient.triage(),
+            bvClient.plan(),
+            bvClient.orphans(),
+          ]);
+
+          if (!triageResult) {
+            return JSON.stringify(
+              { success: false, error: 'Failed to get triage' },
+              null,
+              2,
+            );
+          }
+
+          const recommendations = triageResult?.triage?.recommendations || [];
+
+          if (recommendations.length === 0) {
+            return JSON.stringify(
+              { ...triageResult, parallel_analysis: { status: 'no_tasks' } },
+              null,
+              2,
+            );
+          }
+
+          const parallelCandidates = [];
+          const sequentialRequirements = [];
+
+          const tracks = planResult?.plan?.tracks || [];
+          const hasOrphans =
+            orphanResult &&
+            orphanResult.orphans &&
+            orphanResult.orphans.length > 0;
+
+          if (tracks.length > 0) {
+            for (const track of tracks) {
+              if (track.items && track.items.length > 1) {
+                const trackItems = track.items.map((item) => ({
+                  id: item.id,
+                  title: item.title,
+                }));
+                sequentialRequirements.push({
+                  track_id: track.track_id,
+                  items: trackItems,
+                  reason: `Tasks in same track must execute sequentially`,
+                });
+              }
+            }
+
+            for (let i = 0; i < tracks.length; i++) {
+              for (let j = i + 1; j < tracks.length; j++) {
+                const trackA = tracks[i];
+                const trackB = tracks[j];
+                parallelCandidates.push({
+                  tracks: [trackA.track_id, trackB.track_id],
+                  items: [
+                    trackA.items.map((item) => item.id),
+                    trackB.items.map((item) => item.id),
+                  ],
+                  reason: `Different tracks can execute in parallel`,
+                });
+              }
+            }
+          }
+
+          const blockedCount =
+            triageResult?.triage?.quick_ref?.blocked_count || 0;
+          const blockedTasks = recommendations.filter(
+            (r) => r.status === 'blocked' || r.unblocks > 0,
+          );
+
+          for (const rec of recommendations.slice(0, 10)) {
+            if (
+              rec.status === 'blocked' ||
+              (rec.unblocks && rec.unblocks > 0)
+            ) {
+              sequentialRequirements.push({
+                id: rec.id,
+                title: rec.title,
+                reason:
+                  rec.status === 'blocked'
+                    ? 'Task is blocked'
+                    : 'Task blocks other work',
+              });
+            }
+          }
+
+          let executionStrategy = 'parallel';
+          if (blockedTasks.length > 3) {
+            executionStrategy = 'hybrid';
+          } else if (
+            blockedTasks.length > blockedCount * 0.5 &&
+            blockedCount > 5
+          ) {
+            executionStrategy = 'sequential';
+          } else if (hasOrphans) {
+            executionStrategy = 'parallel_with_orphan_review';
+          }
+
+          const rationaleMap = {
+            parallel:
+              'Multiple independent task tracks identified - safe for parallel execution',
+            hybrid:
+              'Blocked tasks detected - mix of parallel and sequential execution recommended',
+            sequential:
+              'Many blocked/blocking tasks - execute tasks in dependency order',
+            parallel_with_orphan_review:
+              'Parallel execution possible but orphan commits need review',
+          };
+
+          const parallelAnalysis = {
+            parallel_candidates: parallelCandidates.slice(0, 10),
+            sequential_requirements: sequentialRequirements.slice(0, 10),
+            conflict_risk: {
+              overall_probability:
+                blockedTasks.length / Math.max(recommendations.length, 1),
+              tracks_parallel: tracks.length,
+              tasks_with_blockers: blockedTasks.length,
+              blocked_count: blockedCount,
+              high_risk_pairs: blockedTasks.filter(
+                (t) => t.status === 'blocked',
+              ).length,
+              details: blockedTasks.slice(0, 10).map((t) => ({
+                id: t.id,
+                title: t.title,
+                status: t.status,
+                unblocks: t.unblocks || 0,
+              })),
+            },
+            execution_strategy: {
+              recommended: executionStrategy,
+              rationale:
+                rationaleMap[executionStrategy] || 'Default parallel execution',
+              parallel_track_count: tracks.length,
+              sequential_track_count: sequentialRequirements.length,
+              has_orphans: hasOrphans,
+              total_actionable:
+                triageResult?.triage?.quick_ref?.actionable_count || 0,
+            },
+            orphans_detected: hasOrphans,
+            summary: {
+              total_tracks: tracks.length,
+              parallel_opportunities: parallelCandidates.length,
+              sequential_requirements: sequentialRequirements.length,
+              blocked_tasks: blockedTasks.length,
+            },
+          };
+
+          return JSON.stringify(
+            { ...triageResult, parallel_analysis: parallelAnalysis },
+            null,
+            2,
+          );
         },
       }),
 

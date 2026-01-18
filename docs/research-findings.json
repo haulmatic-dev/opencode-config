@@ -1,0 +1,74 @@
+{
+  "session": "2026-01-18-enhancements-research",
+  "summary": "Research on 6 enhancement areas for opencode parallel task coordinator",
+  "findings": {
+    "circuit_breaker": {
+      "library": "Use @fastify/circuit-breaker or Opossum (most popular Node.js option)",
+      "pattern": "Three-state: CLOSED → OPEN → HALF_OPEN → CLOSED",
+      "config": {
+        "failureThreshold": 5,
+        "resetTimeout": 30000,
+        "halfOpenCalls": 3
+      },
+      "integration": "Wrap MCP Agent Mail calls in coordination.js"
+    },
+    "config_hot_reload": {
+      "library": "Use chokidar with awaitWriteFinish (stabilityThreshold 2000ms)",
+      "pattern": "Dual-config: current + pending, validate before swap",
+      "files": ["config/gates.json"],
+      "key_methods": ["loadConfig()", "reloadConfig()", "on('change', cb)"]
+    },
+    "mcp_mock_server": {
+      "pattern": "Layered mocking: protocol-level, behavioral, fault injection",
+      "features": [
+        "register_agent",
+        "send_message",
+        "fetch_inbox",
+        "acknowledge_message"
+      ],
+      "config": { "latency": 10, "failureRate": 0.1 }
+    },
+    "file_reservation": {
+      "pattern": "Optimistic reservation with TTL, atomic CAS operations",
+      "key_methods": [
+        "reserve(path, owner, ttl)",
+        "release(path, owner)",
+        "isReserved(path)"
+      ],
+      "abandonment": "Heartbeat monitoring and process death detection"
+    },
+    "tracing": {
+      "pattern": "Lightweight correlation IDs (80 percent value, 20 percent complexity vs OpenTelemetry)",
+      "key_methods": [
+        "createTrace(options)",
+        "startSpan(name)",
+        "span.end()",
+        "trace.inject(msg)"
+      ],
+      "storage": "SQLite for trace persistence"
+    },
+    "real_time_status": {
+      "transport": "SSE preferred over WebSocket (simpler, auto-reconnect, proxy-friendly)",
+      "pattern": "Workers → Redis Pub/Sub → SSE Server → Dashboard",
+      "events": ["task.status", "worker.status", "system.health"]
+    }
+  },
+  "tasks": [
+    "opencode-0pn1: Create circuit-breaker.js core library",
+    "opencode-yjdj: Integrate circuit breaker with MCP",
+    "opencode-5kdw: Add chokidar and create hot-reload manager",
+    "opencode-3wu9: Update config.js with hot reload",
+    "opencode-y2eq: Create MCP mock server class",
+    "opencode-tetd: Update tests to use MCP mock",
+    "opencode-5vnx: Create GitHub Actions workflow",
+    "opencode-idqw: Create test fixture registry",
+    "opencode-39k0: Create test cleanup manager",
+    "opencode-oo1a: Create file-reservation.js core",
+    "opencode-pmzb: Create file-reservation plugin",
+    "opencode-agaf: Create file-reservation CLI",
+    "opencode-wn20: Create lightweight tracing lib",
+    "opencode-ah0b: Integrate tracing with coordinator",
+    "opencode-bdb0: Create SSE status stream server",
+    "opencode-taef: Add dead letter retry commands"
+  ]
+}
