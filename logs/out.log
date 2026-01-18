@@ -1,0 +1,96 @@
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.075Z] [Worker-75430] Headless worker starting... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.075Z] [Worker-75429] Headless worker starting... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.100Z] [Worker-75431] Headless worker starting... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.135Z] [Worker-75432] Headless worker starting... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.137Z] [Worker-75432] Initializing headless worker... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.137Z] [Worker-75432] [Coordinator] Starting Parallel Task Coordinator... {}
+2026-01-18 11:09:38 +05:30: [WorkerRegistry] Initialized with 3 workers
+2026-01-18 11:09:38 +05:30: [MessagePersistence] Initialized at /Users/buddhi/.mcp-agent-mail/messages.db
+2026-01-18 11:09:38 +05:30: [TaskClaim] Initialized with 0 active claims
+2026-01-18 11:09:38 +05:30: [DeadLetter] Initialized at /Users/buddhi/.mcp-agent-mail/dead-letters.db
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.148Z] [Worker-75432] [Coordinator] Parallel Task Coordinator started {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.148Z] [Worker-75432] Coordinator started, registering worker... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.148Z] [Worker-75432] [Coordinator] Registering worker: headless-worker-75432 {
+  metadata: {
+    pid: 75432,
+    instance: 'worker-75432',
+    capabilities: [ 'task-execution' ]
+  }
+}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.149Z] [Worker-75432] Worker registered: headless-worker-75432 {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.149Z] [Worker-75432] Starting heartbeat... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.150Z] [Worker-75432] Entering main work loop... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.079Z] [Worker-75430] Initializing headless worker... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.079Z] [Worker-75430] [Coordinator] Starting Parallel Task Coordinator... {}
+2026-01-18 11:09:38 +05:30: [WorkerRegistry] Initialized with 0 workers
+2026-01-18 11:09:38 +05:30: [MessagePersistence] Initialized at /Users/buddhi/.mcp-agent-mail/messages.db
+2026-01-18 11:09:38 +05:30: [TaskClaim] Initialized with 0 active claims
+2026-01-18 11:09:38 +05:30: [DeadLetter] Initialized at /Users/buddhi/.mcp-agent-mail/dead-letters.db
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.096Z] [Worker-75430] [Coordinator] Parallel Task Coordinator started {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.096Z] [Worker-75430] Coordinator started, registering worker... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.097Z] [Worker-75430] [Coordinator] Registering worker: headless-worker-75430 {
+  metadata: {
+    pid: 75430,
+    instance: 'worker-75430',
+    capabilities: [ 'task-execution' ]
+  }
+}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.100Z] [Worker-75430] Worker registered: headless-worker-75430 {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.100Z] [Worker-75430] Starting heartbeat... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.101Z] [Worker-75430] Entering main work loop... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.079Z] [Worker-75429] Initializing headless worker... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.079Z] [Worker-75429] [Coordinator] Starting Parallel Task Coordinator... {}
+2026-01-18 11:09:38 +05:30: [WorkerRegistry] Initialized with 0 workers
+2026-01-18 11:09:38 +05:30: [MessagePersistence] Initialized at /Users/buddhi/.mcp-agent-mail/messages.db
+2026-01-18 11:09:38 +05:30: [TaskClaim] Initialized with 0 active claims
+2026-01-18 11:09:38 +05:30: [DeadLetter] Initialized at /Users/buddhi/.mcp-agent-mail/dead-letters.db
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.096Z] [Worker-75429] [Coordinator] Parallel Task Coordinator started {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.096Z] [Worker-75429] Coordinator started, registering worker... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.097Z] [Worker-75429] [Coordinator] Registering worker: headless-worker-75429 {
+  metadata: {
+    pid: 75429,
+    instance: 'worker-75429',
+    capabilities: [ 'task-execution' ]
+  }
+}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.098Z] [Worker-75429] Worker registered: headless-worker-75429 {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.098Z] [Worker-75429] Starting heartbeat... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.099Z] [Worker-75429] Entering main work loop... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.101Z] [Worker-75431] Initializing headless worker... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.102Z] [Worker-75431] [Coordinator] Starting Parallel Task Coordinator... {}
+2026-01-18 11:09:38 +05:30: [WorkerRegistry] Initialized with 2 workers
+2026-01-18 11:09:38 +05:30: [MessagePersistence] Initialized at /Users/buddhi/.mcp-agent-mail/messages.db
+2026-01-18 11:09:38 +05:30: [TaskClaim] Initialized with 0 active claims
+2026-01-18 11:09:38 +05:30: [DeadLetter] Initialized at /Users/buddhi/.mcp-agent-mail/dead-letters.db
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.109Z] [Worker-75431] [Coordinator] Parallel Task Coordinator started {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.109Z] [Worker-75431] Coordinator started, registering worker... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.109Z] [Worker-75431] [Coordinator] Registering worker: headless-worker-75431 {
+  metadata: {
+    pid: 75431,
+    instance: 'worker-75431',
+    capabilities: [ 'task-execution' ]
+  }
+}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.110Z] [Worker-75431] Worker registered: headless-worker-75431 {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.110Z] [Worker-75431] Starting heartbeat... {}
+2026-01-18 11:09:38 +05:30: [2026-01-18T05:39:38.110Z] [Worker-75431] Entering main work loop... {}
+2026-01-18 11:10:08 +05:30: [2026-01-18T05:40:08.125Z] [Worker-75431] Heartbeat sent {}
+2026-01-18 11:10:08 +05:30: [2026-01-18T05:40:08.127Z] [Worker-75429] Heartbeat sent {}
+2026-01-18 11:10:08 +05:30: [2026-01-18T05:40:08.151Z] [Worker-75432] Heartbeat sent {}
+2026-01-18 11:10:08 +05:30: [2026-01-18T05:40:08.155Z] [Worker-75430] Heartbeat sent {}
+2026-01-18 11:10:38 +05:30: [2026-01-18T05:40:38.142Z] [Worker-75429] Heartbeat sent {}
+2026-01-18 11:10:38 +05:30: [2026-01-18T05:40:38.143Z] [Worker-75431] Heartbeat sent {}
+2026-01-18 11:10:38 +05:30: [2026-01-18T05:40:38.152Z] [Worker-75432] Heartbeat sent {}
+2026-01-18 11:10:38 +05:30: [2026-01-18T05:40:38.155Z] [Worker-75430] Heartbeat sent {}
+2026-01-18 11:11:08 +05:30: [2026-01-18T05:41:08.143Z] [Worker-75431] Heartbeat sent {}
+2026-01-18 11:11:08 +05:30: [2026-01-18T05:41:08.153Z] [Worker-75432] Heartbeat sent {}
+2026-01-18 11:11:08 +05:30: [2026-01-18T05:41:08.156Z] [Worker-75430] Heartbeat sent {}
+2026-01-18 11:11:08 +05:30: [2026-01-18T05:41:08.177Z] [Worker-75429] Heartbeat sent {}
+2026-01-18 11:11:38 +05:30: [2026-01-18T05:41:38.145Z] [Worker-75431] Heartbeat sent {}
+2026-01-18 11:11:38 +05:30: [2026-01-18T05:41:38.155Z] [Worker-75432] Heartbeat sent {}
+2026-01-18 11:11:38 +05:30: [2026-01-18T05:41:38.157Z] [Worker-75430] Heartbeat sent {}
+2026-01-18 11:11:38 +05:30: [2026-01-18T05:41:38.177Z] [Worker-75429] Heartbeat sent {}
+2026-01-18 11:12:04 +05:30: [2026-01-18T05:42:04.154Z] [Worker-75430] Received SIGINT, shutting down gracefully... {}
+2026-01-18 11:12:04 +05:30: [2026-01-18T05:42:04.154Z] [Worker-75429] Received SIGINT, shutting down gracefully... {}
+2026-01-18 11:12:04 +05:30: [2026-01-18T05:42:04.272Z] [Worker-75432] Received SIGINT, shutting down gracefully... {}
+2026-01-18 11:12:04 +05:30: [2026-01-18T05:42:04.284Z] [Worker-75431] Received SIGINT, shutting down gracefully... {}

@@ -1,0 +1,16 @@
+Quality Gates
+[Guardrails] Initialized for task opencode-integration-test
+[Beads] Error showing task: Command failed: bd show opencode-integration-test
+Error: resolving ID opencode-integration-test: operation failed: failed to resolve ID: no issue found matching "opencode-integration-test"
+
+[Workflow] Starting workflow: planning
+[Branch] Checking out task branch: beads/task-opencode-integration-test
+[Branch] Branch does not exist, creating from main: beads/task-opencode-integration-test
+[Branch] Error during branch checkout: Command failed: git checkout -b beads/task-opencode-integration-test main 2>&1
+
+[Workflow] ✗ Failed to checkout task branch
+[Workflow] Reason: Command failed: git checkout -b beads/task-opencode-integration-test main 2>&1
+
+[Beads] Error updating task: Command failed: bd update opencode-integration-test --status blocked --notes Failed to checkout task branch: Command failed: git checkout -b beads/task-opencode-integration-test main 2>&1
+
+

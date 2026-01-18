@@ -1,151 +1,219 @@
 #!/usr/bin/env node
 
-const { execSync } = require('node:child_process');
-const pid = process.pid;
+/**
+ * Headless Worker for Parallel Task Execution
+ *
+ * Uses the Parallel Task Coordinator for atomic task claiming
+ * instead of PID-based race conditions.
+ */
 
-function run(cmd, throwOnError = true) {
-  try {
-    return execSync(cmd, {
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    }).trim();
-  } catch (error) {
-    if (throwOnError) {
-      console.error(`Command failed: ${cmd}`);
-      console.error(`Error: ${error.message}`);
-      throw error;
-    }
-    return null;
-  }
+import { createParallelTaskCoordinator } from '../lib/parallel-task-coordinator/index.js';
+
+const pid = process.pid;
+const workerId = `headless-worker-${pid}`;
+
+let coordinator = null;
+let isShuttingDown = false;
+
+/**
+ * Log with worker prefix
+ */
+function log(level, message, data = {}) {
+  const timestamp = new Date().toISOString();
+  console[level](`[${timestamp}] [Worker-${pid}] ${message}`, data);
 }
 
+/**
+ * Sleep for a given duration
+ */
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function claimTask() {
-  // Worker-specific delay to prevent race conditions
-  const workerDelay = (pid % 4) * 1000; // 0-3s delay based on PID
-  console.log(
-    `Worker PID ${pid}: waiting ${workerDelay}ms to reduce race conditions`,
-  );
-  await sleep(workerDelay);
+/**
+ * Initialize the worker with the coordinator
+ */
+async function initialize() {
+  log('info', 'Initializing headless worker...');
 
-  try {
-    // Get ready tasks (excludes in-progress tasks)
-    const readyOutput = run('bd ready');
+  coordinator = createParallelTaskCoordinator({
+    coordinatorName: 'task-coordinator',
+    logger: {
+      info: log.bind(null, 'info'),
+      warn: log.bind(null, 'warn'),
+      error: log.bind(null, 'error'),
+      debug: log.bind(null, 'debug'),
+    },
+  });
 
-    if (!readyOutput || readyOutput.includes('No ready work')) {
-      return null;
-    }
+  await coordinator.start();
 
-    // Find first task ID in ready output
-    const taskId = readyOutput.match(/opencode-\w+/)?.[0];
-    if (!taskId) {
-      console.error('Could not extract task ID from output');
-      return null;
-    }
+  log('info', 'Coordinator started, registering worker...');
 
-    // Try to claim this task by setting to in_progress
-    // This will fail if another worker already claimed it
-    try {
-      run(`bd update ${taskId} --status in_progress`);
-      console.log(`✓ PID ${pid}: Claimed task: ${taskId}`);
-      return taskId;
-    } catch (_error) {
-      // Task was already claimed by another worker
-      console.log(`PID ${pid}: Task ${taskId} already claimed, trying next...`);
-      return null;
-    }
-  } catch (error) {
-    console.error(`PID ${pid}: Error in claimTask:`, error.message);
-    return null;
+  const registerResult = await coordinator.registerWorker(workerId, {
+    pid,
+    instance: `worker-${pid}`,
+    capabilities: ['task-execution'],
+  });
+
+  if (!registerResult.success) {
+    log('error', 'Failed to register worker', registerResult);
+    process.exit(1);
   }
-}
 
-async function executeTask(taskId) {
-  // Simulate task execution (since opencode-task doesn't exist)
-  console.log(`PID ${pid}: 🚀 Simulating execution for: ${taskId}`);
+  log('info', `Worker registered: ${workerId}`);
 
-  // Sleep for 2 seconds to simulate work
-  await sleep(2000);
-
-  // Read task description
-  const taskOutput = run(`bd show ${taskId}`);
-  console.log(
-    `PID ${pid}: Task details:`,
-    `${taskOutput.substring(0, 100)}...`,
-  );
+  // Start heartbeat
+  await startHeartbeat();
 
   return true;
 }
 
-async function main() {
-  console.log(`🔍 PID ${pid}: Worker started, looking for tasks...`);
+/**
+ * Start heartbeat to coordinator
+ */
+async function startHeartbeat() {
+  log('info', 'Starting heartbeat...');
 
-  // Try to claim a task
-  const taskId = await claimTask();
+  await coordinator.sendHeartbeat(workerId);
 
-  if (!taskId) {
-    console.log(`PID ${pid}: No available tasks, sleeping 5s then exiting`);
-    setTimeout(() => process.exit(0), 5000);
-    return;
-  }
+  // Heartbeat interval (30 seconds)
+  setInterval(async () => {
+    if (isShuttingDown) return;
 
-  console.log(`PID ${pid}: 📋 Working on: ${taskId}`);
-
-  // Try MCP file reservations (optional)
-  let reservationsMade = false;
-  try {
-    run(
-      `python3 -c "import asyncio; from mcp_agent_mail_client import reserve_file_paths, get_project_key; asyncio.run(reserve_file_paths(project_key=get_project_key(), agent_name='headless-worker', paths=['src/**/*', 'tests/**/*'], ttl_seconds=3600))"`,
-      false,
-    );
-    console.log(`PID ${pid}: ✓ File paths reserved via MCP`);
-    reservationsMade = true;
-  } catch (_error) {
-    console.log(
-      `PID ${pid}: ⚠ MCP file reservations not available (continuing without file locking)`,
-    );
-    // Continue without MCP - this is OK for testing
-  }
-
-  // Execute task (simulated)
-  try {
-    await executeTask(taskId);
-
-    // On success - complete task
-    run(`bd close ${taskId} --reason="Completed"`);
-    console.log(`PID ${pid}: ✓ Task ${taskId} completed successfully`);
-  } catch (error) {
-    // On failure - mark as failed
-    console.error(`PID ${pid}: ✗ Task ${taskId} failed: ${error.message}`);
     try {
-      run(`bd close ${taskId} --reason="Failed: ${error.message}"`, false);
-    } catch (closeError) {
-      console.error(`PID ${pid}: Could not close task:`, closeError.message);
-    }
-  }
-
-  // Release file reservations if they were made
-  if (reservationsMade) {
-    try {
-      run(
-        `python3 -c "import asyncio; from mcp_agent_mail_client import release_file_reservations, get_project_key; asyncio.run(release_file_reservations(project_key=get_project_key(), agent_name='headless-worker'))"`,
-        false,
-      );
-      console.log(`PID ${pid}: ✓ File paths released`);
+      await coordinator.sendHeartbeat(workerId);
+      log('debug', 'Heartbeat sent');
     } catch (error) {
-      console.warn(
-        `PID ${pid}: ⚠ Could not release file reservations:`,
-        error.message,
-      );
+      log('warn', 'Heartbeat failed', { error: error.message });
+    }
+  }, 30000);
+}
+
+/**
+ * Execute a single task
+ */
+async function executeTask(taskId) {
+  log('info', `Executing task: ${taskId}`);
+
+  try {
+    // Get task details
+    const { execSync } = await import('child_process');
+    const taskOutput = execSync(`bd show ${taskId}`, { encoding: 'utf8' });
+
+    log('info', `Task details retrieved for: ${taskId}`);
+    log('debug', `Task output: ${taskOutput.substring(0, 200)}...`);
+
+    // Simulate task execution
+    await sleep(2000);
+
+    // Complete the task
+    await coordinator.completeTask(workerId, taskId, { result: 'success' });
+
+    log('info', `Task ${taskId} completed successfully`);
+
+    return true;
+  } catch (error) {
+    log('error', `Task ${taskId} failed`, { error: error.message });
+
+    // Fail the task
+    await coordinator.failTask(workerId, taskId, error.message);
+
+    return false;
+  }
+}
+
+/**
+ * Main worker loop
+ */
+async function main() {
+  log('info', 'Headless worker starting...');
+
+  await initialize();
+
+  log('info', 'Entering main work loop...');
+
+  while (!isShuttingDown) {
+    try {
+      // Try to claim a task
+      const claimResult = await coordinator.claimTask(workerId, {
+        capabilities: ['task-execution'],
+        priority: 'normal',
+        max_tasks: 1,
+      });
+
+      if (claimResult.success) {
+        log('info', `Claimed task: ${claimResult.task_id}`);
+
+        await executeTask(claimResult.task_id);
+      } else {
+        // No tasks available or claim failed
+        if (claimResult.error === 'no_ready_tasks') {
+          log('debug', 'No tasks available, waiting...');
+          await sleep(5000);
+        } else if (claimResult.error === 'worker_task_limit_reached') {
+          log('debug', 'Task limit reached, waiting...');
+          await sleep(5000);
+        } else if (claimResult.error === 'claim_race_condition') {
+          // Another worker claimed first, quick retry
+          await sleep(100);
+        } else {
+          log('warn', `Claim failed: ${claimResult.error}`, claimResult);
+          await sleep(5000);
+        }
+      }
+    } catch (error) {
+      log('error', 'Error in main loop', { error: error.message });
+      await sleep(5000);
     }
   }
 
-  // Exit -> PM2 restarts -> claims next task
-  console.log(`PID ${pid}: Worker exiting, PM2 will restart`);
+  log('info', 'Worker shutting down...');
+}
+
+/**
+ * Graceful shutdown
+ */
+async function shutdown(signal) {
+  if (isShuttingDown) return;
+
+  isShuttingDown = true;
+  log('info', `Received ${signal}, shutting down gracefully...`);
+
+  try {
+    if (coordinator) {
+      await coordinator.unregisterWorker(workerId);
+      log('info', 'Worker unregistered');
+
+      await coordinator.stop();
+      log('info', 'Coordinator stopped');
+    }
+  } catch (error) {
+    log('error', 'Error during shutdown', { error: error.message });
+  }
+
   process.exit(0);
 }
 
-main();
+// Handle shutdown signals
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Handle uncaught errors
+process.on('uncaughtException', (error) => {
+  log('error', 'Uncaught exception', {
+    error: error.message,
+    stack: error.stack,
+  });
+  shutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  log('error', 'Unhandled rejection', { reason: String(reason) });
+});
+
+// Start the worker
+main().catch((error) => {
+  log('error', 'Worker failed to start', { error: error.message });
+  process.exit(1);
+});

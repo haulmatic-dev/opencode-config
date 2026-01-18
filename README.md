@@ -39,6 +39,21 @@ opencode brings together best-in-class AI development tools into a unified, hook
   - [Beads Viewer (bv)](#beads-viewer-bv)
   - [Ultimate Bug Scanner (UBS)](#ultimate-bug-scanner-ubs)
   - [Plugin System](#plugin-system)
+- [Quality Gates System](#quality-gates-system)
+  - [Gate Configuration](#gate-configuration)
+  - [Error Handling](#error-handling)
+  - [Gate Caching](#gate-caching)
+  - [Metrics Collection](#metrics-collection)
+  - [Visual Dashboard](#visual-dashboard)
+  - [File Reservation](#file-reservation)
+  - [SPOF Mitigation](#spof-mitigation)
+  - [CLI Tools](#cli-tools)
+  - [Test File Detection](#test-file-detection)
+- [Parallel Task Coordinator](#parallel-task-coordinator)
+  - [Architecture](#architecture)
+  - [Key Components](#key-components)
+  - [Worker Lifecycle](#worker-lifecycle)
+  - [Running Workers](#running-workers)
 - [Hook System](#hook-system)
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
@@ -817,6 +832,222 @@ export const MyPlugin = async ({ project, client, $, directory, worktree }) => {
 ```
 
 For detailed plugin documentation, see [plugin/README.md](./plugin/README.md).
+
+---
+
+## Quality Gates System
+
+opencode includes a comprehensive quality gates system for ensuring code quality across all agent executions.
+
+### Gate Configuration
+
+Quality gates are configured via `config/gates.json`:
+
+```json
+{
+  "gates": {
+    "timeout": 300000,
+    "failOnMissingTools": true,
+    "continueOnError": false
+  },
+  "thresholds": {
+    "mutation": 80,
+    "coverage": 80,
+    "maxDuration": 600000
+  },
+  "testPatterns": ["**/*.test.js", "**/*.spec.js", "**/tests/**/*.js", "**/__tests__/**/*.js"],
+  "ignorePatterns": ["node_modules/**", ".git/**", "dist/**", "build/**", "coverage/**"]
+}
+```
+
+### Error Handling
+
+The gates system provides structured error types:
+
+```javascript
+import { ErrorTypes, classifyError } from 'lib/runner/utils/errors.js';
+
+// Error types
+ErrorTypes.MISSING_TOOL; // Required tool not found
+ErrorTypes.VALIDATION_ERROR; // Input validation failed
+ErrorTypes.RUNTIME_ERROR; // Execution failed
+
+// Classify errors
+const error = classifyError(new Error('tool not found'));
+// Returns: { type: 'MISSING_TOOL', code: 'MISSING_TOOL', message: '...', context: {...} }
+```
+
+### Gate Caching
+
+Gate results are cached to avoid redundant work:
+
+```javascript
+import { gateCache } from 'lib/runner/cache.js';
+
+// Check cache
+const cached = gateCache.get('test', '/path/to/file.js');
+if (cached) {
+  // Use cached result
+}
+
+// Set cache
+gateCache.set('test', '/path/to/file.js', { passed: true, details: {...} });
+
+// Clear cache
+gateCache.clear();
+```
+
+### Metrics Collection
+
+Track gate execution metrics:
+
+```javascript
+import { metrics } from 'lib/runner/metrics.js';
+
+// Record execution
+metrics.record('test', 150, true); // gate, durationMs, passed
+
+// Get statistics
+const stats = metrics.getStats('test');
+// Returns: { count, avgDuration, passRate, percentiles: {...} }
+
+// Get all metrics
+const all = metrics.getAll();
+```
+
+### Visual Dashboard
+
+View gate status in real-time:
+
+```bash
+# Gate status dashboard
+node bin/gate-status.js
+
+# Metrics CLI
+node bin/gate-metrics.js
+
+# File reservation status
+node bin/file-reservation.js
+```
+
+### File Reservation
+
+Reserve files to prevent concurrent modifications:
+
+```javascript
+import { FileReservation } from 'lib/runner/file-reservation.js';
+
+const reservation = new FileReservation();
+
+// Check if file is reserved
+const info = reservation.getStatus('/path/to/file.js');
+if (info && info.reserved) {
+  console.log(`Reserved by ${info.owner} until ${info.expiresAt}`);
+}
+
+// Reserve a file
+const result = reservation.reserve('/path/to/file.js', 'agent-name');
+```
+
+### SPOF Mitigation
+
+The file coordinator provides fallback coordination when MCP Agent Mail is unavailable:
+
+```javascript
+import { FileCoordinator } from 'lib/runner/file-coordinator.js';
+
+const coordinator = new FileCoordinator();
+await coordinator.start();
+
+// Files are coordinated via local filesystem locks
+await coordinator.stop();
+```
+
+### CLI Tools
+
+| Tool                      | Purpose                                      |
+| ------------------------- | -------------------------------------------- |
+| `bin/gate-status.js`      | Real-time gate status dashboard              |
+| `bin/gate-metrics.js`     | Metrics collection and reporting             |
+| `bin/file-reservation.js` | File reservation management                  |
+| `bin/coordinator-mode.js` | Switch between MCP and fallback coordination |
+
+### Test File Detection
+
+Automatically detect test files:
+
+```javascript
+import { TestDetector } from 'lib/runner/utils/test-detector.js';
+
+const detector = new TestDetector();
+
+// Check if file is a test
+detector.isTestFile('/src/auth.test.js'); // true
+detector.isTestFile('/src/auth.js'); // false
+
+// Detect test framework
+detector.detectFramework('/src/auth.test.js'); // 'jest' | 'vitest' | etc.
+```
+
+---
+
+## Parallel Task Coordinator
+
+The parallel task coordinator enables distributed task execution across multiple workers using MCP Agent Mail for coordination.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Parallel Task Coordinator                 │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐        │
+│  │ Worker 1│  │ Worker 2│  │ Worker 3│  │ Worker 4│        │
+│  │ (PM2)   │  │ (PM2)   │  │ (PM2)   │  │ (PM2)   │        │
+│  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘        │
+│       │            │            │            │              │
+│       └────────────┴─────┬──────┴────────────┘              │
+│                          │                                   │
+│                   MCP Agent Mail                            │
+│              (Agent coordination & messaging)               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Components
+
+| Component                                        | Purpose                    |
+| ------------------------------------------------ | -------------------------- |
+| `lib/parallel-task-coordinator/mail-client.js`   | MCP Agent Mail integration |
+| `lib/parallel-task-coordinator/task-claimant.js` | Atomic task claiming       |
+| `lib/parallel-task-coordinator/task-executor.js` | Task execution logic       |
+| `lib/parallel-task-coordinator/worker-health.js` | Health monitoring          |
+| `bin/parallel-coordinator.js`                    | CLI entry point            |
+
+### Worker Lifecycle
+
+1. **Poll**: Worker polls Beads for available tasks
+2. **Claim**: Worker atomically claims task via MCP Agent Mail
+3. **Execute**: Worker executes task using opencode
+4. **Complete**: On success, close task and release reservation
+5. **Fail**: On failure, mark failed and release reservation
+6. **Restart**: PM2 auto-restarts worker for next task
+
+### Running Workers
+
+```bash
+# Start workers (4 parallel by default)
+pm2 start ecosystem.config.js
+
+# Scale workers
+pm2 scale headless-swarm 8
+
+# Check status
+pm2 list
+pm2 logs headless-swarm
+
+# Stop all
+pm2 stop all
+```
 
 ---
 
