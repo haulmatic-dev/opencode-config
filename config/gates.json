@@ -4,6 +4,10 @@
     "failOnMissingTools": true,
     "continueOnError": false
   },
+  "circuitBreaker": {
+    "failureThreshold": 5,
+    "resetTimeout": 30000
+  },
   "thresholds": {
     "mutation": 80,
     "coverage": 80,

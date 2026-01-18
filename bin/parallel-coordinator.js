@@ -6,11 +6,16 @@
  * CLI tool for managing the parallel task coordinator system.
  *
  * Usage:
- *   node bin/parallel-coordinator.js status        - Show coordinator status
- *   node bin/parallel-coordinator.js workers       - List registered workers
- *   node bin/parallel-coordinator.js dead-letters  - List dead letters
- *   node bin/parallel-coordinator.js retry <id>    - Retry a dead letter
- *   node bin/parallel-coordinator.js resolve <id>  - Mark dead letter resolved
+ *   node bin/parallel-coordinator.js status          - Show coordinator status
+ *   node bin/parallel-coordinator.js workers         - List registered workers
+ *   node bin/parallel-coordinator.js dead-letters    - List dead letters
+ *   node bin/parallel-coordinator.js retry <id>      - Retry a dead letter
+ *   node bin/parallel-coordinator.js retry --all     - Retry all pending dead letters
+ *   node bin/parallel-coordinator.js retry --filter type=XXX - Filtered retry
+ *   node bin/parallel-coordinator.js retry --dry-run - Preview retry without executing
+ *   node bin/parallel-coordinator.js resolve <id>    - Mark dead letter resolved
+ *   node bin/parallel-coordinator.js stats           - Show statistics
+ *   node bin/parallel-coordinator.js stats --trends  - Show failure trends
  */
 
 import {
@@ -167,6 +172,129 @@ async function retry(deadLetterId) {
   }
 }
 
+async function retryAll(dryRun = false) {
+  console.log('\n=== Retrying All Pending Dead Letters ===\n');
+
+  try {
+    const { default: sqlite3 } = await import('better-sqlite3');
+    const db = new sqlite3(DEAD_LETTERS_DB);
+
+    const stmt = db.prepare(
+      'SELECT * FROM dead_letters WHERE resolved = 0 ORDER BY failed_at ASC',
+    );
+    const rows = stmt.all();
+
+    if (rows.length === 0) {
+      console.log('No pending dead letters to retry.');
+      db.close();
+      return;
+    }
+
+    console.log(`Found ${rows.length} pending dead letter(s).\n`);
+
+    const deadLetter = createDeadLetter();
+    await deadLetter.initialize();
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const row of rows) {
+      if (dryRun) {
+        console.log(`[DRY-RUN] Would retry: ${row.id} (${row.type})`);
+        successCount++;
+      } else {
+        const message = await deadLetter.retry(row.id);
+        if (message) {
+          console.log(`Retried: ${row.id} (${row.type})`);
+          successCount++;
+        } else {
+          console.log(`Failed to retry: ${row.id}`);
+          failCount++;
+        }
+      }
+    }
+
+    await deadLetter.close();
+    db.close();
+
+    console.log(
+      `\n${dryRun ? '[DRY-RUN] ' : ''}Total: ${rows.length} | Retried: ${successCount} | Failed: ${failCount}`,
+    );
+  } catch (error) {
+    console.error('Error retrying all dead letters:', error.message);
+  }
+}
+
+async function retryFiltered(filterStr, dryRun = false) {
+  const filterParts = filterStr.split('=');
+  const filterType = filterParts[0];
+  const filterValue = filterParts[1];
+
+  if (filterType !== 'type' || !filterValue) {
+    console.error('Error: Invalid filter format. Use: type=XXX');
+    return;
+  }
+
+  console.log(`\n=== Retrying Dead Letters with filter: ${filterStr} ===\n`);
+
+  try {
+    const { default: sqlite3 } = await import('better-sqlite3');
+    const db = new sqlite3(DEAD_LETTERS_DB);
+
+    const stmt = db.prepare(
+      'SELECT * FROM dead_letters WHERE resolved = 0 AND type = ? ORDER BY failed_at ASC',
+    );
+    const rows = stmt.all(filterValue);
+
+    if (rows.length === 0) {
+      console.log(`No pending dead letters matching filter: ${filterStr}`);
+      db.close();
+      return;
+    }
+
+    console.log(`Found ${rows.length} matching dead letter(s).\n`);
+
+    const deadLetter = createDeadLetter();
+    await deadLetter.initialize();
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const row of rows) {
+      if (dryRun) {
+        console.log(`[DRY-RUN] Would retry: ${row.id} (${row.type})`);
+        successCount++;
+      } else {
+        const message = await deadLetter.retry(row.id);
+        if (message) {
+          console.log(`Retried: ${row.id} (${row.type})`);
+          successCount++;
+        } else {
+          console.log(`Failed to retry: ${row.id}`);
+          failCount++;
+        }
+      }
+    }
+
+    await deadLetter.close();
+    db.close();
+
+    console.log(
+      `\n${dryRun ? '[DRY-RUN] ' : ''}Total: ${rows.length} | Retried: ${successCount} | Failed: ${failCount}`,
+    );
+  } catch (error) {
+    console.error('Error retrying filtered dead letters:', error.message);
+  }
+}
+
+async function retryDryRun(filterStr) {
+  if (filterStr) {
+    await retryFiltered(filterStr, true);
+  } else {
+    await retryAll(true);
+  }
+}
+
 async function resolve(deadLetterId, resolution = 'skipped') {
   console.log(`\n=== Resolving Dead Letter: ${deadLetterId} ===\n`);
 
@@ -252,6 +380,76 @@ async function stats() {
   }
 }
 
+async function statsTrends() {
+  console.log('\n=== Failure Trends ===\n');
+
+  try {
+    const { default: sqlite3 } = await import('better-sqlite3');
+    const db = new sqlite3(DEAD_LETTERS_DB);
+
+    // Failures by type
+    const typeStmt = db.prepare(
+      'SELECT type, COUNT(*) as count FROM dead_letters GROUP BY type ORDER BY count DESC',
+    );
+    const typeRows = typeStmt.all();
+
+    console.log('Failures by Type:');
+    if (typeRows.length === 0) {
+      console.log('  No data');
+    } else {
+      for (const row of typeRows) {
+        console.log(`  ${row.type}: ${row.count}`);
+      }
+    }
+
+    // Failures by day (last 7 days)
+    const dateStmt = db.prepare(`
+      SELECT DATE(failed_at) as date, COUNT(*) as count
+      FROM dead_letters
+      WHERE failed_at >= datetime('now', '-7 days')
+      GROUP BY DATE(failed_at)
+      ORDER BY date ASC
+    `);
+    const dateRows = dateStmt.all();
+
+    console.log('\nFailures by Day (Last 7 Days):');
+    if (dateRows.length === 0) {
+      console.log('  No data');
+    } else {
+      for (const row of dateRows) {
+        console.log(`  ${row.date}: ${row.count}`);
+      }
+    }
+
+    // Error messages
+    const errorStmt = db.prepare(`
+      SELECT error, COUNT(*) as count
+      FROM dead_letters
+      GROUP BY error
+      ORDER BY count DESC
+      LIMIT 5
+    `);
+    const errorRows = errorStmt.all();
+
+    console.log('\nTop Error Messages:');
+    if (errorRows.length === 0) {
+      console.log('  No data');
+    } else {
+      for (const row of errorRows) {
+        const truncatedError =
+          row.error.length > 60
+            ? row.error.substring(0, 60) + '...'
+            : row.error;
+        console.log(`  ${truncatedError}: ${row.count}`);
+      }
+    }
+
+    db.close();
+  } catch (error) {
+    console.error('Error getting trends:', error.message);
+  }
+}
+
 async function help() {
   console.log(`
 Parallel Task Coordinator CLI
@@ -263,15 +461,22 @@ Commands:
   workers             List all registered workers
   dead-letters        List all dead letters
   retry <id>          Retry a dead letter
+  retry --all         Retry all pending dead letters
+  retry --filter type=XXX  Retry dead letters matching filter
+  retry --dry-run     Preview retry without executing
   resolve <id> [type] Mark a dead letter as resolved (type: retried, skipped, escalated)
   stats               Show message and worker statistics
+  stats --trends      Show failure trends over time
   help                Show this help message
 
 Examples:
   node bin/parallel-coordinator.js status
   node bin/parallel-coordinator.js dead-letters
   node bin/parallel-coordinator.js retry dl-uuid-123
-  node bin/parallel-coordinator.js resolve dl-uuid-123 retried
+  node bin/parallel-coordinator.js retry --all
+  node bin/parallel-coordinator.js retry --filter type=task-failed
+  node bin/parallel-coordinator.js retry --dry-run
+  node bin/parallel-coordinator.js stats --trends
 `);
 }
 
@@ -288,12 +493,39 @@ Examples:
       await deadLetters();
       break;
     case 'retry':
-      if (!args[1]) {
-        console.error('Error: Dead letter ID required');
+      if (args.includes('--all')) {
+        await retryAll(args.includes('--dry-run'));
+      } else if (args.includes('--dry-run')) {
+        const filterIndex = args.indexOf('--filter');
+        if (filterIndex !== -1 && args[filterIndex + 1]) {
+          await retryDryRun(args[filterIndex + 1]);
+        } else {
+          await retryDryRun();
+        }
+      } else if (args.includes('--filter')) {
+        const filterIndex = args.indexOf('--filter');
+        if (args[filterIndex + 1]) {
+          await retryFiltered(args[filterIndex + 1], false);
+        } else {
+          console.error('Error: --filter requires a value (e.g., type=XXX)');
+          process.exit(1);
+        }
+      } else if (args[1]) {
+        await retry(args[1]);
+      } else {
+        console.error(
+          'Error: Dead letter ID required or use --all, --filter, or --dry-run',
+        );
         console.error('Usage: node bin/parallel-coordinator.js retry <id>');
+        console.error('       node bin/parallel-coordinator.js retry --all');
+        console.error(
+          '       node bin/parallel-coordinator.js retry --filter type=XXX',
+        );
+        console.error(
+          '       node bin/parallel-coordinator.js retry --dry-run',
+        );
         process.exit(1);
       }
-      await retry(args[1]);
       break;
     case 'resolve':
       if (!args[1]) {
@@ -306,7 +538,11 @@ Examples:
       await resolve(args[1], args[2] || 'skipped');
       break;
     case 'stats':
-      await stats();
+      if (args.includes('--trends')) {
+        await statsTrends();
+      } else {
+        await stats();
+      }
       break;
     case 'help':
     default:

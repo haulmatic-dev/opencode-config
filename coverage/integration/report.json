@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-01-18T09:13:39.130Z",
+  "mode": "integration",
+  "summary": {
+    "total": 3,
+    "passed": 1,
+    "failed": 2
+  },
+  "tests": [
+    {
+      "name": "Workflow Execution",
+      "status": "failed",
+      "exitCode": 1
+    },
+    {
+      "name": "Handoff Between Agents",
+      "status": "passed",
+      "exitCode": 0
+    },
+    {
+      "name": "Gates and Retry Loops",
+      "status": "failed",
+      "exitCode": 1
+    }
+  ]
+}
